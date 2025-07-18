@@ -1,0 +1,88 @@
+html, body{
+    height: 100%;
+    margin: 0;
+}
+
+.board{
+    background-color: cornflowerblue;
+    margin-left: 200px;
+    margin-right: 200px;
+    height: 100%;
+}
+
+
+.field-of-queen{
+    display: flex;
+    justify-content: center;
+}
+
+.row{
+    display: flex;
+    justify-content: center;
+}
+
+/* размеры клеток и фон клеток*/
+.kletka{
+    display: flex;
+    width: 52.75px;
+    height: 52.75px;
+}
+
+.nechetnaya{
+
+    background-color: green;
+}
+.chetnaya{
+    width: 52.75px;
+    height: 52.75px;
+    background-color: yellow;
+}
+
+/* задание вручную цвета фона для клеток, которым не соответствует четная - желтый, нечетная - зеленый*/
+#position10{
+    background-color: green;
+}
+#position54{
+    background-color: yellow;
+}
+#position55{
+    background-color: green;
+}
+#position56{
+    background-color: yellow;
+}
+#position57{
+    background-color: green;
+}
+#position58{
+    background-color: yellow;
+}
+#position59{
+    background-color: green;
+}
+#position60{
+    background-color: yellow;
+}
+#position61{
+    background-color: green;
+}
+#position62{
+    background-color: yellow;
+}
+
+/*стиль для дива с img с пешкой*/
+
+.image-in-kletka{
+    justify-content: center;
+    align-content: center;
+}
+
+/* для обводки вокруг черным и синим при нажатии */
+.highlight-black{
+    outline: 2px solid black;
+    outline-offset: -2px; /* Смещение обводки внутрь элемента */
+}
+.highlight-blue{
+    outline: 2px solid blue;
+    outline-offset: -2px; /* Смещение обводки внутрь элемента */
+}
