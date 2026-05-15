@@ -1,6 +1,5 @@
-# pieces/batyr.py
-from словари import batyr_moves_and_captures
-from .base import Piece
+from game_engine.словари import batyr_moves_and_captures
+from game_engine.pieces.base import Piece
 
 class Batyr(Piece):
     def __init__(self, color: str):

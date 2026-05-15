@@ -1,9 +1,8 @@
-# oop_style/board.py
 from typing import List, Tuple, Optional, Dict
-from .pieces.base import Piece
-from .pieces.shatra import Shatra
-from .pieces.biy import Biy
-from .pieces.batyr import Batyr
+from game_engine.pieces.base import Piece
+from game_engine.pieces.shatra import Shatra
+from game_engine.pieces.biy import Biy
+from game_engine.pieces.batyr import Batyr
 
 
 class Board:

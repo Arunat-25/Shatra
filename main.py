@@ -1,10 +1,9 @@
-# main.py
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 import uuid
 
-from oop_style.models import MoveData, MoveResult
-from oop_style.game_logic import GameLogic
+from game_engine.models import MoveData, MoveResult
+from game_engine.game_logic import GameLogic
 
 app = FastAPI()
 

@@ -1,6 +1,6 @@
 # pieces/shatra.py
-from словари import black_shatra_possible_moves, white_shatra_possible_moves, shatra_and_biy_possible_captures
-from .base import Piece
+from game_engine.словари import black_shatra_possible_moves, white_shatra_possible_moves, shatra_and_biy_possible_captures
+from game_engine.pieces.base import Piece
 
 class Shatra(Piece):
     def __init__(self, color: str):

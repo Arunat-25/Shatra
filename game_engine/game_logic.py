@@ -1,5 +1,5 @@
-from oop_style.models import MoveData, MoveResult
-from oop_style.board import Board
+from game_engine.models import MoveData, MoveResult
+from game_engine.board import Board
 from typing import List, Tuple, Optional
 import copy
 
@@ -201,7 +201,7 @@ class GameLogic:
                 
             # Для шатры и бия проверяем словарь взятий
             if piece_obj.get_type() in ["шатра", "бий"]:
-                from словари import shatra_and_biy_possible_captures
+                from game_engine.словари import shatra_and_biy_possible_captures
                 captures_map = shatra_and_biy_possible_captures.get(pos, {})
                 for to_pos, enemy_pos in captures_map.items():
                     enemy_name = board.positions.get(enemy_pos)
@@ -211,7 +211,7 @@ class GameLogic:
                         
             # Для батыра перебираем направления
             elif piece_obj.get_type() == "батыр":
-                from словари import batyr_moves_and_captures
+                from game_engine.словари import batyr_moves_and_captures
                 for direction in batyr_moves_and_captures.get(pos, []):
                     enemy_found = False
                     for idx, cell in enumerate(direction[:-1]):
@@ -235,7 +235,7 @@ class GameLogic:
     def _find_captured_enemy(self, board: Board, piece_obj, from_pos: int, to_pos: int) -> int | None:
         """Определяет позицию съеденной фигуры для обновления состояния"""
         if piece_obj.get_type() in ["шатра", "бий"]:
-            from словари import shatra_and_biy_possible_captures
+            from game_engine.словари import shatra_and_biy_possible_captures
             return shatra_and_biy_possible_captures.get(from_pos, {}).get(to_pos)
             
         if piece_obj.get_type() == "батыр":
