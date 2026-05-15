@@ -29,7 +29,7 @@ def piece_color(positions, piece_position):
     else:
         return 'черный'
 
-def can_piece_enter_in_fortress(positions, chosen_piece_position, target_position): # надо дописать чтобы шатра могла брать фигуру в крепости, даже если есть свои шатры
+def can_piece_enter_in_fortress(positions, chosen_piece_position, target_position): # надо дописать чтобы шатра могла брать фигуру в крепость, даже если есть свои шатры
     color_of_chosen_piece = piece_color(positions, chosen_piece_position)
     if color_of_chosen_piece == 'белый' and target_position in range(53, 63) and not (chosen_piece_position in range(53, 63)):
         for i in range(53, 63):
@@ -37,7 +37,9 @@ def can_piece_enter_in_fortress(positions, chosen_piece_position, target_positio
                 return False
         return True
     elif color_of_chosen_piece == 'белый' and target_position in range(53, 63) and chosen_piece_position in range(53, 63):
-        opponent_piece_position = shatra_and_biy_possible_captures[chosen_piece_position][target_position]
+        opponent_piece_position = shatra_and_biy_possible_captures[chosen_piece_position].get(target_position)
+        if opponent_piece_position is None:
+            return False
         opponent_piece_color = piece_color(positions, opponent_piece_position)
         if opponent_piece_color == 'черный':
             return True
@@ -48,7 +50,9 @@ def can_piece_enter_in_fortress(positions, chosen_piece_position, target_positio
                 return False
         return True
     elif color_of_chosen_piece == 'черный' and target_position in range(1, 11) and chosen_piece_position in range(1, 11):
-        opponent_piece_position = shatra_and_biy_possible_captures[chosen_piece_position][target_position]
+        opponent_piece_position = shatra_and_biy_possible_captures[chosen_piece_position].get(target_position)
+        if opponent_piece_position is None:
+            return False
         opponent_piece_color = piece_color(positions, opponent_piece_position)
         if opponent_piece_color == 'белый':
             return True
@@ -213,7 +217,7 @@ def move_or_capture_of_batyr(positions, chosen_piece_position, target_position):
                             if piece_color(positions, j) == 'белый': # если эта фигура белая
                                 position_of_enemy = j # то переменной хранящей позицию вражеской фигруы передаем этц позицию
 
-        elif color_chosen_piece == 'белый': # если ходят черные
+        elif color_chosen_piece == 'белый': # если ходят белые
             if not(can_piece_enter_in_fortress(positions, chosen_piece_position, target_position)): # проверяем батыр ходит ли в свою крепость, если да ходит проверяем есть ли своя шатра, а если не ходит в свою крепость, то true
                 return False
             else: # если батыр ходит не в свою крепость
@@ -267,7 +271,7 @@ def is_game_over(positions):
         show_desk(positions)
         text = 'Ничья! Позиция повторилась три раза.'
         return [True, text]
-    return [False]
+    return [False, '']
 
 
 

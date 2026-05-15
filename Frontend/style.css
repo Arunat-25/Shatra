@@ -86,3 +86,19 @@ html, body{
     outline: 2px solid blue;
     outline-offset: -2px; /* Смещение обводки внутрь элемента */
 }
+
+.highlight-black { box-shadow: inset 0 0 0 4px #000; border-radius: 4px; }
+.highlight-essential { box-shadow: inset 0 0 0 4px #0f0; cursor: pointer; }
+.highlight-captured { opacity: 0.6; filter: grayscale(100%); }
+.board.disabled { pointer-events: none; opacity: 0.8; }
+
+.message { padding: 8px 12px; margin: 10px 0; border-radius: 4px; font-weight: 500; }
+.message-успех { background: #d4edda; color: #155724; }
+.message-ошибка { background: #f8d7da; color: #721c24; }
+.message-предупреждение { background: #fff3cd; color: #856404; }
+.message-инфо { background: #d1ecf1; color: #0c5460; }
+.message-важно { background: #f8d7da; color: #721c24; font-weight: bold; }
+.message-победа { background: #d4edda; color: #155724; font-size: 1.2em; }
+
+.btn-pass { background: #6c757d; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; }
+.btn-pass:hover { background: #5a6268; }

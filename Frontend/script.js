@@ -1,293 +1,305 @@
-/*let BoardLikeDict = {
-    1: 'черная шатра',
-    2: 'черная шатра',
-    3: 'черная шатра',
-    4: 'черная шатра',
-    5: 'черная шатра',
-    6: 'черная шатра',
-    7: 'черная шатра',
-    8: 'черная шатра',
-    9: 'черная шатра',
-    10: 'черный бий',
-    11: 'черная шатра',
-    12: 'черная шатра',
-    13: 'черная шатра',
-    14: 'черная шатра',
-    15: 'черная шатра',
-    16: 'черная шатра',
-    17: 'черная шатра',
-    18: 'черная шатра',
-    19: 'черная шатра',
-    20: 'черная шатра',
-    21: 'черная шатра',
-    22: 'черная шатра',
-    23: 'черная шатра',
-    24: 'черная шатра',
-    25: null,
-    26: null,
-    27: null,
-    28: null,
-    29: null,
-    30: null,
-    31: null,
-    32: null,
-    33: null,
-    34: null,
-    35: null,
-    36: null,
-    37: null,
-    38: null,
-    39: 'белая шатра',
-    40: 'белая шатра',
-    41: 'белая шатра',
-    42: 'белая шатра',
-    43: 'белая шатра',
-    44: 'белая шатра',
-    45: 'белая шатра',
-    46: 'белая шатра',
-    47: 'белая шатра',
-    48: 'белая шатра',
-    49: 'белая шатра',
-    50: 'белая шатра',
-    51: 'белая шатра',
-    52: 'белая шатра',
-    53: 'белый бий',
-    54: 'белая шатра',
-    55: 'белая шатра',
-    56: 'белая шатра',
-    57: 'белая шатра',
-    58: 'белая шатра',
-    59: 'белая шатра',
-    60: 'белая шатра',
-    61: 'белая шатра',
-    62: 'белая шатра',
-}*/
-
-let BoardLikeDict = {
-    1: 'черная шатра',
-    2: 'черная шатра',
-    3: 'черная шатра',
-    4: 'черная шатра',
-    5: 'черная шатра',
-    6: 'черная шатра',
-    7: null,
-    8: null,
-    9: null,
-    10: 'белая шатра',
-    11: null,
-    12: null,
-    13: null,
-    14: null,
-    15: null,
-    16: null,
-    17: 'черный батыр',
-    18: null,
-    19: null,
-    20: 'черный бий',
-    21: null,
-    22: null,
-    23: null,
-    24: null,
-    25: null,
-    26: 'черная шатра',
-    27: null,
-    28: null,
-    29: null,
-    30: 'черная шатра',
-    31: null,
-    32: null,
-    33: null,
-    34: null,
-    35: null,
-    36: null,
-    37: null,
-    38: null,
-    39: 'белый батыр',
-    40: null,
-    41: null,
-    42: null,
-    43: null,
-    44: null,
-    45: null,
-    46: null,
-    47: null,
-    48: 'белая шатра',
-    49: null,
-    50: null,
-    51: null,
-    52: 'белый бий',
-    53: 'черная шатра',
-    54: null,
-    55: null,
-    56: null,
-    57: 'белая шатра',
-    58: 'белая шатра',
-    59: 'белая шатра',
-    60: 'белая шатра',
-    61: 'белая шатра',
-    62: 'белая шатра',
-}
-
+// Frontend/script.js
+let BoardLikeDict = {};
 let my_color = null;
-let movers_color = 'белый';
+let movers_color = null;
 let position_for_mandatory_capture = null;
-let opportunity_pass_the_move = false;
+let move_from = null;
+let ws = null;
 
-/*let movers_color;
-let my_color;
-let position_for_mandatory_capture = null;*/
+document.addEventListener('DOMContentLoaded', async () => {
+    await connectToGame();
+    setupEventListeners();
+});
 
-function DrawBoard(board) {
-    for (let id = 1; id < 63; id++) {
-        let element = document.getElementById("position" + id);
-        if (board[id] === "черная шатра") {
-            element.innerHTML = `${id}<div class="image-in-kletka"><img src="img/черная_точка.png" alt=""></div>`;
-        } else if (board[id] === "белая шатра") {
-            element.innerHTML = `${id}<div class="image-in-kletka"><img src="img/белая_точка.png" alt=""></div>`;
-        }else if (board[id] === "белый бий") {
-            element.innerHTML = `${id}<div class="image-in-kletka"><img src="img/белый_бий.png" alt=""></div>`;
-        }else if (board[id] === "черный бий") {
-            element.innerHTML = `${id}<div class="image-in-kletka"><img src="img/черный_бий.png" alt=""></div>`;
-        }else if (board[id] === "белый батыр") {
-            element.innerHTML = `${id}<div class="image-in-kletka"><img src="img/белый_батыр.png" alt=""></div>`;
-        }else if (board[id] === "черный батыр") {
-            element.innerHTML = `${id}<div class="image-in-kletka"><img src="img/черный_батыр.png" alt=""></div>`;
+async function connectToGame() {
+    // 1. Проверяем, есть ли комната в URL (например, ?room=abc123)
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomParam = urlParams.get('room');
+
+    let wsUrl;
+    if (roomParam) {
+        // Если открыли по ссылке с ?room=... → подключаемся к ней
+        wsUrl = `ws://localhost:8000/ws/${roomParam}/`;
+    } else {
+        // 2. Если URL чистый → запрашиваем новую комнату у бэкенда
+        try {
+            const res = await fetch("http://localhost:8000/");
+            const data = await res.json();
+            wsUrl = data.room_link;
+            
+            // Добавляем ID комнаты в адресную строку, чтобы можно было скопировать
+            const roomId = wsUrl.split('/ws/')[1].split('/')[0];
+            window.history.replaceState(null, '', `?room=${roomId}`);
+        } catch (e) {
+            showMessage("Сервер недоступен (проверь порт 8000)", "ошибка");
+            console.error(e);
+            return;
         }
-        else{
-            element.innerHTML = `${id}`;
+    }
+
+    console.log("🔗 Подключаемся к:", wsUrl);
+    ws = new WebSocket(wsUrl);
+    setupWebSocketHandlers();
+
+    // Показываем ссылку на странице для второго игрока
+    const infoEl = document.getElementById("room_info");
+    if (infoEl) {
+        const roomId = wsUrl.split('/ws/')[1].split('/')[0];
+        infoEl.innerHTML = ` Комната: <a href="?room=${roomId}" target="_blank">Открыть в новой вкладке</a>`;
+    }
+}
+
+function setupWebSocketHandlers() {
+    ws.onopen = () => console.log("WebSocket подключён");
+    
+    ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        console.log("📥 Ответ от сервера:", data);
+        handleServerMessage(data);
+    };
+    
+    ws.onclose = (event) => {
+        if (event.code !== 1000) {
+            showMessage("Соединение разорвано", "ошибка");
         }
-    }
-}
-DrawBoard(BoardLikeDict);
-
-function drawCapturedPieces(list_with_captured_pieces){
-    for (let i = 0; i < list_with_captured_pieces.length; i++){
-        let id = list_with_captured_pieces[i];
-        let element = document.getElementById("position" + id);
-        element.innerHTML = `${id}<div class="image-in-kletka"><img src="img/битая_фигра.png" alt=""></div>`;
-    }
+    };
 }
 
-function drawEssentialPositions(allowed_positions){
-    for (let i = 0; i < allowed_positions.length; i++){
-        let id = allowed_positions[i];
-        let element = document.getElementById("position" + id);
-        element.innerHTML = `${id}<div class="image-in-kletka"><img src="img/возможные ходы.png" alt=""></div>`;
-    }
-}
 
-let ws = new WebSocket("ws://localhost:8001/ws/1/"); /* срабатывает каждый раз при получении от сервера*/
-ws.onmessage = function (event){
-    let data = JSON.parse(event.data);
-    console.log("data", data);
-    if ("opportunity_pass_the_move" in data){
-        let elementButtonPassTheMove = document.getElementById("button_pass_the_move");
-        elementButtonPassTheMove.innerHTML = '<button>Передать ход</button>';
-    }
-    else{
-        let elementButtonPassTheMove = document.getElementById("button_pass_the_move");
-        elementButtonPassTheMove.innerHTML = '';
+function handleServerMessage(data) {
+    console.log("📥 Данные от сервера:", data);
+
+    // 1️⃣ Сначала проверяем конец игры (важно!)
+    if (data.game_over) {
+        showMessage(`Игра окончена: ${data.winner || ''}`, "победа");
+        disableBoard();
+        if (data.desk) {
+            BoardLikeDict = convertBoardKeys(data.desk);
+            DrawBoard(BoardLikeDict);
+        }
+        return;
     }
 
-    if (data.players_color && data.movers_color){
-        my_color = data.players_color;
-        movers_color = data.movers_color;
-        let element = document.getElementById("my_color");
-        element.innerHTML = `my_color is ${my_color}`;
-    }
-
-    if (data.essential_positions){ /*если получены разрешенные для взятия позиции и список со взятыми фигурами*/
-        if (data.captured_pieces.length !== 0){
+    // 2️⃣ Подсветка ходов (запрос подсказок)
+    if (data.essential_positions !== undefined && !data.message) {
+        clearHighlights();
+        if (data.essential_positions.length > 0) {
+            drawEssentialPositions(data.essential_positions);
+        }
+        if (data.captured_pieces?.length > 0) {
             drawCapturedPieces(data.captured_pieces);
         }
+        return;
+    }
 
-        let elementEssentialPositions = document.getElementById("essential_positions");
-        elementEssentialPositions.innerHTML = `${data.essential_positions}`;
-        drawEssentialPositions(data.essential_positions);
-    }else{
-        if (data.desk){
-            DrawBoard(data.desk);
-            BoardLikeDict = data.desk;
+    // 3️⃣ Инициализация игры (первое подключение)
+    if (data.players_color && data.desk && !data.message) {
+        my_color = data.players_color;
+        movers_color = data.movers_color;
+        BoardLikeDict = convertBoardKeys(data.desk);
+        
+        document.getElementById("my_color").textContent = `Вы: ${my_color}`;
+        document.getElementById("who_mover").textContent = `Ход: ${movers_color}`;
+        DrawBoard(BoardLikeDict);
+        showMessage("Игра началась!", "инфо");
+        return;
+    }
+
+    // 4️⃣ Результат хода (самое важное!)
+    if (data.message && data.desk) {
+        console.log("🔄 Обновление доски, до:", BoardLikeDict[39], BoardLikeDict[32]);
+        
+        BoardLikeDict = convertBoardKeys(data.desk);
+        
+        console.log("🔄 После обновления:", BoardLikeDict[39], BoardLikeDict[32]);
+        console.log("🔄 Клетка 39:", BoardLikeDict[39], "Клетка 32:", BoardLikeDict[32]);
+        
+        DrawBoard(BoardLikeDict);
+        
+        if (data.movers_color) {
             movers_color = data.movers_color;
-            position_for_mandatory_capture = data.position_for_mandatory_capture;
-            showMessageAndWhoMover(data["message"], movers_color);
+            document.getElementById("who_mover").textContent = `Ход: ${movers_color}`;
+        }
+        
+        showMessage(data.message, "инфо");
+        position_for_mandatory_capture = data.position_for_mandatory_capture || null;
+        
+        // Кнопка "Передать ход" для бия
+        const passBtn = document.getElementById("button_pass_the_move");
+        if (data.opportunity_pass_the_move) {
+            passBtn.innerHTML = '<button id="btn_pass" class="btn-pass">Передать ход</button>';
+            document.getElementById("btn_pass")?.addEventListener("click", sendPassTheMove);
+        } else {
+            passBtn.innerHTML = '';
+        }
+        
+        return;
+    }
+}
+
+// 🆕 ДОБАВЬ ЭТУ ФУНКЦИЮ:
+function convertBoardKeys(serverBoard) {
+    const result = {};
+    for (let [key, value] of Object.entries(serverBoard)) {
+        result[parseInt(key)] = value;
+    }
+    return result;
+}
+
+
+function DrawBoard(board) {
+    console.log("🎨 DrawBoard вызвана, ключи:", Object.keys(board).slice(0, 5));
+    
+    for (let id = 1; id <= 62; id++) {
+        const el = document.getElementById("position" + id);
+        if (!el) continue;
+        
+        const piece = board[id];
+        
+        // 🔥 Жесткий тест: если 32 должна быть "белая шатра"
+        if (id === 32 && piece === "белая шатра") {
+            console.log("✅ Клетка 32 должна показать белую шатру!");
+        }
+        
+        if (piece === "черная шатра") {
+            el.innerHTML = `${id}<div class="image-in-kletka"><img src="img/черная_точка.png"></div>`;
+        } else if (piece === "белая шатра") {
+            el.innerHTML = `${id}<div class="image-in-kletka"><img src="img/белая_точка.png"></div>`;
+        } else if (piece === "белый бий") {
+            el.innerHTML = `${id}<div class="image-in-kletka"><img src="img/белый_бий.png"></div>`;
+        } else if (piece === "черный бий") {
+            el.innerHTML = `${id}<div class="image-in-kletka"><img src="img/черный_бий.png"></div>`;
+        } else if (piece === "белый батыр") {
+            el.innerHTML = `${id}<div class="image-in-kletka"><img src="img/белый_батыр.png"></div>`;
+        } else if (piece === "черный батыр") {
+            el.innerHTML = `${id}<div class="image-in-kletka"><img src="img/черный_батыр.png"></div>`;
+        } else {
+            el.innerHTML = `${id}`;
         }
     }
 }
 
-function sendJSON(){
-    let data = {"move_from": move_from, "move_to": move_to, "movers_color": movers_color, "board": BoardLikeDict, "position_for_mandatory_capture": position_for_mandatory_capture};
-    ws.send(JSON.stringify(data));
-}
-function sendPositionMoversColor(chosen_position){
-    let data = {"board": BoardLikeDict, "position": chosen_position, "movers_color": movers_color, "position_for_mandatory_capture": position_for_mandatory_capture};
-    ws.send(JSON.stringify(data))
-}
-function showMessageAndWhoMover(message, who_mover){
-    let elementWhoMover = document.getElementById("who_mover");
-    let elementMessage = document.getElementById("message");
-    elementWhoMover.innerHTML = `${who_mover}`;
-    elementMessage.innerHTML = `${message}`;
+function drawEssentialPositions(positions) {
+    positions.forEach(id => {
+        document.getElementById("position" + id)?.classList.add('highlight-essential');
+    });
 }
 
+function drawCapturedPieces(positions) {
+    positions.forEach(id => {
+        document.getElementById("position" + id)?.classList.add('highlight-captured');
+    });
+}
 
-let move_from = null;
-let move_to = null;
+function clearHighlights() {
+    document.querySelectorAll('.highlight-essential, .highlight-captured').forEach(el => {
+        el.classList.remove('highlight-essential', 'highlight-captured');
+    });
+}
 
+function setupEventListeners() {
+    document.querySelector('.board')?.addEventListener('click', handleBoardClick);
+}
 
-document.querySelector('.board').addEventListener('click', function(event) {
+function handleBoardClick(event) {
+    const cell = event.target.closest('[id^="position"]');
+    if (!cell) return;
+    
+    const positionId = cell.id;
+    const positionNum = extractNumber(positionId);
 
-    if (movers_color === my_color && event.target.id.slice(0, 8) === 'position') {
-        if (move_from === null && my_color === get_color_of_piece(event.target.id)) {
-            move_from = event.target.id;
-            if (BoardLikeDict[extractNumberFromPositionString(move_from)] !== null){
-                sendPositionMoversColor(move_from);
-            }else{
-                move_from = null;
-            }
-            document.getElementById(move_from).classList.add('highlight-black'); // добавляет стиль, написанный в css файле
-        } else if (move_from === event.target.id){
-            document.getElementById(move_from).classList.remove('highlight-black'); //удаляет примененный стиль для тега с if move_from
-            move_from = null;
-        } else if (move_from !== null) {
-            move_to = event.target.id;
-            opportunity_pass_the_move = false; /*СТРАННО НАДО ОБРАТИТЬ ВНИМАНИЕ*/
-            sendJSON();
-            document.getElementById(move_from).classList.remove('highlight-black');
-            move_from = null;
+    console.log("🖱️ Клик:", { positionId, positionNum, my_color, movers_color });
+    
+    if (movers_color !== my_color) {
+        showMessage("Не ваш ход!", "предупреждение");
+        return;
+    }
+    
+    if (document.querySelector('.board')?.classList.contains('disabled')) return;
+    
+    // Выбор фигуры
+    if (move_from === null) {
+        const pieceColor = getPieceColor(positionId);
+        if (pieceColor === my_color) {
+            move_from = positionId;
+            cell.classList.add('highlight-black');
+            sendPositionForHints(positionNum); // Запрос подсказок
         }
+        return;
     }
-});
-
-function sendZeroToPassTheMove(){
-    let data = {"move_from": "position0", "move_to": "position0", "movers_color": movers_color, "board": BoardLikeDict, "position_for_mandatory_capture": position_for_mandatory_capture}; /*скидываем position0 потому что на сервере функция change ожидает такой вид*/
-    ws.send(JSON.stringify(data));
+    
+    // Снять выделение
+    if (move_from === positionId) {
+        cell.classList.remove('highlight-black');
+        clearHighlights();
+        move_from = null;
+        return;
+    }
+    
+    // Сделать ход
+    if (move_from !== null) {
+        const fromNum = extractNumber(move_from);
+        console.log("🚀 Отправка хода:", { from: fromNum, to: positionNum, board_sample: Object.entries(BoardLikeDict).filter(([k,v]) => v !== null).slice(0, 3) });
+        sendMove(fromNum, positionNum);
+        document.getElementById(move_from)?.classList.remove('highlight-black');
+        clearHighlights();
+        move_from = null;
+    }
 }
 
-document.querySelector('#button_pass_the_move').addEventListener('click', function(event) {
-    opportunity_pass_the_move = false;
-    sendZeroToPassTheMove()
-});
+function sendMove(fromPos, toPos) {
+    ws.send(JSON.stringify({
+        move_from: `position${fromPos}`,
+        move_to: `position${toPos}`,
+        movers_color: movers_color,
+        board: BoardLikeDict,
+        position_for_mandatory_capture: position_for_mandatory_capture
+    }));
+}
 
-function extractNumberFromPositionString(str) {
-    // Используем регулярное выражение для извлечения числа
-    const match = str.match(/position(\d+)/);
-    if (match) {
-        // Преобразуем извлеченное число в целое число
-        return parseInt(match[1], 10);
-    }
-    // Если строка не соответствует ожидаемому формату, возвращаем null или другое значение по умолчанию
+function sendPositionForHints(posNum) {
+    ws.send(JSON.stringify({
+        position: `position${posNum}`,
+        movers_color: movers_color,
+        board: BoardLikeDict,
+        position_for_mandatory_capture: position_for_mandatory_capture
+    }));
+}
+
+function sendPassTheMove() {
+    ws.send(JSON.stringify({
+        move_from: "position0",
+        move_to: "position0",
+        movers_color: movers_color,
+        board: BoardLikeDict,
+        position_for_mandatory_capture: position_for_mandatory_capture
+    }));
+    document.getElementById("button_pass_the_move").innerHTML = '';
+}
+
+function extractNumber(str) {
+    const match = str?.match(/position(\d+)/);
+    return match ? parseInt(match[1], 10) : null;
+}
+
+function getPieceColor(positionId) {
+    const num = extractNumber(positionId);
+    const piece = BoardLikeDict[num];
+    if (!piece) return null;
+    if (piece.includes("бел")) return "белый";
+    if (piece.includes("чер")) return "черный";
     return null;
 }
 
-function get_color_of_piece(position){ // принимает строку например position12, position39 ...
-    let color_of_piece;
-    if (BoardLikeDict[extractNumberFromPositionString(position)] !== null && BoardLikeDict[extractNumberFromPositionString(position)].includes("бел")){
-        color_of_piece = "белый";
-    } else if (BoardLikeDict[extractNumberFromPositionString(position)] !== null && BoardLikeDict[extractNumberFromPositionString(position)].includes("чер")){
-        color_of_piece = "черный";
-    } else{
-        color_of_piece = null;
+function showMessage(text, type = "инфо") {
+    const el = document.getElementById("message");
+    if (!el) return;
+    el.textContent = text;
+    el.className = `message message-${type}`;
+    if (type === "инфо" || type === "предупреждение") {
+        setTimeout(() => { if (el.textContent === text) { el.textContent = ''; el.className = 'message'; }}, 3000);
     }
-    return color_of_piece;
 }
+
+function enableBoard() { document.querySelector('.board')?.classList.remove('disabled'); }
+function disableBoard() { document.querySelector('.board')?.classList.add('disabled'); }
