@@ -13,11 +13,11 @@ class GameLogic:
         self.pending_batyr_captures: List[int] = []
 
     def process_move(self, data: MoveData) -> MoveResult:
-        """Основной метод обработки хода. Возвращает результат и обновлённое состояние."""
+        """Основной метод обработки события. Возвращает обновленное состояние или подсказки"""
         print(f"🎮 ХОД: {data.from_pos} → {data.to_pos}, игрок: {data.mover_color}")
         print(f"🔍 Фигура на {data.from_pos}: {data.positions.get(data.from_pos)}")
         print(f"🔍 Фигура на {data.to_pos}: {data.positions.get(data.to_pos)}")
-        # Копируем доску, чтобы не мутировать исходный словарь из запроса
+        # Копируем доску, чтобы не мутировать исходный словарь из запросаируем доску, чтобы не мутировать исходный словарь из запроса
         current_positions = copy.deepcopy(data.positions)
         board = Board(current_positions)
         mover = data.mover_color

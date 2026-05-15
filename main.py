@@ -16,8 +16,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Хранилище активных игр: room_id -> {logic, board, mover, players}
-games: dict[str, dict] = {}
 
 def board_to_json(board_dict: dict) -> dict:
     """Конвертирует ключи доски в строки для JS"""
@@ -29,8 +27,8 @@ def boards_keys_to_int(board: dict) -> dict:
     return {int(k) if isinstance(k, str) else k: v for k, v in board.items()}
 
 
-def change(position: str | int) -> int:
-    """Конвертирует 'position39' или 'position0' -> 39 или 0"""
+def change_position_name_from_frontend(position: str | int) -> int:
+    """Конвертирует пришедший из фронтенда 'position39' или 'position0' на 39 или 0"""
     if isinstance(position, int):
         return position
     
@@ -42,31 +40,29 @@ def change(position: str | int) -> int:
 
 
 def get_starting_board():
-    board = {i: None for i in range(1, 63)}
+    """Создание начальной доски"""
+    board = {}
     
-    # ⚫ ЧЕРНЫЕ (сверху/слева)
     for i in range(1, 10): board[i] = "черная шатра"
     board[10] = "черный бий"
     for i in range(11, 25): board[i] = "черная шатра"
     board[25] = "черный батыр" # Резерв или на доске, зависит от правил
     
-    # ⚪ БЕЛЫЕ (снизу/справа)
     for i in range(39, 53): board[i] = "белая шатра"
     board[53] = "белый бий"
     for i in range(54, 63): board[i] = "белая шатра"
     board[38] = "белый батыр" # Резерв
     
-    # Центральная зона (26-37) обычно пустая или заполнена специфично
-    # Оставляем None
-    
+    for i in range(27, 38): board[i] = None
+
     return board
 
 
-class ConnectionManager:
-    """Управление WebSocket подключениями"""
-    def __init__(self):
-        self.rooms: dict[str, list[WebSocket]] = {}
+# Хранилище активных игр: room_id -> {logic, board, mover, players}
+games: dict[str, dict] = {}
 
+
+class ConnectionManager:
     """Управление WebSocket подключениями"""
     def __init__(self):
         self.rooms: dict[str, list[WebSocket]] = {}
@@ -75,12 +71,11 @@ class ConnectionManager:
         if room_id not in self.rooms:
             self.rooms[room_id] = []
             
-            # 🟢 ИСПОЛЬЗУЕМ НАЧАЛЬНУЮ РАССТАНОВКУ ВМЕСТО ПУСТОЙ
             start_board = get_starting_board()
             
             games[room_id] = {
                 "logic": GameLogic(),
-                "board": start_board,  # <--- ВОТ ЗДЕСЬ БЫЛА ОШИБКА (было None)
+                "board": start_board, 
                 "mover": "белый",
                 "players": {}
             }
@@ -139,9 +134,9 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
             data = await websocket.receive_json()
             print(f"📤 Получено от клиента: {data.get('move_from')} -> {data.get('move_to')}")
             
-            # ── Запрос подсказок (подсветка ходов) ─────────────────────
+            # Запрос подсказок (подсветка ходов) 
             if "position" in data and "move_from" not in data:
-                pos = change(data["position"])
+                pos = change_position_name_from_frontend(data["position"])
                 # Просто делегируем в GameLogic
                 hints = game["logic"].get_hints(
                     game["board"], 
@@ -152,16 +147,16 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                 await manager.send_to_room(room_id, hints)
                 continue
 
-            # ── Обработка хода ─────────────────────────────────────────
+            # Обработка хода
             move_data = MoveData(
                 positions=boards_keys_to_int(data["board"]),
                 mover_color=data["movers_color"],
-                from_pos=change(data["move_from"]),
-                to_pos=change(data["move_to"]),
+                from_pos=change_position_name_from_frontend(data["move_from"]),
+                to_pos=change_position_name_from_frontend(data["move_to"]),
                 position_for_mandatory_capture=data.get("position_for_mandatory_capture")
             )
             
-            # ★★ Вся логика игры происходит здесь ★★
+            # Вся логика игры происходит здесь 
             result: MoveResult = game["logic"].process_move(move_data)
             
             # Обновляем состояние в хранилище
@@ -172,7 +167,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
             
             print(f"✅ Обновлённая доска: {len(game['board'])} клеток")
 
-            # Формируем ответ для фронтенда (совместимый формат)
+            # Формируем ответ для фронтенда
             response = {
                 "message": result.message,
                 "movers_color": result.movers_color,
