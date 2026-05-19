@@ -31,7 +31,10 @@ class Biy(Piece):
         
         enemy_name = positions.get(enemy_pos)
         # Проверка: на позиции врага стоит вражеская фигура
-        if not enemy_name or self.color in enemy_name: return False
+        if not enemy_name: return False
+        # Если своя фигура — не взятие (используем префикс)
+        color_prefix = "бел" if self.color == "белый" else "чер"
+        if color_prefix in enemy_name: return False
 
         # Проверка: клетка за врагом (куда прыгаем) должна быть пуста
         if positions.get(to_pos) is not None: return False

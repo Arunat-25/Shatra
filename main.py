@@ -34,17 +34,24 @@ def change_position_name_from_frontend(position: str | int) -> int:
 
 def get_starting_board():
     board = {}
-    for i in range(1, 10): board[i] = "черная шатра"
+    # Чёрные шатры: 1-9, 11-17, 18-24 (по правилам)
+    for i in range(1, 10):
+        board[i] = "черная шатра"
     board[10] = "черный бий"
-    for i in range(11, 25): board[i] = "черная шатра"
-    board[25] = "черный батыр"
+    for i in range(11, 25):
+        board[i] = "черная шатра"
+    # Поля 25, 26 — пустые (большое поле)
     
-    for i in range(39, 53): board[i] = "белая шатра"
+    # Белые шатры: 39-45, 46-52, 54-62 (по правилам)
+    for i in range(39, 53):
+        board[i] = "белая шатра"
     board[53] = "белый бий"
-    for i in range(54, 63): board[i] = "белая шатра"
-    board[38] = "белый батыр"
+    for i in range(54, 63):
+        board[i] = "белая шатра"
     
-    for i in range(27, 38): board[i] = None
+    # Пустые клетки (большое поле между сторонами)
+    for i in range(25, 39):
+        board[i] = None
     return board
 
 
@@ -63,7 +70,8 @@ class ConnectionManager:
                 "logic": GameLogic(),
                 "board": start_board, 
                 "mover": "белый",
-                "players": {}
+                "players": {},
+                "pending_batyr_captures": []
             }
         if len(self.rooms[room_id]) < 2:
             await websocket.accept()
@@ -122,10 +130,22 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                 position_for_mandatory_capture=data.get("position_for_mandatory_capture")
             )
 
-            result: GameEventResult = game["logic"].handle_event(event)
+            result: GameEventResult = game["logic"].handle_event(
+                event, pending_batyr_captures=game["pending_batyr_captures"]
+            )
 
+            # Запоминаем кто ходил до обработки
+            prev_mover = game["mover"]
+            
             if result.updated_positions:
                 game["board"] = result.updated_positions
+            
+            # Обновляем pending_batyr_captures
+            if result.captured_pieces:
+                game["pending_batyr_captures"] = result.captured_pieces
+            elif result.movers_color and result.movers_color != prev_mover:
+                game["pending_batyr_captures"] = []
+            
             if result.movers_color:
                 game["mover"] = result.movers_color
 
@@ -135,16 +155,16 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                 "desk": board_to_json(game["board"]),
                 "game_over": result.game_over,
                 "winner": result.winner,
-                "position_for_mandatory_capture": None,
+                "position_for_mandatory_capture": result.position_for_mandatory_capture,
                 "opportunity_pass_the_move": result.opportunity_pass_the_move,
                 "essential_positions": result.essential_positions,
                 "captured_pieces": result.captured_pieces,
                 "captured_positions": result.captured_positions
             }
             
-            if not result.game_over and result.movers_color and event.to_pos is not None:
-                if game["logic"]._has_mandatory_from_position(game["board"], result.movers_color, event.to_pos):
-                    response["position_for_mandatory_capture"] = event.to_pos
+            # Если ход перешёл к другому игроку, очищаем position_for_mandatory_capture
+            if result.movers_color and result.movers_color != prev_mover:
+                response["position_for_mandatory_capture"] = None
 
             await manager.send_to_room(room_id, response)
             

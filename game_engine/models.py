@@ -7,7 +7,7 @@ from typing import Optional, List
 @dataclass
 class GameEvent:
     """
-    Единый входной объект для GameLogic.handle_ivent()
+    Единый входной объект для GameLogic.handle_event()
     
     Для хода: position=None, from_pos=39, to_pos=32
     Для подсказок: position=39, from_pos=None, to_pos=None
@@ -26,7 +26,7 @@ class GameEvent:
 @dataclass
 class GameEventResult:
     """
-    Единый результат от GameLogic.handle_ivent()
+    Единый результат от GameLogic.handle_event()
     """
     # Общие поля
     message: str = ""
@@ -44,3 +44,6 @@ class GameEventResult:
     
     # Для подсказок: куда можно ходить обязательно
     essential_positions: List[int] = field(default_factory=list)
+    
+    # Для принудительного продолжения взятия
+    position_for_mandatory_capture: Optional[int] = None
