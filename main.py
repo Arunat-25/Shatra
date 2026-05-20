@@ -34,24 +34,28 @@ def change_position_name_from_frontend(position: str | int) -> int:
 
 def get_starting_board():
     board = {}
-    # Чёрные шатры: 1-9, 11-17, 18-24 (по правилам)
+    # Все клетки пустые по умолчанию
+    for i in range(1, 63):
+        board[i] = None
+    
+    # Чёрные шатры только в крепости (1-9)
     for i in range(1, 10):
         board[i] = "черная шатра"
     board[10] = "черный бий"
-    for i in range(11, 25):
-        board[i] = "черная шатра"
-    # Поля 25, 26 — пустые (большое поле)
     
-    # Белые шатры: 39-45, 46-52, 54-62 (по правилам)
-    for i in range(39, 53):
-        board[i] = "белая шатра"
-    board[53] = "белый бий"
+    # Чёрные батыры на 11 и 17
+    board[11] = "черный батыр"
+    board[17] = "черный батыр"
+    
+    # Белые шатры только в крепости (54-62)
     for i in range(54, 63):
         board[i] = "белая шатра"
+    board[53] = "белый бий"
     
-    # Пустые клетки (большое поле между сторонами)
-    for i in range(25, 39):
-        board[i] = None
+    # Белые батыры на 46 и 52
+    board[46] = "белый батыр"
+    board[52] = "белый батыр"
+    
     return board
 
 
@@ -141,10 +145,11 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                 game["board"] = result.updated_positions
             
             # Обновляем pending_batyr_captures
-            if result.captured_pieces:
-                game["pending_batyr_captures"] = result.captured_pieces
-            elif result.movers_color and result.movers_color != prev_mover:
+            # Сначала проверяем смену хода — если ход перешёл, очищаем
+            if result.movers_color and result.movers_color != prev_mover:
                 game["pending_batyr_captures"] = []
+            elif result.captured_pieces:
+                game["pending_batyr_captures"] = result.captured_pieces
             
             if result.movers_color:
                 game["mover"] = result.movers_color

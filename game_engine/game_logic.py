@@ -207,7 +207,8 @@ class GameLogic:
         # Если есть цепочка — показываем только взятия этой фигурой
         if chain_capture_cell and chain_capture_cell != 0:
             if from_cell != chain_capture_cell:
-                return GameEventResult(essential_positions=[], captured_pieces=batyr_captured_this_turn.copy())
+                return GameEventResult(essential_positions=[], captured_pieces=batyr_captured_this_turn.copy(),
+                    message="Продолжайте взятие той же фигурой!")
             allowed = []
             if piece.get_type() in ["шатра", "бий"]:
                 from game_engine.словари import shatra_and_biy_possible_captures
@@ -217,6 +218,30 @@ class GameLogic:
                     target_free = cells.get(to_cell) is None
                     if enemy_piece and target_free and enemy_prefix in enemy_piece:
                         allowed.append(to_cell)
+            elif piece.get_type() == "батыр":
+                from game_engine.словари import batyr_moves_and_captures
+                opponent_prefix = "чер" if current_color == "белый" else "бел"
+                for direction in batyr_moves_and_captures.get(from_cell, []):
+                    enemy_found = False
+                    for cell in direction:
+                        cell_piece = cells.get(cell)
+                        if cell in batyr_captured_this_turn:
+                            continue
+                        if cell_piece and opponent_prefix in cell_piece:
+                            if cell not in batyr_captured_this_turn:
+                                enemy_found = True
+                                # Добавляем только пустые клетки за этим врагом (до следующего врага)
+                                for next_cell in direction[direction.index(cell) + 1:]:
+                                    next_piece = cells.get(next_cell)
+                                    if next_piece is None:
+                                        allowed.append(next_cell)
+                                    elif opponent_prefix in next_piece:
+                                        # Следующий враг сразу — не добавляем клетки за ним
+                                        break
+                                    else:
+                                        break
+                                break
+                            continue
             return GameEventResult(
                 essential_positions=allowed,
                 captured_pieces=batyr_captured_this_turn.copy()
@@ -399,18 +424,6 @@ class GameLogic:
                 new_batyr_captures = copy.copy(current_batyr_captures)
                 piece_kind = "бий" if piece.get_type() == "бий" else "шатра"
 
-                next_board = board
-                is_over, winner = self._is_game_over(next_board)
-                if is_over:
-                    return GameEventResult(
-                        message=f"Игра окончена: {winner}",
-                        movers_color=None,
-                        updated_positions=board.copy_cells(),
-                        game_over=True,
-                        winner=winner,
-                        captured_positions=captured_positions
-                    )
-
                 # Проверяем, может ли фигура продолжить
                 can_continue_chain = False
                 board_dict = board.copy_cells()
@@ -447,6 +460,65 @@ class GameLogic:
                     winner=None,
                     captured_positions=captured_positions,
                     opportunity_pass=can_pass_turn
+                )
+            elif piece and piece.get_type() == "батыр":
+                # Проверяем, что это именно взятие, а не обычный ход
+                if not piece.can_capture(board_copy, from_cell, to_cell, current_batyr_captures):
+                    return GameEventResult(
+                        message="Нужно бить! Продолжите взятие.",
+                        movers_color=current_color,
+                        updated_positions=cells
+                    )
+
+                # Для батыра используем общий механизм execute_move
+                new_cells, captured_positions, new_batyr_captures = self.execute_move(
+                    board_copy, from_cell, to_cell, current_color, current_batyr_captures
+                )
+                board = Board(new_cells)
+
+                is_over, winner = self._is_game_over(board)
+                if is_over:
+                    return GameEventResult(
+                        message=f"Игра окончена: {winner}",
+                        movers_color=None,
+                        updated_positions=new_cells,
+                        game_over=True,
+                        winner=winner,
+                        captured_positions=captured_positions
+                    )
+
+                # Проверяем, может ли батыр продолжить
+                next_mandatory = self._get_all_mandatory_captures(board, current_color, new_batyr_captures)
+                can_continue = any(f == to_cell for f, _ in next_mandatory)
+
+                if can_continue:
+                    return GameEventResult(
+                        message="Продолжайте взятие!",
+                        movers_color=current_color,
+                        updated_positions=new_cells,
+                        captured_positions=captured_positions,
+                        opportunity_pass_the_move=False,
+                        position_for_mandatory_capture=to_cell,
+                        captured_pieces=new_batyr_captures
+                    )
+
+                next_player = "черный" if current_color == "белый" else "белый"
+                return self._finish_move(
+                    positions=new_cells,
+                    mover_color=current_color,
+                    message=f"Теперь ходит {next_player}",
+                    history=True,
+                    clear_pending=True,
+                    game_over=False,
+                    winner=None,
+                    captured_positions=captured_positions,
+                    captured_pieces=new_batyr_captures
+                )
+            else:
+                return GameEventResult(
+                    message="Неизвестная фигура",
+                    movers_color=current_color,
+                    updated_positions=cells
                 )
 
         # 4. Валидация хода (если не было цепочки)
@@ -578,7 +650,8 @@ class GameLogic:
         winner: str = None,
         captured_positions: List[int] = None,
         opportunity_pass: bool = False,
-        mandatory_pos: int = None
+        mandatory_pos: int = None,
+        captured_pieces: List[int] = None
     ) -> GameEventResult:
         next_mover = "черный" if mover_color == "белый" else "белый"
 
@@ -593,7 +666,8 @@ class GameLogic:
             game_over=game_over,
             winner=winner,
             opportunity_pass_the_move=opportunity_pass,
-            position_for_mandatory_capture=mandatory_pos
+            position_for_mandatory_capture=mandatory_pos,
+            captured_pieces=captured_pieces or []
         )
 
     def has_mandatory_from_position(self, cells: dict, color: str, pos: int = None) -> bool:
@@ -650,26 +724,42 @@ class GameLogic:
                 from game_engine.словари import batyr_moves_and_captures
                 for direction in batyr_moves_and_captures.get(pos, []):
                     enemy_found = False
-                    for idx, cell in enumerate(direction[:-1]):
-                        next_cell = direction[idx + 1]
+                    for cell in direction:
                         cell_piece = board.cells.get(cell)
 
                         if cell in batyr_captured_this_turn:
                             continue
 
-                        if cell_piece is None:
-                            if enemy_found:
+                        # Своя фигура — преграда
+                        if cell_piece:
+                            cell_prefix = "бел" if "бел" in cell_piece else ("чер" if "чер" in cell_piece else "")
+                            if cell_prefix and color.startswith(cell_prefix):
+                                break
+
+                            # Враг найден
+                            if opponent_prefix in cell_piece:
+                                if cell not in batyr_captured_this_turn:
+                                    enemy_found = True
+                                    # Добавляем только пустые клетки за этим врагом (до следующего врага)
+                                    for next_cell in direction[direction.index(cell) + 1:]:
+                                        next_piece = board.cells.get(next_cell)
+                                        if next_piece is None:
+                                            mandatory.append((pos, next_cell))
+                                        elif opponent_prefix in next_piece:
+                                            # Следующий враг сразу — не добавляем клетки за ним
+                                            break
+                                        else:
+                                            break  # своя — конец
+                                    break
+                                continue
+
+                        # Пустая клетка после врага (но не за несколькими врагами подряд)
+                        if enemy_found:
+                            if cell_piece is None:
                                 mandatory.append((pos, cell))
-                            continue
-
-                        cell_prefix = "бел" if "бел" in (cell_piece or "") else ("чер" if "чер" in (cell_piece or "") else "")
-                        if cell_prefix and color.startswith(cell_prefix):
-                            break
-
-                        if opponent_prefix in (cell_piece or "") and board.cells.get(next_cell) is None:
-                            if cell not in batyr_captured_this_turn:
-                                enemy_found = True
-                                mandatory.append((pos, next_cell))
+                            elif opponent_prefix in cell_piece:
+                                # Второй враг подряд — не добавляем клетки за ним
+                                break
 
         return mandatory
 
@@ -689,20 +779,22 @@ class GameLogic:
             return shatra_and_biy_possible_captures.get(from_cell, {}).get(to_cell)
 
         if piece.get_type() == "батыр":
-            if batyr_captured_this_turn:
-                return batyr_captured_this_turn[-1]
-
             from game_engine.словари import batyr_moves_and_captures
+            opponent_prefix = "чер" if piece.get_color() == "белый" else "бел"
             for direction in batyr_moves_and_captures.get(from_cell, []):
+                if to_cell not in direction:
+                    continue
                 for pos in direction:
                     if pos == to_cell:
                         return None
-                    cell = cells.get(pos)
-                    if cell and "белый" != cell and "черный" != cell:
-                        if cells.get(pos) and piece.get_color() not in cells[pos]:
+                    cell_content = cells.get(pos)
+                    # Пропускаем уже захваченные
+                    if cell_content and opponent_prefix in cell_content:
+                        if pos not in batyr_captured_this_turn:
                             return pos
-                    if cell is not None:
-                        break
+                        continue
+                    if cell_content is not None:
+                        return None
 
         return None
 

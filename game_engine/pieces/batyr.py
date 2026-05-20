@@ -107,8 +107,6 @@ class Batyr(Piece):
                     pieces_count += 1
                     if cell_content and self.color not in cell_content:
                         enemy_cell = cell
-                else:
-                    enemy_cell = None
 
         return False
 
