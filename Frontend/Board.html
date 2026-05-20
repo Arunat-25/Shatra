@@ -1,134 +1,155 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Board</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Алтай шатра — игра</title>
     <link rel="stylesheet" href="style.css">
 </head>
-<body>
-<div class="board">
-    <div class="half-of-blacks">
-        <div class="field-of-reserve">
-            <div class="row">
-                <div class="kletka nechetnaya" id="position1">1</div>
-                <div class="kletka chetnaya" id="position2">2</div>
-                <div class="kletka nechetnaya" id="position3">3</div>
+<body class="game-page">
+    <!-- Верхняя панель -->
+    <div class="game-header">
+        <div class="header-left">
+            <div class="game-title">Шатра</div>
+            <div class="player-info">
+                <span id="my_color">Вы: —</span>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="turn-indicator" id="who_mover">Ход белых</div>
+        </div>
+    </div>
+
+    <div class="board" id="board">
+        <div class="half-of-blacks">
+            <div class="field-of-reserve">
+                <div class="row">
+                    <div class="kletka nechetnaya" id="position1"></div>
+                    <div class="kletka chetnaya" id="position2"></div>
+                    <div class="kletka nechetnaya" id="position3"></div>
+                </div>
+
+                <div class="row">
+                    <div class="kletka chetnaya" id="position4"></div>
+                    <div class="kletka nechetnaya" id="position5"></div>
+                    <div class="kletka chetnaya" id="position6"></div>
+                </div>
+
+                <div class="row">
+                    <div class="kletka nechetnaya" id="position7"></div>
+                    <div class="kletka chetnaya" id="position8"></div>
+                    <div class="kletka nechetnaya" id="position9"></div>
+                </div>
             </div>
 
-            <div class="row">
-                <div class="kletka chetnaya" id="position4">4</div>
-                <div class="kletka nechetnaya" id="position5">5</div>
-                <div class="kletka chetnaya" id="position6">6</div>
+            <div class="field-of-queen">
+                <div class="kletka chetnaya" id="position10"></div>
             </div>
 
-            <div class="row">
-                <div class="kletka nechetnaya" id="position7">7</div>
-                <div class="kletka chetnaya" id="position8">8</div>
-                <div class="kletka nechetnaya" id="position9">9</div>
-            </div>
+            <div class="main-field">
+                <div class="row">
+                    <div class="kletka nechetnaya" id="position11"></div>
+                    <div class="kletka chetnaya" id="position12"></div>
+                    <div class="kletka nechetnaya" id="position13"></div>
+                    <div class="kletka chetnaya" id="position14"></div>
+                    <div class="kletka nechetnaya" id="position15"></div>
+                    <div class="kletka chetnaya" id="position16"></div>
+                    <div class="kletka nechetnaya" id="position17"></div>
+                </div>
 
+                <div class="row">
+                    <div class="kletka chetnaya" id="position18"></div>
+                    <div class="kletka nechetnaya" id="position19"></div>
+                    <div class="kletka chetnaya" id="position20"></div>
+                    <div class="kletka nechetnaya" id="position21"></div>
+                    <div class="kletka chetnaya" id="position22"></div>
+                    <div class="kletka nechetnaya" id="position23"></div>
+                    <div class="kletka chetnaya" id="position24"></div>
+                </div>
+
+                <div class="row">
+                    <div class="kletka nechetnaya" id="position25"></div>
+                    <div class="kletka chetnaya" id="position26"></div>
+                    <div class="kletka nechetnaya" id="position27"></div>
+                    <div class="kletka chetnaya" id="position28"></div>
+                    <div class="kletka nechetnaya" id="position29"></div>
+                    <div class="kletka chetnaya" id="position30"></div>
+                    <div class="kletka nechetnaya" id="position31"></div>
+                </div>
+            </div>
         </div>
 
-        <div class="field-of-queen">
-            <div class="kletka chetnaya" id="position10">10</div>
-        </div>
+        <div class="half-of-whites">
+            <div class="main-field">
+                <div class="row">
+                    <div class="kletka chetnaya" id="position32"></div>
+                    <div class="kletka nechetnaya" id="position33"></div>
+                    <div class="kletka chetnaya" id="position34"></div>
+                    <div class="kletka nechetnaya" id="position35"></div>
+                    <div class="kletka chetnaya" id="position36"></div>
+                    <div class="kletka nechetnaya" id="position37"></div>
+                    <div class="kletka chetnaya" id="position38"></div>
+                </div>
 
-        <div class="main-field">
-            <div class="row">
-                <div class="kletka nechetnaya" id="position11">11</div>
-                <div class="kletka chetnaya" id="position12">12</div>
-                <div class="kletka nechetnaya" id="position13">13</div>
-                <div class="kletka chetnaya" id="position14">14</div>
-                <div class="kletka nechetnaya" id="position15">15</div>
-                <div class="kletka chetnaya" id="position16">16</div>
-                <div class="kletka nechetnaya" id="position17">17</div>
+                <div class="row">
+                    <div class="kletka nechetnaya" id="position39"></div>
+                    <div class="kletka chetnaya" id="position40"></div>
+                    <div class="kletka nechetnaya" id="position41"></div>
+                    <div class="kletka chetnaya" id="position42"></div>
+                    <div class="kletka nechetnaya" id="position43"></div>
+                    <div class="kletka chetnaya" id="position44"></div>
+                    <div class="kletka nechetnaya" id="position45"></div>
+                </div>
+
+                <div class="row">
+                    <div class="kletka chetnaya" id="position46"></div>
+                    <div class="kletka nechetnaya" id="position47"></div>
+                    <div class="kletka chetnaya" id="position48"></div>
+                    <div class="kletka nechetnaya" id="position49"></div>
+                    <div class="kletka chetnaya" id="position50"></div>
+                    <div class="kletka nechetnaya" id="position51"></div>
+                    <div class="kletka chetnaya" id="position52"></div>
+                </div>
             </div>
 
-            <div class="row">
-                <div class="kletka chetnaya" id="position18">18</div>
-                <div class="kletka nechetnaya" id="position19">19</div>
-                <div class="kletka chetnaya" id="position20">20</div>
-                <div class="kletka nechetnaya" id="position21">21</div>
-                <div class="kletka chetnaya" id="position22">22</div>
-                <div class="kletka nechetnaya" id="position23">23</div>
-                <div class="kletka chetnaya" id="position24">24</div>
+            <div class="field-of-queen">
+                <div class="kletka chetnaya" id="position53"></div>
             </div>
 
-            <div class="row">
-                <div class="kletka nechetnaya" id="position25">25</div>
-                <div class="kletka chetnaya" id="position26">26</div>
-                <div class="kletka nechetnaya" id="position27">27</div>
-                <div class="kletka chetnaya" id="position28">28</div>
-                <div class="kletka nechetnaya" id="position29">29</div>
-                <div class="kletka chetnaya" id="position30">30</div>
-                <div class="kletka nechetnaya" id="position31">31</div>
+            <div class="field-of-reserve">
+                <div class="row">
+                    <div class="kletka nechetnaya" id="position54"></div>
+                    <div class="kletka chetnaya" id="position55"></div>
+                    <div class="kletka nechetnaya" id="position56"></div>
+                </div>
+
+                <div class="row">
+                    <div class="kletka chetnaya" id="position57"></div>
+                    <div class="kletka nechetnaya" id="position58"></div>
+                    <div class="kletka chetnaya" id="position59"></div>
+                </div>
+
+                <div class="row">
+                    <div class="kletka nechetnaya" id="position60"></div>
+                    <div class="kletka chetnaya" id="position61"></div>
+                    <div class="kletka nechetnaya" id="position62"></div>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="half-of-whites">
-        <div class="main-field">
-            <div class="row">
-                <div class="kletka chetnaya" id="position32">32</div>
-                <div class="kletka nechetnaya" id="position33">33</div>
-                <div class="kletka chetnaya" id="position34">34</div>
-                <div class="kletka nechetnaya" id="position35">35</div>
-                <div class="kletka chetnaya" id="position36">36</div>
-                <div class="kletka nechetnaya" id="position37">37</div>
-                <div class="kletka chetnaya" id="position38">38</div>
-            </div>
+    <!-- Сообщения -->
+    <div id="message"></div>
 
-            <div class="row">
-                <div class="kletka nechetnaya" id="position39">39</div>
-                <div class="kletka chetnaya" id="position40">40</div>
-                <div class="kletka nechetnaya" id="position41">41</div>
-                <div class="kletka chetnaya" id="position42">42</div>
-                <div class="kletka nechetnaya" id="position43">43</div>
-                <div class="kletka chetnaya" id="position44">44</div>
-                <div class="kletka nechetnaya" id="position45">45</div>
-            </div>
+    <!-- Кнопка "Передать ход" -->
+    <div id="button_pass_the_move"></div>
 
-            <div class="row">
-                <div class="kletka chetnaya" id="position46">46</div>
-                <div class="kletka nechetnaya" id="position47">47</div>
-                <div class="kletka chetnaya" id="position48">48</div>
-                <div class="kletka nechetnaya" id="position49">49</div>
-                <div class="kletka chetnaya" id="position50">50</div>
-                <div class="kletka nechetnaya" id="position51">51</div>
-                <div class="kletka chetnaya" id="position52">52</div>
-            </div>
-        </div>
-
-        <div class="field-of-queen">
-            <div class="kletka chetnaya" id="position53">53</div>
-        </div>
-
-        <div class="field-of-reserve">
-            <div class="row">
-                <div class="kletka nechetnaya" id="position54">54</div>
-                <div class="kletka chetnaya" id="position55">55</div>
-                <div class="kletka nechetnaya" id="position56">56</div>
-            </div>
-
-            <div class="row">
-                <div class="kletka chetnaya" id="position57">57</div>
-                <div class="kletka nechetnaya" id="position58">58</div>
-                <div class="kletka chetnaya" id="position59">59</div>
-            </div>
-
-            <div class="row">
-                <div class="kletka nechetnaya" id="position60">60</div>
-                <div class="kletka chetnaya" id="position61">61</div>
-                <div class="kletka nechetnaya" id="position62">62</div>
-            </div>
-        </div>
+    <!-- Нижняя панель -->
+    <div class="game-info-bottom">
+        <span id="room_info"></span>
+        <span id="essential_positions"></span>
     </div>
-</div>
-<p id="button_pass_the_move"></p>
-<p id="my_color"></p>
-<p id="message"></p>
-<p id="who_mover">ход белых</p>
-<p id="essential_positions"></p>
-<script src="script.js"></script>
+
+    <script src="script.js"></script>
 </body>
 </html>

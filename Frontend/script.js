@@ -12,22 +12,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function connectToGame() {
-    // 1. Проверяем, есть ли комната в URL (например, ?room=abc123)
     const urlParams = new URLSearchParams(window.location.search);
     const roomParam = urlParams.get('room');
 
     let wsUrl;
     if (roomParam) {
-        // Если открыли по ссылке с ?room=... → подключаемся к ней
         wsUrl = `ws://localhost:8000/ws/${roomParam}/`;
     } else {
-        // 2. Если URL чистый → запрашиваем новую комнату у бэкенда
         try {
             const res = await fetch("http://localhost:8000/");
             const data = await res.json();
             wsUrl = data.room_link;
             
-            // Добавляем ID комнаты в адресную строку, чтобы можно было скопировать
             const roomId = wsUrl.split('/ws/')[1].split('/')[0];
             window.history.replaceState(null, '', `?room=${roomId}`);
         } catch (e) {
@@ -41,11 +37,10 @@ async function connectToGame() {
     ws = new WebSocket(wsUrl);
     setupWebSocketHandlers();
 
-    // Показываем ссылку на странице для второго игрока
     const infoEl = document.getElementById("room_info");
     if (infoEl) {
         const roomId = wsUrl.split('/ws/')[1].split('/')[0];
-        infoEl.innerHTML = ` Комната: <a href="?room=${roomId}" target="_blank">Открыть в новой вкладке</a>`;
+        infoEl.innerHTML = `Комната: <a href="?room=${roomId}" class="room-link">${roomId}</a>`;
     }
 }
 
@@ -65,11 +60,9 @@ function setupWebSocketHandlers() {
     };
 }
 
-
 function handleServerMessage(data) {
     console.log("📥 Данные от сервера:", data);
 
-    // 1️⃣ Сначала проверяем конец игры (важно!)
     if (data.game_over) {
         showMessage(`Игра окончена: ${data.winner || ''}`, "победа");
         disableBoard();
@@ -80,7 +73,6 @@ function handleServerMessage(data) {
         return;
     }
 
-    // 2️⃣ Подсветка ходов (запрос подсказок)
     if (data.essential_positions !== undefined && !data.message) {
         clearHighlights();
         if (data.essential_positions.length > 0) {
@@ -92,39 +84,31 @@ function handleServerMessage(data) {
         return;
     }
 
-    // 3️⃣ Инициализация игры (первое подключение)
     if (data.players_color && data.desk && !data.message) {
         my_color = data.players_color;
         movers_color = data.movers_color;
         BoardLikeDict = convertBoardKeys(data.desk);
         
-        document.getElementById("my_color").textContent = `Вы: ${my_color}`;
-        document.getElementById("who_mover").textContent = `Ход: ${movers_color}`;
+        document.getElementById("my_color").textContent = `Вы: ${my_color === 'белый' ? '⚪' : '⚫'} ${my_color === 'белый' ? 'Белые' : 'Черные'}`;
+        document.getElementById("my_color").className = my_color === 'белый' ? 'color-white' : 'color-black';
+        updateTurnIndicator();
         DrawBoard(BoardLikeDict);
         showMessage("Игра началась!", "инфо");
         return;
     }
 
-    // 4️⃣ Результат хода (самое важное!)
     if (data.message && data.desk) {
-        console.log("🔄 Обновление доски, до:", BoardLikeDict[39], BoardLikeDict[32]);
-        
         BoardLikeDict = convertBoardKeys(data.desk);
-        
-        console.log("🔄 После обновления:", BoardLikeDict[39], BoardLikeDict[32]);
-        console.log("🔄 Клетка 39:", BoardLikeDict[39], "Клетка 32:", BoardLikeDict[32]);
-        
         DrawBoard(BoardLikeDict);
         
         if (data.movers_color) {
             movers_color = data.movers_color;
-            document.getElementById("who_mover").textContent = `Ход: ${movers_color}`;
+            updateTurnIndicator();
         }
         
         showMessage(data.message, "инфо");
         position_for_mandatory_capture = data.position_for_mandatory_capture || null;
         
-        // Кнопка "Передать ход" для бия
         const passBtn = document.getElementById("button_pass_the_move");
         if (data.opportunity_pass_the_move) {
             passBtn.innerHTML = '<button id="btn_pass" class="btn-pass">Передать ход</button>';
@@ -137,7 +121,14 @@ function handleServerMessage(data) {
     }
 }
 
-// 🆕 ДОБАВЬ ЭТУ ФУНКЦИЮ:
+function updateTurnIndicator() {
+    const el = document.getElementById("who_mover");
+    if (!el) return;
+    const isWhite = movers_color === 'белый';
+    el.textContent = `Ход: ${isWhite ? '⚪ Белых' : '⚫ Черных'}`;
+    el.className = `turn-indicator ${isWhite ? 'turn-white' : 'turn-black'}`;
+}
+
 function convertBoardKeys(serverBoard) {
     const result = {};
     for (let [key, value] of Object.entries(serverBoard)) {
@@ -145,7 +136,6 @@ function convertBoardKeys(serverBoard) {
     }
     return result;
 }
-
 
 function DrawBoard(board) {
     console.log("🎨 DrawBoard вызвана, ключи:", Object.keys(board).slice(0, 5));
@@ -156,25 +146,27 @@ function DrawBoard(board) {
         
         const piece = board[id];
         
-        // 🔥 Жесткий тест: если 32 должна быть "белая шатра"
-        if (id === 32 && piece === "белая шатра") {
-            console.log("✅ Клетка 32 должна показать белую шатру!");
+        if (piece === "черная шатра") {
+            el.innerHTML = `<div class="image-in-kletka"><img src="img/черная_точка.png" alt="черная шатра"></div>`;
+        } else if (piece === "белая шатра") {
+            el.innerHTML = `<div class="image-in-kletka"><img src="img/белая_точка.png" alt="белая шатра"></div>`;
+        } else if (piece === "белый бий") {
+            el.innerHTML = `<div class="image-in-kletka"><img src="img/белый_бий.png" alt="белый бий"></div>`;
+        } else if (piece === "черный бий") {
+            el.innerHTML = `<div class="image-in-kletka"><img src="img/черный_бий.png" alt="черный бий"></div>`;
+        } else if (piece === "белый батыр") {
+            el.innerHTML = `<div class="image-in-kletka"><img src="img/белый_батыр.png" alt="белый батыр"></div>`;
+        } else if (piece === "черный батыр") {
+            el.innerHTML = `<div class="image-in-kletka"><img src="img/черный_батыр.png" alt="черный батыр"></div>`;
+        } else {
+            el.innerHTML = '';
         }
         
-        if (piece === "черная шатра") {
-            el.innerHTML = `${id}<div class="image-in-kletka"><img src="img/черная_точка.png"></div>`;
-        } else if (piece === "белая шатра") {
-            el.innerHTML = `${id}<div class="image-in-kletka"><img src="img/белая_точка.png"></div>`;
-        } else if (piece === "белый бий") {
-            el.innerHTML = `${id}<div class="image-in-kletka"><img src="img/белый_бий.png"></div>`;
-        } else if (piece === "черный бий") {
-            el.innerHTML = `${id}<div class="image-in-kletka"><img src="img/черный_бий.png"></div>`;
-        } else if (piece === "белый батыр") {
-            el.innerHTML = `${id}<div class="image-in-kletka"><img src="img/белый_батыр.png"></div>`;
-        } else if (piece === "черный батыр") {
-            el.innerHTML = `${id}<div class="image-in-kletka"><img src="img/черный_батыр.png"></div>`;
+        // Добавляем класс has-piece если есть фигура
+        if (piece) {
+            el.classList.add('has-piece');
         } else {
-            el.innerHTML = `${id}`;
+            el.classList.remove('has-piece');
         }
     }
 }
@@ -223,7 +215,7 @@ function handleBoardClick(event) {
         if (pieceColor === my_color) {
             move_from = positionId;
             cell.classList.add('highlight-black');
-            sendPositionForHints(positionNum); // Запрос подсказок
+            sendPositionForHints(positionNum);
         }
         return;
     }

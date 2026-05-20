@@ -1,104 +1,667 @@
-html, body{
+/* ===== СБРОС И БАЗОВЫЕ СТИЛИ ===== */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
     height: 100%;
     margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    color: #e0e0e0;
+    overflow: hidden;
 }
 
-.board{
-    background-color: cornflowerblue;
-    margin-left: 200px;
-    margin-right: 200px;
+/* ===== СТРАНИЦА СОЗДАНИЯ КОМНАТЫ ===== */
+body.create-room-page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.create-room-container {
+    text-align: center;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 24px;
+    padding: 60px 80px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    animation: fadeInUp 0.8s ease-out;
+    max-width: 500px;
+    width: 90%;
+}
+
+.create-room-container h1 {
+    font-size: 2.8rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #f5af19, #f12711);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 12px;
+    letter-spacing: 2px;
+}
+
+.create-room-container .subtitle {
+    font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 40px;
+    font-weight: 300;
+}
+
+.create-room-container .btn-play {
+    display: inline-block;
+    padding: 16px 48px;
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #fff;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    position: relative;
+    overflow: hidden;
+}
+
+.create-room-container .btn-play:hover:not(:disabled) {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 12px 35px rgba(102, 126, 234, 0.6);
+}
+
+.create-room-container .btn-play:active:not(:disabled) {
+    transform: translateY(0) scale(0.98);
+}
+
+.create-room-container .btn-play:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.create-room-container .btn-play::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+        45deg,
+        transparent,
+        rgba(255, 255, 255, 0.1),
+        transparent
+    );
+    transform: rotate(45deg);
+    transition: all 0.5s;
+}
+
+.create-room-container .btn-play:hover:not(:disabled)::after {
+    left: 100%;
+}
+
+.create-room-container .room-link-container {
+    margin-top: 30px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    animation: fadeInUp 0.5s ease-out;
+}
+
+.create-room-container .room-link-container p {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 8px;
+}
+
+.create-room-container .room-link-container a {
+    display: inline-block;
+    padding: 10px 24px;
+    background: rgba(102, 126, 234, 0.2);
+    border: 1px solid rgba(102, 126, 234, 0.3);
+    border-radius: 12px;
+    color: #a8b4ff;
+    text-decoration: none;
+    font-size: 0.95rem;
+    transition: all 0.3s;
+    word-break: break-all;
+}
+
+.create-room-container .room-link-container a:hover {
+    background: rgba(102, 126, 234, 0.3);
+    border-color: #667eea;
+}
+
+/* ===== СТРАНИЦА ИГРЫ ===== */
+.game-page {
+    height: 100vh;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    box-sizing: border-box;
+    gap: 6px;
+}
+
+/* Верхняя панель */
+.game-header {
+    width: 100%;
+    max-width: 520px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    animation: fadeInUp 0.5s ease-out;
+    flex-shrink: 0;
+}
+
+.game-header .header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.game-header .header-right {
+    text-align: right;
+}
+
+.game-header .game-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #f5af19, #f12711);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.game-header .player-info {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.game-header .player-info span {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+.game-header .player-info .color-white {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+}
+
+.game-header .player-info .color-black {
+    background: rgba(0, 0, 0, 0.4);
+    color: #ccc;
+}
+
+.game-header .turn-indicator {
+    font-size: 0.85rem;
+    font-weight: 500;
+    padding: 4px 12px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.turn-indicator.turn-white {
+    border-left: 3px solid #fff;
+    color: #fff;
+}
+
+.turn-indicator.turn-black {
+    border-left: 3px solid #555;
+    color: #aaa;
+}
+
+/* ===== ДОСКА ===== */
+.board {
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 16px;
+    padding: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    animation: fadeInUp 0.6s ease-out;
+    max-width: 520px;
+    width: 100%;
+    transition: opacity 0.3s;
+    flex-shrink: 0;
+}
+
+.board.disabled {
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+/* Резервные поля (по 3x3) */
+.field-of-reserve {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 4px 0;
+}
+
+/* Поле ферзя (одиночная клетка) */
+.field-of-queen {
+    display: flex;
+    justify-content: center;
+    margin: 2px 0;
+}
+
+/* Основное поле (7x3 с каждой стороны) */
+.main-field {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 2px 0;
+}
+
+/* Ряд клеток */
+.row {
+    display: flex;
+    justify-content: center;
+}
+
+/* ===== КЛЕТКИ ===== */
+.kletka {
+    display: flex;
+    width: 52px;
+    height: 52px;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.3);
+    user-select: none;
+}
+
+/* Четные клетки (светлые) */
+.chetnaya {
+    background: linear-gradient(135deg, #d4a574, #c49464);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Нечетные клетки (темные) */
+.nechetnaya {
+    background: linear-gradient(135deg, #8B5E3C, #7a4e2c);
+    border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+/* Специальные цвета для резервных полей (переопределение) */
+.field-of-reserve .chetnaya {
+    background: linear-gradient(135deg, #c9a87c, #b89868);
+}
+
+.field-of-reserve .nechetnaya {
+    background: linear-gradient(135deg, #7a5a3a, #6a4a2a);
+}
+
+.field-of-queen .kletka {
+    width: 58px;
+    height: 58px;
+    background: linear-gradient(135deg, #e8c88a, #d4a85a);
+    border: 2px solid rgba(255, 215, 0, 0.3);
+    border-radius: 8px;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.1);
+}
+
+/* Стиль для ячейки с фигурой */
+.kletka.has-piece {
+    cursor: pointer;
+}
+
+.kletka::after {
+    display: none;
+}
+
+/* Подсветка при наведении */
+.kletka:hover:not(.board.disabled .kletka) {
+    filter: brightness(1.15);
+    transform: scale(1.03);
+    z-index: 2;
+}
+
+/* ===== ПОДСВЕТКИ ===== */
+.highlight-black {
+    box-shadow: inset 0 0 0 3px #000, 0 0 12px rgba(0, 0, 0, 0.5);
+    border-radius: 4px;
+    transform: scale(1.05);
+    z-index: 3;
+}
+
+.highlight-blue {
+    box-shadow: inset 0 0 0 3px #4a9eff, 0 0 15px rgba(74, 158, 255, 0.5);
+    border-radius: 4px;
+}
+
+.highlight-essential {
+    box-shadow: inset 0 0 0 3px #00e676, 0 0 15px rgba(0, 230, 118, 0.4);
+    border-radius: 4px;
+    animation: pulseGreen 1.2s ease-in-out infinite;
+}
+
+.highlight-captured {
+    opacity: 0.5;
+    filter: grayscale(100%) brightness(0.6);
+}
+
+/* ===== ИЗОБРАЖЕНИЯ ФИГУР ===== */
+.image-in-kletka {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
     height: 100%;
+    transition: all 0.3s ease;
 }
 
+.image-in-kletka img {
+    max-width: 80%;
+    max-height: 80%;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+    transition: all 0.3s ease;
+    pointer-events: none;
+}
 
-.field-of-queen{
+.kletka:hover .image-in-kletka img {
+    transform: scale(1.1);
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
+}
+
+/* ===== СООБЩЕНИЯ ===== */
+.message {
+    padding: 8px 16px;
+    margin: 0;
+    border-radius: 10px;
+    font-weight: 500;
+    font-size: 0.85rem;
+    animation: slideIn 0.3s ease-out;
+    max-width: 520px;
+    width: 100%;
+    text-align: center;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    flex-shrink: 0;
+}
+
+.message-успех {
+    background: rgba(40, 167, 69, 0.2);
+    border: 1px solid rgba(40, 167, 69, 0.3);
+    color: #75d787;
+}
+
+.message-ошибка {
+    background: rgba(220, 53, 69, 0.2);
+    border: 1px solid rgba(220, 53, 69, 0.3);
+    color: #f5a0a8;
+}
+
+.message-предупреждение {
+    background: rgba(255, 193, 7, 0.15);
+    border: 1px solid rgba(255, 193, 7, 0.25);
+    color: #ffd95a;
+}
+
+.message-инфо {
+    background: rgba(23, 162, 184, 0.15);
+    border: 1px solid rgba(23, 162, 184, 0.25);
+    color: #6ed7e8;
+}
+
+.message-важно {
+    background: rgba(220, 53, 69, 0.25);
+    border: 1px solid rgba(220, 53, 69, 0.4);
+    color: #ff7b84;
+    font-weight: 600;
+}
+
+.message-победа {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 165, 0, 0.2));
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    color: #ffd700;
+    font-size: 1.1rem;
+    font-weight: 700;
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+    animation: victoryPulse 1.5s ease-in-out infinite;
+}
+
+/* ===== КНОПКА "ПЕРЕДАТЬ ХОД" ===== */
+.btn-pass {
+    background: linear-gradient(135deg, #6c757d, #495057);
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
+    margin: 2px 0;
+    flex-shrink: 0;
+}
+
+.btn-pass:hover {
+    background: linear-gradient(135deg, #5a6268, #3d4348);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(108, 117, 125, 0.4);
+}
+
+.btn-pass:active {
+    transform: translateY(0);
+}
+
+/* ===== ИНФО ПОД ДОСКОЙ ===== */
+.game-info-bottom {
+    max-width: 520px;
+    width: 100%;
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
+    align-items: center;
+    margin: 0;
+    padding: 6px 14px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.6);
+    flex-shrink: 0;
 }
 
-.row{
-    display: flex;
-    justify-content: center;
+.game-info-bottom .room-link {
+    color: #a8b4ff;
+    text-decoration: none;
+    transition: color 0.3s;
 }
 
-/* размеры клеток и фон клеток*/
-.kletka{
-    display: flex;
-    width: 52.75px;
-    height: 52.75px;
+.game-info-bottom .room-link:hover {
+    color: #667eea;
 }
 
-.nechetnaya{
-
-    background-color: green;
-}
-.chetnaya{
-    width: 52.75px;
-    height: 52.75px;
-    background-color: yellow;
-}
-
-/* задание вручную цвета фона для клеток, которым не соответствует четная - желтый, нечетная - зеленый*/
-#position10{
-    background-color: green;
-}
-#position54{
-    background-color: yellow;
-}
-#position55{
-    background-color: green;
-}
-#position56{
-    background-color: yellow;
-}
-#position57{
-    background-color: green;
-}
-#position58{
-    background-color: yellow;
-}
-#position59{
-    background-color: green;
-}
-#position60{
-    background-color: yellow;
-}
-#position61{
-    background-color: green;
-}
-#position62{
-    background-color: yellow;
+/* ===== АНИМАЦИИ ===== */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
-/*стиль для дива с img с пешкой*/
-
-.image-in-kletka{
-    justify-content: center;
-    align-content: center;
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
-/* для обводки вокруг черным и синим при нажатии */
-.highlight-black{
-    outline: 2px solid black;
-    outline-offset: -2px; /* Смещение обводки внутрь элемента */
+@keyframes pulseGreen {
+    0%, 100% {
+        box-shadow: inset 0 0 0 3px #00e676, 0 0 10px rgba(0, 230, 118, 0.3);
+    }
+    50% {
+        box-shadow: inset 0 0 0 4px #00e676, 0 0 20px rgba(0, 230, 118, 0.6);
+    }
 }
-.highlight-blue{
-    outline: 2px solid blue;
-    outline-offset: -2px; /* Смещение обводки внутрь элемента */
+
+@keyframes victoryPulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.02);
+    }
 }
 
-.highlight-black { box-shadow: inset 0 0 0 4px #000; border-radius: 4px; }
-.highlight-essential { box-shadow: inset 0 0 0 4px #0f0; cursor: pointer; }
-.highlight-captured { opacity: 0.6; filter: grayscale(100%); }
-.board.disabled { pointer-events: none; opacity: 0.8; }
+/* ===== АДАПТИВНОСТЬ ===== */
+@media (max-width: 768px) {
+    .game-page {
+        padding: 6px;
+        gap: 4px;
+    }
+    
+    .board {
+        padding: 6px;
+        border-radius: 12px;
+        max-width: 100%;
+    }
+    
+    .kletka {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .field-of-queen .kletka {
+        width: 46px;
+        height: 46px;
+    }
+    
+    .game-header {
+        flex-direction: column;
+        gap: 4px;
+        text-align: center;
+        padding: 6px 12px;
+        max-width: 100%;
+    }
+    
+    .game-header .header-left,
+    .game-header .header-right {
+        text-align: center;
+    }
+    
+    .game-header .game-title {
+        font-size: 1rem;
+    }
+    
+    .game-info-bottom {
+        flex-direction: column;
+        gap: 4px;
+        text-align: center;
+        max-width: 100%;
+        padding: 4px 10px;
+    }
+    
+    .message {
+        max-width: 100%;
+        font-size: 0.75rem;
+        padding: 6px 12px;
+    }
+    
+    .create-room-container {
+        padding: 40px 30px;
+    }
+    
+    .create-room-container h1 {
+        font-size: 2rem;
+    }
+}
 
-.message { padding: 8px 12px; margin: 10px 0; border-radius: 4px; font-weight: 500; }
-.message-успех { background: #d4edda; color: #155724; }
-.message-ошибка { background: #f8d7da; color: #721c24; }
-.message-предупреждение { background: #fff3cd; color: #856404; }
-.message-инфо { background: #d1ecf1; color: #0c5460; }
-.message-важно { background: #f8d7da; color: #721c24; font-weight: bold; }
-.message-победа { background: #d4edda; color: #155724; font-size: 1.2em; }
-
-.btn-pass { background: #6c757d; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; }
-.btn-pass:hover { background: #5a6268; }
+@media (max-width: 480px) {
+    .game-page {
+        padding: 4px;
+        gap: 2px;
+    }
+    
+    .board {
+        padding: 4px;
+    }
+    
+    .kletka {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .field-of-queen .kletka {
+        width: 36px;
+        height: 36px;
+    }
+    
+    .game-header {
+        padding: 4px 8px;
+    }
+    
+    .game-header .game-title {
+        font-size: 0.85rem;
+    }
+    
+    .game-header .player-info {
+        font-size: 0.7rem;
+    }
+    
+    .game-header .turn-indicator {
+        font-size: 0.7rem;
+        padding: 3px 8px;
+    }
+    
+    .game-info-bottom {
+        font-size: 0.65rem;
+        padding: 3px 8px;
+    }
+    
+    .message {
+        font-size: 0.65rem;
+        padding: 4px 8px;
+    }
+    
+    .create-room-container {
+        padding: 30px 20px;
+    }
+    
+    .create-room-container h1 {
+        font-size: 1.6rem;
+    }
+    
+    .create-room-container .btn-play {
+        padding: 12px 32px;
+        font-size: 1rem;
+    }
+}
