@@ -131,7 +131,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
             )
 
             result: GameEventResult = game["logic"].handle_event(
-                event, pending_batyr_captures=game["pending_batyr_captures"]
+                event, batyr_captured_this_turn=game["pending_batyr_captures"]
             )
 
             # Запоминаем кто ходил до обработки

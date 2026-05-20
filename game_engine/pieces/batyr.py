@@ -1,59 +1,115 @@
 from game_engine.словари import batyr_moves_and_captures
 from game_engine.pieces.base import Piece
+from typing import Optional
+
 
 class Batyr(Piece):
     def __init__(self, color: str):
         super().__init__(color)
 
-    def can_move(self, positions: dict, from_pos: int, to_pos: int) -> bool:
-        if positions.get(from_pos) is None: return False
-        if positions.get(to_pos) is not None: return False
+    def can_move(self, cells: dict, from_cell: int, to_cell: int) -> bool:
+        if cells.get(from_cell) is None:
+            return False
+        if cells.get(to_cell) is not None:
+            return False
 
         # Выход из резерва
-        if self.color == "черный" and from_pos in range(1, 10) and to_pos in range(11, 32): return True
-        if self.color == "белый" and from_pos in range(54, 63) and to_pos in range(32, 53): return True
+        if self.color == "черный" and from_cell in range(1, 10) and to_cell in range(11, 32):
+            return True
+        if self.color == "белый" and from_cell in range(54, 63) and to_cell in range(32, 53):
+            return True
 
-        # Обычный ход (проверка пути)
-        return self._check_path(positions, from_pos, to_pos, capture=False)
+        # Проверка входа в крепость
+        if not self._can_enter_fortress(cells, to_cell):
+            return False
 
-    def can_capture(self, positions: dict, from_pos: int, to_pos: int, pending_captures: list = None) -> bool:
-        if positions.get(from_pos) is None: return False
-        if positions.get(to_pos) is not None: return False
+        return self._check_path(cells, from_cell, to_cell, capture=False)
 
-        # pending_captures - это список позиций, которые батыр уже "съел" в этом ходу (виртуально)
-        return self._check_path(positions, from_pos, to_pos, capture=True, pending_captures=pending_captures)
+    def _find_enemy_cell_for_capture(self, cells: dict, from_cell: int, to_cell: int) -> Optional[int]:
+        # For Batyr, we need to find the first enemy piece in the path
+        for direction in batyr_moves_and_captures.get(from_cell, []):
+            if to_cell in direction:
+                for cell in direction:
+                    if cell == to_cell:
+                        return None
+                    piece = cells.get(cell)
+                    if piece and self.color not in piece:
+                        return cell
+        return None
 
-    def _check_path(self, positions: dict, from_pos: int, to_pos: int, capture: bool, pending_captures: list = None) -> bool:
-        pending = pending_captures or []
+    def _can_capture_impl(self, cells: dict, from_cell: int, to_cell: int, captured_this_turn: list = None) -> bool:
+        if captured_this_turn is None:
+            captured_this_turn = []
         
-        for direction in batyr_moves_and_captures.get(from_pos, []):
-            pieces_count = 0
-            enemy_pos = None
+        enemy_cell = self._find_enemy_cell_for_capture(cells, from_cell, to_cell)
+        if not enemy_cell:
+            return False
             
-            for pos in direction:
-                if pos == to_pos:
-                    # Если дошли до цели
-                    if pieces_count == 0: return True # Просто ход
-                    if pieces_count == 1 and enemy_pos: 
-                        if capture: 
-                            # Тут логика добавления в список съеденных
-                            # Но так как мы только проверяем can_capture, 
-                            # GameLogic сам обновит список
-                            pass
+        # Check if enemy cell is in captured_this_turn (Turkish strike)
+        if enemy_cell in captured_this_turn:
+            return False
+
+        # Нельзя входить в свою крепость, если там есть своя шатра
+        if self._is_entering_own_fortress(to_cell):
+            if self._is_own_shatra_in_fortress(cells):
+                return False
+            
+        return self._check_path(cells, from_cell, to_cell, capture=True, pending_captures=captured_this_turn)
+        
+    def _is_entering_own_fortress(self, to_cell: int) -> bool:
+        if self.color == "черный" and 1 <= to_cell <= 9:
+            return True
+        if self.color == "белый" and 54 <= to_cell <= 62:
+            return True
+        return False
+        
+    def _is_own_shatra_in_fortress(self, cells: dict) -> bool:
+        if self.color == "черный":
+            for cell in range(1, 10):
+                piece = cells.get(cell)
+                if piece and "черная шатра" in piece:
+                    return True
+        else:
+            for cell in range(54, 63):
+                piece = cells.get(cell)
+                if piece and "белая шатра" in piece:
+                    return True
+        return False
+        
+    def _can_enter_fortress(self, cells: dict, to_cell: int) -> bool:
+        """Check if Batyr can enter the fortress (own fortress only)"""
+        if self._is_entering_own_fortress(to_cell):
+            if self._is_own_shatra_in_fortress(cells):
+                return False
+        return True
+
+    def _check_path(self, cells: dict, from_cell: int, to_cell: int, capture: bool, pending_captures: list = None) -> bool:
+        pending = pending_captures or []
+
+        for direction in batyr_moves_and_captures.get(from_cell, []):
+            pieces_count = 0
+            enemy_cell = None
+
+            for cell in direction:
+                if cell == to_cell:
+                    if pieces_count == 0:
                         return True
-                    return False # Слишком много фигур
-                
-                # Проверяем клетку на пути
-                cell_content = positions.get(pos)
-                is_pending_capture = pos in pending
-                
-                if cell_content is not None or is_pending_capture:
+                    if pieces_count == 1 and enemy_cell:
+                        if not capture:
+                            return False
+                        return True
+                    return False
+
+                cell_content = cells.get(cell)
+                is_pending = cell in pending
+
+                if cell_content is not None or is_pending:
                     pieces_count += 1
-                    if cell_content and self.color not in cell_content: # Враг
-                        enemy_pos = pos
+                    if cell_content and self.color not in cell_content:
+                        enemy_cell = cell
                 else:
-                    enemy_pos = None # Сброс, если прошел пустую клетку после врага (не по правилам батыра)
-                    
+                    enemy_cell = None
+
         return False
 
     def get_type(self) -> str:

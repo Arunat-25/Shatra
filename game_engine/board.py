@@ -6,58 +6,58 @@ from game_engine.pieces.batyr import Batyr
 
 
 class Board:
-    def __init__(self, positions: Dict[int, Optional[str]]):
-        for key in list(positions.keys()):
+    def __init__(self, cells: Dict[int, Optional[str]]):
+        for key in list(cells.keys()):
             if isinstance(key, str):
-                positions[int(key)] = positions.pop(key)
-        self.positions = positions  
-        self._pieces_cache: Dict[int, Optional[Piece]] = {}
+                cells[int(key)] = cells.pop(key)
+        self.cells = cells
+        self._piece_cache: Dict[int, Optional[Piece]] = {}
 
-    def get_piece_object(self, pos: int) -> Optional[Piece]:
-        pos = int(pos) if isinstance(pos, str) else pos
-        if pos in self._pieces_cache:
-            return self._pieces_cache[pos]
-        name = self.positions.get(pos)
-        if not name:
-            self._pieces_cache[pos] = None
+    def get_piece_object(self, cell: int) -> Optional[Piece]:
+        cell = int(cell) if isinstance(cell, str) else cell
+        if cell in self._piece_cache:
+            return self._piece_cache[cell]
+        piece_name = self.cells.get(cell)
+        if not piece_name:
+            self._piece_cache[cell] = None
             return None
-        color = "белый" if "бел" in name else "черный"
-        if "шатра" in name:
+        color = "белый" if "бел" in piece_name else "черный"
+        if "шатра" in piece_name:
             piece = Shatra(color)
-        elif "бий" in name:
+        elif "бий" in piece_name:
             piece = Biy(color)
-        elif "батыр" in name:
+        elif "батыр" in piece_name:
             piece = Batyr(color)
         else:
-            self._pieces_cache[pos] = None
+            self._piece_cache[cell] = None
             return None
-        self._pieces_cache[pos] = piece
+        self._piece_cache[cell] = piece
         return piece
 
-    def move_piece(self, from_pos: int, to_pos: int) -> None:
-        from_pos = int(from_pos) if isinstance(from_pos, str) else from_pos
-        to_pos = int(to_pos) if isinstance(to_pos, str) else to_pos
-        self.positions[to_pos] = self.positions[from_pos]
-        self.positions[from_pos] = None
-        self._pieces_cache.clear()
+    def move_piece(self, from_cell: int, to_cell: int) -> None:
+        from_cell = int(from_cell) if isinstance(from_cell, str) else from_cell
+        to_cell = int(to_cell) if isinstance(to_cell, str) else to_cell
+        self.cells[to_cell] = self.cells[from_cell]
+        self.cells[from_cell] = None
+        self._piece_cache.clear()
 
-    def remove_piece(self, pos: int) -> None:
-        pos = int(pos) if isinstance(pos, str) else pos
-        self.positions[pos] = None
-        self._pieces_cache.clear()
+    def remove_piece(self, cell: int) -> None:
+        cell = int(cell) if isinstance(cell, str) else cell
+        self.cells[cell] = None
+        self._piece_cache.clear()
 
     def get_all_pieces(self) -> List[Tuple[int, Piece]]:
         result = []
-        for pos, name in self.positions.items():
-            if name:
-                piece = self.get_piece_object(pos)
+        for cell, piece_name in self.cells.items():
+            if piece_name:
+                piece = self.get_piece_object(cell)
                 if piece:
-                    result.append((pos, piece))
+                    result.append((cell, piece))
         return result
 
-    def is_empty(self, pos: int) -> bool:
-        pos = int(pos) if isinstance(pos, str) else pos
-        return self.positions.get(pos) is None
+    def is_empty(self, cell: int) -> bool:
+        cell = int(cell) if isinstance(cell, str) else cell
+        return self.cells.get(cell) is None
 
-    def copy_positions(self) -> Dict[int, Optional[str]]:
-        return {k: v for k, v in self.positions.items()}
+    def copy_cells(self) -> Dict[int, Optional[str]]:
+        return {k: v for k, v in self.cells.items()}
