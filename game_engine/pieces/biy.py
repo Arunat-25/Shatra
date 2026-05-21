@@ -1,6 +1,6 @@
 # pieces/biy.py
-from game_engine.словари import black_biy_possible_moves, white_biy_possible_moves, shatra_and_biy_possible_captures
-from game_engine.pieces.base import Piece
+from game_engine.dictionaries import black_biy_possible_moves, white_biy_possible_moves, shatra_and_biy_possible_captures
+from game_engine.pieces.base import Piece, _is_own_color
 from typing import Optional
 
 
@@ -39,13 +39,15 @@ class Biy(Piece):
         if not enemy_piece:
             return False
 
+        if _is_own_color(enemy_piece, self.color):
+            return False
+
         if cells.get(to_cell) is not None:
             return False
 
         return self._can_enter_fortress(cells, from_cell, to_cell)
 
     def _can_enter_fortress(self, cells: dict, from_cell: int, to_cell: int) -> bool:
-        # Чёрный Бий входит в свою крепость (клетки 1-9)
         if self.color == "черный" and 1 <= to_cell <= 9:
             if from_cell not in range(1, 10):
                 for cell in range(1, 10):
@@ -54,7 +56,6 @@ class Biy(Piece):
                         return False
             return True
 
-        # Белый Бий входит в свою крепость (клетки 54-62)
         if self.color == "белый" and 54 <= to_cell <= 62:
             if from_cell not in range(54, 63):
                 for cell in range(54, 63):

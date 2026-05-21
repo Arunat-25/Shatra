@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createRoom, listRooms, joinRoom, getRoomStatus } from './api';
+import { createRoom, listRooms, joinRoom } from './api';
 
 export default function Lobby() {
   const navigate = useNavigate();
@@ -22,7 +22,18 @@ export default function Lobby() {
   useEffect(() => {
     fetchRooms();
     const interval = setInterval(fetchRooms, 10000);
-    return () => clearInterval(interval);
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        clearInterval(interval);
+      } else {
+        fetchRooms();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
   }, [fetchRooms]);
 
   const handleCreateGame = async () => {
@@ -30,8 +41,6 @@ export default function Lobby() {
     setError('');
     try {
       const data = await createRoom('quick');
-      // Сразу перенаправляем создателя на страницу игры (экран ожидания)
-      // Там уже будет поле для копирования ссылки и статус "Ожидание соперника"
       navigate(`/game?room=${data.room_id}&player=1`);
     } catch (e) {
       setError(e.message);
@@ -44,6 +53,16 @@ export default function Lobby() {
     try {
       const data = await createRoom('friend');
       navigate(`/game?room=${data.room_id}&player=1&mode=friend`);
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
+  const handlePlayAI = async () => {
+    setError('');
+    try {
+      const data = await createRoom('ai');
+      navigate(`/game?room=${data.room_id}&player=1&mode=ai`);
     } catch (e) {
       setError(e.message);
     }
@@ -89,6 +108,13 @@ export default function Lobby() {
             >
               <span className="btn-icon">⚔️</span>
               <span className="btn-text">{creating ? 'Ожидание соперника...' : 'Создать игру'}</span>
+            </button>
+            <button
+              className="btn-lobby btn-ai"
+              onClick={handlePlayAI}
+            >
+              <span className="btn-icon">🤖</span>
+              <span className="btn-text">Играть с ботом</span>
             </button>
             <button
               className="btn-lobby btn-invite"

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { joinRoom } from './api';
-import ShatraPiece from './ShatraPiece';
+import BoardGrid from './BoardGrid';
 
 export default function Game() {
   const [searchParams] = useSearchParams();
@@ -24,22 +24,29 @@ export default function Game() {
   const [highlightedEssential, setHighlightedEssential] = useState([]);
   const [highlightedCaptured, setHighlightedCaptured] = useState([]);
 
-  const boardRef = useRef(board);
-  boardRef.current = board;
-  const myColorRef = useRef(myColor);
-  myColorRef.current = myColor;
-  const moversColorRef = useRef(moversColor);
-  moversColorRef.current = moversColor;
-  const posForMandatoryCaptureRef = useRef(posForMandatoryCapture);
-  posForMandatoryCaptureRef.current = posForMandatoryCapture;
-  const wsRef = useRef(null);
+  // Единый ref для отслеживания текущих значений без ререндера
+  const stateRef = useRef({ board, myColor, moversColor, posForMandatoryCapture });
+  stateRef.current = { board, myColor, moversColor, posForMandatoryCapture };
 
-  const showMessage = useCallback((text, type = 'инфо') => {
+  const wsRef = useRef(null);
+  const timerRef = useRef(null);
+  const linkInputRef = useRef(null);
+  const intentionalCloseRef = useRef(false);
+
+  const showMessage = useCallback((text, type = 'info') => {
     setMessage(text);
     setMessageType(type);
-    if (type === 'инфо' || type === 'предупреждение') {
-      setTimeout(() => setMessage(''), 3000);
+    if (type === 'info' || type === 'warning') {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => setMessage(''), 3000);
     }
+  }, []);
+
+  // Cleanup на размонтирование
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
   }, []);
 
   const handleServerMessage = useCallback((data) => {
@@ -50,16 +57,15 @@ export default function Game() {
 
     if (data.game_over) {
       setGameOver(true);
-      showMessage(`Игра окончена: ${data.winner || ''}`, 'победа');
+      showMessage(`Игра окончена: ${data.winner || ''}`, 'victory');
       if (data.desk) setBoard(convertKeys(data.desk));
       return;
     }
 
-    // Ход или сообщение
     if (data.message && data.desk) {
       setBoard(convertKeys(data.desk));
       if (data.movers_color) setMoversColor(data.movers_color);
-      showMessage(data.message, 'инфо');
+      showMessage(data.message, 'info');
       setPosForMandatoryCapture(data.position_for_mandatory_capture || null);
       setCanPass(!!data.opportunity_pass_the_move);
       setHighlightedEssential([]);
@@ -67,21 +73,19 @@ export default function Game() {
       return;
     }
 
-    // Хинты (без message — это не ход)
     if (data.essential_positions !== undefined && !data.message) {
       setHighlightedEssential(data.essential_positions || []);
       setHighlightedCaptured(data.captured_pieces || []);
       return;
     }
 
-    // Старт игры
     if (data.desk && !data.message) {
       setMoversColor(data.movers_color || 'белый');
       setBoard(convertKeys(data.desk));
       setWaiting(false);
       setHighlightedEssential([]);
       setHighlightedCaptured([]);
-      showMessage('Игра началась!', 'инфо');
+      showMessage('Игра началась!', 'info');
       return;
     }
   }, [showMessage]);
@@ -91,14 +95,13 @@ export default function Game() {
     if (!roomId) return;
     
     const openWebSocket = () => {
-      // Передаём playerId как query-параметр, чтобы сервер знал, кто подключается
       const ws = new WebSocket(`ws://${window.location.host}/ws/${roomId}/?player=${playerId || ''}`);
       wsRef.current = ws;
       ws.onmessage = (event) => handleServerMessage(JSON.parse(event.data));
       ws.onclose = (event) => {
-        if (event.code !== 1000) {
+        if (event.code !== 1000 && !intentionalCloseRef.current) {
           setMessage('Соединение разорвано');
-          setMessageType('ошибка');
+          setMessageType('error');
         }
       };
     };
@@ -112,6 +115,7 @@ export default function Game() {
     }
 
     return () => {
+      intentionalCloseRef.current = true;
       if (wsRef.current) wsRef.current.close();
     };
   }, [roomId, playerId, handleServerMessage]);
@@ -123,24 +127,25 @@ export default function Game() {
 
   const handleCellClick = useCallback((positionNum) => {
     if (gameOver) return;
-    if (moversColorRef.current !== myColorRef.current) {
-      showMessage('Не ваш ход!', 'предупреждение');
+    const s = stateRef.current;
+    if (s.moversColor !== s.myColor) {
+      showMessage('Не ваш ход!', 'warning');
       return;
     }
     if (moveFrom === null) {
-      const piece = boardRef.current[positionNum];
+      const piece = s.board[positionNum];
       if (!piece) return;
       const pieceColor = piece.includes('бел') ? 'белый' : 'черный';
-      if (pieceColor === myColorRef.current) {
+      if (pieceColor === s.myColor) {
         setMoveFrom(positionNum);
         setHighlightedEssential([]);
         setHighlightedCaptured([]);
         if (wsRef.current) {
           wsRef.current.send(JSON.stringify({
             position: `position${positionNum}`,
-            movers_color: moversColorRef.current,
-            board: boardRef.current,
-            position_for_mandatory_capture: posForMandatoryCaptureRef.current,
+            movers_color: s.moversColor,
+            board: s.board,
+            position_for_mandatory_capture: s.posForMandatoryCapture,
           }));
         }
       }
@@ -152,13 +157,14 @@ export default function Game() {
       setHighlightedCaptured([]);
       return;
     }
+    const s2 = stateRef.current;
     if (wsRef.current) {
       wsRef.current.send(JSON.stringify({
         move_from: `position${moveFrom}`,
         move_to: `position${positionNum}`,
-        movers_color: moversColorRef.current,
-        board: boardRef.current,
-        position_for_mandatory_capture: posForMandatoryCaptureRef.current,
+        movers_color: s2.moversColor,
+        board: s2.board,
+        position_for_mandatory_capture: s2.posForMandatoryCapture,
       }));
     }
     setHighlightedEssential([]);
@@ -166,22 +172,28 @@ export default function Game() {
     setMoveFrom(null);
   }, [moveFrom, gameOver, showMessage]);
 
-  const sendPassTheMove = () => {
+  const skipTurn = () => {
+    const s = stateRef.current;
     if (wsRef.current) {
       wsRef.current.send(JSON.stringify({
         move_from: 'position0',
         move_to: 'position0',
-        movers_color: moversColorRef.current,
-        board: boardRef.current,
-        position_for_mandatory_capture: posForMandatoryCaptureRef.current,
+        movers_color: s.moversColor,
+        board: s.board,
+        position_for_mandatory_capture: s.posForMandatoryCapture,
       }));
     }
     setCanPass(false);
   };
 
+  const copyLink = useCallback(() => {
+    if (linkInputRef.current) {
+      linkInputRef.current.select();
+      navigator.clipboard.writeText(linkInputRef.current.value);
+    }
+  }, []);
+
   if (waiting) {
-    // Поле со ссылкой показываем при прямом заходе (без playerId)
-    // или при вызове друга (mode=friend)
     const showLink = playerId === null || modeFriend;
     return (
       <div className="waiting-screen">
@@ -194,15 +206,13 @@ export default function Game() {
               <div className="waiting-link-container">
                 <input
                   className="waiting-link-input"
+                  ref={linkInputRef}
                   type="text"
                   readOnly
                   value={`${window.location.origin}/game?room=${roomId}`}
-                  onClick={(e) => e.target.select()}
+                  onClick={() => linkInputRef.current?.select()}
                 />
-                <button className="btn-refresh" onClick={() => {
-                  const inp = document.querySelector('.waiting-link-input');
-                  if (inp) { inp.select(); navigator.clipboard.writeText(inp.value); }
-                }}>Копировать</button>
+                <button className="btn-refresh" onClick={copyLink}>Копировать</button>
               </div>
             </>
           )}
@@ -249,7 +259,7 @@ export default function Game() {
         )}
 
         {canPass && !gameOver && (
-          <button className="btn-pass" onClick={sendPassTheMove}>Передать ход</button>
+          <button className="btn-pass" onClick={skipTurn}>Передать ход</button>
         )}
 
         <div className="game-info-bottom">
@@ -266,106 +276,4 @@ function convertKeys(serverBoard) {
     result[parseInt(key)] = value;
   }
   return result;
-}
-
-function getPieceType(pieceStr) {
-  if (pieceStr.includes('бий')) return 'бий';
-  if (pieceStr.includes('батыр')) return 'батыр';
-  return 'шатра';
-}
-
-function getPieceColor(pieceStr) {
-  return pieceStr.includes('бел') ? 'белый' : 'черный';
-}
-
-function BoardGrid({ board, onCellClick, moveFrom, highlightedEssential = [], highlightedCaptured = [] }) {
-  const renderCell = (id, className) => {
-    const isEssential = highlightedEssential.includes(id);
-    const isCaptured = highlightedCaptured.includes(id);
-    const classes = [
-      'kletka',
-      className,
-      board[id] ? 'has-piece' : '',
-      moveFrom === id ? 'highlight-black' : '',
-      isEssential ? 'highlight-essential' : '',
-      isCaptured ? 'highlight-captured' : '',
-    ].filter(Boolean).join(' ');
-    
-    return (
-      <div
-        key={id}
-        id={`position${id}`}
-        className={classes}
-        onClick={() => onCellClick(id)}
-      >
-        {board[id] && (
-          <div className="image-in-kletka">
-            <ShatraPiece 
-              type={getPieceType(board[id])} 
-              color={getPieceColor(board[id])}
-              isSelected={moveFrom === id}
-              isTarget={isCaptured}
-            />
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  return (
-    <>
-      <div className="field-of-reserve">
-        <div className="row">
-          {renderCell(1, 'nechetnaya')}{renderCell(2, 'chetnaya')}{renderCell(3, 'nechetnaya')}
-        </div>
-        <div className="row">
-          {renderCell(4, 'chetnaya')}{renderCell(5, 'nechetnaya')}{renderCell(6, 'chetnaya')}
-        </div>
-        <div className="row">
-          {renderCell(7, 'nechetnaya')}{renderCell(8, 'chetnaya')}{renderCell(9, 'nechetnaya')}
-        </div>
-      </div>
-      <div className="field-of-queen">{renderCell(10, 'chetnaya')}</div>
-      <div className="main-field">
-        <div className="row">
-          {renderCell(11, 'nechetnaya')}{renderCell(12, 'chetnaya')}{renderCell(13, 'nechetnaya')}
-          {renderCell(14, 'chetnaya')}{renderCell(15, 'nechetnaya')}{renderCell(16, 'chetnaya')}{renderCell(17, 'nechetnaya')}
-        </div>
-        <div className="row">
-          {renderCell(18, 'chetnaya')}{renderCell(19, 'nechetnaya')}{renderCell(20, 'chetnaya')}
-          {renderCell(21, 'nechetnaya')}{renderCell(22, 'chetnaya')}{renderCell(23, 'nechetnaya')}{renderCell(24, 'chetnaya')}
-        </div>
-        <div className="row">
-          {renderCell(25, 'nechetnaya')}{renderCell(26, 'chetnaya')}{renderCell(27, 'nechetnaya')}
-          {renderCell(28, 'chetnaya')}{renderCell(29, 'nechetnaya')}{renderCell(30, 'chetnaya')}{renderCell(31, 'nechetnaya')}
-        </div>
-      </div>
-      <div className="main-field">
-        <div className="row">
-          {renderCell(32, 'chetnaya')}{renderCell(33, 'nechetnaya')}{renderCell(34, 'chetnaya')}
-          {renderCell(35, 'nechetnaya')}{renderCell(36, 'chetnaya')}{renderCell(37, 'nechetnaya')}{renderCell(38, 'chetnaya')}
-        </div>
-        <div className="row">
-          {renderCell(39, 'nechetnaya')}{renderCell(40, 'chetnaya')}{renderCell(41, 'nechetnaya')}
-          {renderCell(42, 'chetnaya')}{renderCell(43, 'nechetnaya')}{renderCell(44, 'chetnaya')}{renderCell(45, 'nechetnaya')}
-        </div>
-        <div className="row">
-          {renderCell(46, 'chetnaya')}{renderCell(47, 'nechetnaya')}{renderCell(48, 'chetnaya')}
-          {renderCell(49, 'nechetnaya')}{renderCell(50, 'chetnaya')}{renderCell(51, 'nechetnaya')}{renderCell(52, 'chetnaya')}
-        </div>
-      </div>
-      <div className="field-of-queen">{renderCell(53, 'chetnaya')}</div>
-      <div className="field-of-reserve">
-        <div className="row">
-          {renderCell(54, 'nechetnaya')}{renderCell(55, 'chetnaya')}{renderCell(56, 'nechetnaya')}
-        </div>
-        <div className="row">
-          {renderCell(57, 'chetnaya')}{renderCell(58, 'nechetnaya')}{renderCell(59, 'chetnaya')}
-        </div>
-        <div className="row">
-          {renderCell(60, 'nechetnaya')}{renderCell(61, 'chetnaya')}{renderCell(62, 'nechetnaya')}
-        </div>
-      </div>
-    </>
-  );
 }

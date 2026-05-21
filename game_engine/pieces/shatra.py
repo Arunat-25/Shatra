@@ -1,6 +1,6 @@
 # pieces/shatra.py
-from game_engine.словари import black_shatra_possible_moves, white_shatra_possible_moves, shatra_and_biy_possible_captures
-from game_engine.pieces.base import Piece
+from game_engine.dictionaries import black_shatra_possible_moves, white_shatra_possible_moves, shatra_and_biy_possible_captures
+from game_engine.pieces.base import Piece, _is_own_color
 from typing import Optional
 
 
@@ -20,19 +20,13 @@ class Shatra(Piece):
 
         # Выход из крепости (выставление): проверяем, что впереди нет своих фигур
         if self.color == "черный" and 1 <= from_cell <= 9:
-            # Очерёдность выставления чёрных: 9 → 8 → 7→ ... →1
-            # Проверяем клетки с БОЛЬШИМ номером чем текущая
             for cell in range(from_cell + 1, 10):
                 piece = cells.get(cell)
-                # Проверяем только шатры того же цвета
                 if piece and "черная шатра" in piece:
                     return False
         elif self.color == "белый" and 54 <= from_cell <= 62:
-            # Очерёдность выставления белых: 54 →55 →56→ ... →62
-            # Проверяем клетки с МЕНЬШИМ номером чем текущая
             for cell in range(54, from_cell):
                 piece = cells.get(cell)
-                # Проверяем только шатры того же цвета
                 if piece and "белая шатра" in piece:
                     return False
         return True
@@ -53,6 +47,10 @@ class Shatra(Piece):
         if not enemy_piece:
             return False
 
+        # Проверяем, что фигура на enemy_cell — враг, а не своя
+        if _is_own_color(enemy_piece, self.color):
+            return False
+
         if cells.get(to_cell) is not None:
             return False
 
@@ -62,31 +60,25 @@ class Shatra(Piece):
 
         # Шатры с большого поля не могут бить в свою крепость или ворота
         if self.color == "белый":
-            # Своя крепость белых: 53 (ворота), 54-62 (крепость)
-            # "Большое поле" для белых: от 32 до 52
             if 32 <= from_cell <= 52 and 53 <= to_cell <= 62:
                 return False
-        else:  # чёрный
-            # Своя крепость чёрных: 1-9 (крепость), 10 (ворота)
-            # "Большое поле" для чёрных: от 11 до 31
+        else:
             if 11 <= from_cell <= 31 and 1 <= to_cell <= 10:
                 return False
 
         return self._can_enter_fortress(cells, from_cell, to_cell)
 
     def _can_enter_fortress(self, cells: dict, from_cell: int, to_cell: int) -> bool:
-        # Чёрные входят в крепость 53-62
         if self.color == "черный" and 53 <= to_cell <= 62:
             if from_cell not in range(53, 63):
                 for cell in range(53, 63):
-                    if cells.get(cell) and "черный" in cells[cell]:
+                    if cells.get(cell) and not _is_own_color(cells[cell], self.color):
                         return False
             return True
-        # Белые входят в крепость 1-10
         if self.color == "белый" and 1 <= to_cell <= 10:
             if from_cell not in range(1, 11):
                 for cell in range(1, 11):
-                    if cells.get(cell) and "белый" in cells[cell]:
+                    if cells.get(cell) and not _is_own_color(cells[cell], self.color):
                         return False
             return True
         return True

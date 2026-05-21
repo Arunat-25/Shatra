@@ -18,8 +18,7 @@ def create_room(request: CreateRoomRequest) -> CreateRoomResponse:
         created_at=now
     )
     rooms[room_id] = room
-    link = f"/Frontend/Board.html?room={room_id}"
-    return CreateRoomResponse(room_id=room_id, link=link, type=request.type)
+    return CreateRoomResponse(room_id=room_id, type=request.type)
 
 
 def list_rooms() -> RoomListResponse:

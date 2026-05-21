@@ -1,8 +1,8 @@
-def board_to_json(board_dict: dict) -> dict:
+def keys_int_to_str(board_dict: dict) -> dict:
     return {str(k): v for k, v in board_dict.items()}
 
 
-def boards_keys_to_int(board: dict) -> dict:
+def keys_str_to_int(board: dict) -> dict:
     return {int(k) if isinstance(k, str) else k: v for k, v in board.items()}
 
 

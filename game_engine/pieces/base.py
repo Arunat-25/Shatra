@@ -2,6 +2,13 @@ from abc import ABC, abstractmethod
 from typing import Optional
 
 
+def _is_own_color(piece_name, color):
+    """Проверить, принадлежит ли фигура тому же цвету, что color."""
+    if "бел" in piece_name:
+        return color.startswith("бел")
+    return color.startswith("чер")
+
+
 class Piece(ABC):
     def __init__(self, color: str):
         self.color = color
@@ -17,12 +24,8 @@ class Piece(ABC):
         enemy_cell = self._find_enemy_cell_for_capture(cells, from_cell, to_cell)
         if enemy_cell:
             enemy_piece = cells.get(enemy_cell)
-            if enemy_piece:
-                # Проверяем, что вражеская фигура содержит цвет текущего игрока
-                enemy_color = enemy_piece.split()[0]
-                # Приводим к общей форме: "белая" -> "бел", "черная" -> "чер"
-                if self.color.startswith(enemy_color[:3]):
-                    return False
+            if enemy_piece and _is_own_color(enemy_piece, self.color):
+                return False
         return self._can_capture_impl(cells, from_cell, to_cell, captured_this_turn)
         
     @abstractmethod

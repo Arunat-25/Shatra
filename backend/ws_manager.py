@@ -1,7 +1,7 @@
 from fastapi import WebSocket
 from game_engine.game_logic import GameLogic
 from backend.room_manager import rooms
-from backend.board_utils import board_to_json, get_starting_board
+from backend.board_utils import keys_int_to_str, get_starting_board
 
 games: dict[str, dict] = {}
 
@@ -12,7 +12,6 @@ class ConnectionManager:
 
     async def connect(self, room_id: str, websocket: WebSocket, player_id: int | None = None) -> bool:
         await websocket.accept()
-
         room = rooms.get(room_id)
         if not room:
             await websocket.close(code=1008)
@@ -26,16 +25,14 @@ class ConnectionManager:
             if player_id == 1:
                 room.player1_ws = websocket
                 room.player1_connected = True
-                self.connections[room_id].append(websocket)
-                return True
             elif player_id == 2:
                 room.player2_ws = websocket
                 room.player2_connected = True
-                self.connections[room_id].append(websocket)
-                return True
-            # WS без player_id после начала игры — отклоняем
-            await websocket.close(code=1008)
-            return False
+            else:
+                await websocket.close(code=1008)
+                return False
+            self.connections[room_id].append(websocket)
+            return True
 
         # Если player2_connected уже true (P2 нажал "Присоединиться" через REST)
         if room.player2_connected and not room.player2_ws and not room.game_started:
@@ -102,27 +99,11 @@ async def init_game(room_id: str):
 async def handle_player2_join(room_id: str, room):
     await init_game(room_id)
     game = games[room_id]
-    
-    # Отправляем "game_started" обоим игрокам
-    msg = {
+
+    await manager.send_to_room(room_id, {
         "status": "game_started",
         "movers_color": game["mover"],
-        "desk": board_to_json(game["board"])
-    }
-    
-    # P1
-    if room.player1_ws:
-        try:
-            await room.player1_ws.send_json(msg)
-        except Exception:
-            pass
-    
-    # P2
-    if room.player2_ws:
-        try:
-            await room.player2_ws.send_json(msg)
-        except Exception:
-            pass
-    
-    # Отмечаем игру как начатую
+        "desk": keys_int_to_str(game["board"])
+    })
+
     room.game_started = True

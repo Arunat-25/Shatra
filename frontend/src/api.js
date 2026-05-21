@@ -30,8 +30,3 @@ export async function joinRoom(roomId) {
   return res.json();
 }
 
-export async function getRoomStatus(roomId) {
-  const res = await fetch(`${API_BASE}/rooms/${roomId}/status`);
-  if (!res.ok) throw new Error('Ошибка статуса');
-  return res.json();
-}

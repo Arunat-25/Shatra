@@ -1,5 +1,5 @@
-from game_engine.словари import batyr_moves_and_captures
-from game_engine.pieces.base import Piece
+from game_engine.dictionaries import batyr_moves_and_captures
+from game_engine.pieces.base import Piece, _is_own_color
 from typing import Optional
 
 
@@ -26,14 +26,13 @@ class Batyr(Piece):
         return self._check_path(cells, from_cell, to_cell, capture=False)
 
     def _find_enemy_cell_for_capture(self, cells: dict, from_cell: int, to_cell: int) -> Optional[int]:
-        # For Batyr, we need to find the first enemy piece in the path
         for direction in batyr_moves_and_captures.get(from_cell, []):
             if to_cell in direction:
                 for cell in direction:
                     if cell == to_cell:
                         return None
                     piece = cells.get(cell)
-                    if piece and self.color not in piece:
+                    if piece and not _is_own_color(piece, self.color):
                         return cell
         return None
 
@@ -45,11 +44,9 @@ class Batyr(Piece):
         if not enemy_cell:
             return False
             
-        # Check if enemy cell is in captured_this_turn (Turkish strike)
         if enemy_cell in captured_this_turn:
             return False
 
-        # Нельзя входить в свою крепость, если там есть своя шатра
         if self._is_entering_own_fortress(to_cell):
             if self._is_own_shatra_in_fortress(cells):
                 return False
@@ -77,7 +74,6 @@ class Batyr(Piece):
         return False
         
     def _can_enter_fortress(self, cells: dict, to_cell: int) -> bool:
-        """Check if Batyr can enter the fortress (own fortress only)"""
         if self._is_entering_own_fortress(to_cell):
             if self._is_own_shatra_in_fortress(cells):
                 return False
@@ -105,7 +101,7 @@ class Batyr(Piece):
 
                 if cell_content is not None or is_pending:
                     pieces_count += 1
-                    if cell_content and self.color not in cell_content:
+                    if cell_content and not _is_own_color(cell_content, self.color):
                         enemy_cell = cell
 
         return False

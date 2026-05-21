@@ -3,7 +3,7 @@
 from game_engine.game_logic import GameLogic
 from game_engine.models import GameEvent, GameEventResult
 from game_engine.board import Board
-from game_engine.словари import shatra_and_biy_possible_captures
+from game_engine.dictionaries import shatra_and_biy_possible_captures
 import copy
 
 
