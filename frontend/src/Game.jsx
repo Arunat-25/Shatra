@@ -9,6 +9,7 @@ export default function Game() {
   const playerParam = searchParams.get('player');
   const playerId = playerParam ? parseInt(playerParam) : null;
   const modeFriend = searchParams.get('mode') === 'friend';
+  const modeAi = searchParams.get('mode') === 'ai';
 
   const [waiting, setWaiting] = useState(true);
   const [joiningError, setJoiningError] = useState('');
@@ -21,10 +22,12 @@ export default function Game() {
   const [moveFrom, setMoveFrom] = useState(null);
   const [canPass, setCanPass] = useState(false);
   const [gameOver, setGameOver] = useState(false);
+  const [winner, setWinner] = useState('');
   const [highlightedEssential, setHighlightedEssential] = useState([]);
   const [highlightedCaptured, setHighlightedCaptured] = useState([]);
+  const [lastMove, setLastMove] = useState(null);
+  const [aiThinking, setAiThinking] = useState(false);
 
-  // Единый ref для отслеживания текущих значений без ререндера
   const stateRef = useRef({ board, myColor, moversColor, posForMandatoryCapture });
   stateRef.current = { board, myColor, moversColor, posForMandatoryCapture };
 
@@ -36,13 +39,12 @@ export default function Game() {
   const showMessage = useCallback((text, type = 'info') => {
     setMessage(text);
     setMessageType(type);
-    if (type === 'info' || type === 'warning') {
-      if (timerRef.current) clearTimeout(timerRef.current);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    if (type !== 'error' && type !== 'victory') {
       timerRef.current = setTimeout(() => setMessage(''), 3000);
     }
   }, []);
 
-  // Cleanup на размонтирование
   useEffect(() => {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
@@ -57,19 +59,27 @@ export default function Game() {
 
     if (data.game_over) {
       setGameOver(true);
-      showMessage(`Игра окончена: ${data.winner || ''}`, 'victory');
+      setWinner(data.winner || '');
+      showMessage(`Игра окончена! Победил ${data.winner || 'ничья'}`, 'victory');
       if (data.desk) setBoard(convertKeys(data.desk));
+      setAiThinking(false);
       return;
     }
 
     if (data.message && data.desk) {
-      setBoard(convertKeys(data.desk));
+      const newBoard = convertKeys(data.desk);
+      setBoard(newBoard);
       if (data.movers_color) setMoversColor(data.movers_color);
       showMessage(data.message, 'info');
       setPosForMandatoryCapture(data.position_for_mandatory_capture || null);
       setCanPass(!!data.opportunity_pass_the_move);
       setHighlightedEssential([]);
       setHighlightedCaptured([]);
+      if (modeAi && data.movers_color === 'черный' && !data.game_over) {
+        setAiThinking(true);
+      } else {
+        setAiThinking(false);
+      }
       return;
     }
 
@@ -81,19 +91,18 @@ export default function Game() {
 
     if (data.desk && !data.message) {
       setMoversColor(data.movers_color || 'белый');
-      setBoard(convertKeys(data.desk));
+      const newBoard = convertKeys(data.desk);
+      setBoard(newBoard);
       setWaiting(false);
       setHighlightedEssential([]);
       setHighlightedCaptured([]);
       showMessage('Игра началась!', 'info');
       return;
     }
-  }, [showMessage]);
+  }, [showMessage, modeAi]);
 
-  // WebSocket
   useEffect(() => {
     if (!roomId) return;
-    
     const openWebSocket = () => {
       const ws = new WebSocket(`ws://${window.location.host}/ws/${roomId}/?player=${playerId || ''}`);
       wsRef.current = ws;
@@ -105,7 +114,6 @@ export default function Game() {
         }
       };
     };
-
     if (playerId === null) {
       joinRoom(roomId).then(openWebSocket).catch((e) => {
         setJoiningError(e.message);
@@ -113,20 +121,18 @@ export default function Game() {
     } else {
       openWebSocket();
     }
-
     return () => {
       intentionalCloseRef.current = true;
       if (wsRef.current) wsRef.current.close();
     };
   }, [roomId, playerId, handleServerMessage]);
 
-  // Цвет от playerId
   useEffect(() => {
     setMyColor(playerId === null || playerId === 2 ? 'черный' : 'белый');
   }, [playerId]);
 
   const handleCellClick = useCallback((positionNum) => {
-    if (gameOver) return;
+    if (gameOver || aiThinking) return;
     const s = stateRef.current;
     if (s.moversColor !== s.myColor) {
       showMessage('Не ваш ход!', 'warning');
@@ -159,6 +165,7 @@ export default function Game() {
     }
     const s2 = stateRef.current;
     if (wsRef.current) {
+      setLastMove({ from: moveFrom, to: positionNum });
       wsRef.current.send(JSON.stringify({
         move_from: `position${moveFrom}`,
         move_to: `position${positionNum}`,
@@ -170,7 +177,7 @@ export default function Game() {
     setHighlightedEssential([]);
     setHighlightedCaptured([]);
     setMoveFrom(null);
-  }, [moveFrom, gameOver, showMessage]);
+  }, [moveFrom, gameOver, aiThinking, showMessage]);
 
   const skipTurn = () => {
     const s = stateRef.current;
@@ -194,13 +201,23 @@ export default function Game() {
   }, []);
 
   if (waiting) {
-    const showLink = playerId === null || modeFriend;
+    if (modeAi) {
+      return (
+        <div className="waiting-screen">
+          <div className="waiting-content">
+            <div className="waiting-spinner"></div>
+            <h2 className="waiting-title">Сражение с ботом</h2>
+            <p className="waiting-subtitle">🤖 ИИ анализирует позицию...</p>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="waiting-screen">
         <div className="waiting-content">
           <div className="waiting-spinner"></div>
           <h2 className="waiting-title">Ожидание соперника</h2>
-          {showLink && (
+          {(playerId === null || modeFriend) && (
             <>
               <p className="waiting-subtitle">Поделитесь ссылкой, чтобы пригласить друга</p>
               <div className="waiting-link-container">
@@ -217,9 +234,27 @@ export default function Game() {
             </>
           )}
           <p className="waiting-hint">Игра начнётся, когда второй игрок присоединится</p>
-          {joiningError && (
-            <div className="error-container"><p>{joiningError}</p></div>
-          )}
+          {joiningError && <div className="error-container"><p>{joiningError}</p></div>}
+        </div>
+      </div>
+    );
+  }
+
+  if (gameOver) {
+    const isWin = winner && winner.includes(myColor === 'белый' ? 'бел' : 'чер');
+    return (
+      <div className="game-over-overlay">
+        <div className="game-over-modal">
+          <div className="game-over-icon">{isWin ? '🏆' : '😔'}</div>
+          <h2 className="game-over-title">{isWin ? 'Победа!' : 'Поражение'}</h2>
+          <p className="game-over-text">
+            {winner ? (isWin ? 'Вы одержали победу!' : `Победил ${winner}`) : 'Ничья'}
+          </p>
+          <div className="game-over-buttons">
+            <button className="btn-lobby btn-battle" onClick={() => window.location.href = '/'}>
+              В лобби
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -233,24 +268,35 @@ export default function Game() {
             <span className="game-title">Шатра</span>
             <div className="player-info">
               <span className={myColor === 'белый' ? 'color-white' : 'color-black'}>
-                Вы: {myColor === 'белый' ? '⚪ Белые' : '⚫ Черные'}
+                {myColor === 'белый' ? '⚪' : '⚫'} {myColor === 'белый' ? 'Белые' : 'Черные'}
               </span>
+              {modeAi && <span className="ai-badge">🤖</span>}
             </div>
           </div>
           <div className="header-right">
-            <div className={`turn-indicator ${moversColor === 'белый' ? 'turn-white' : 'turn-black'}`}>
-              Ход: {moversColor === 'белый' ? '⚪ Белых' : '⚫ Черных'}
+            <div className={`turn-indicator ${moversColor === 'белый' ? 'turn-white' : 'turn-black'} ${aiThinking ? 'turn-ai' : ''}`}>
+              {aiThinking ? (
+                <span className="ai-thinking-text">
+                  AI думает
+                  <span className="thinking-dot">.</span>
+                  <span className="thinking-dot">.</span>
+                  <span className="thinking-dot">.</span>
+                </span>
+              ) : (
+                <>Ход: {moversColor === 'белый' ? '⚪' : '⚫'} {moversColor === 'белый' ? 'Белых' : 'Черных'}</>
+              )}
             </div>
           </div>
         </div>
 
-        <div className={`board ${gameOver ? 'disabled' : ''}`}>
+        <div className={`board ${gameOver ? 'disabled' : ''} ${aiThinking ? 'board-ai-thinking' : ''}`}>
           <BoardGrid 
-            board={board} 
-            onCellClick={handleCellClick} 
-            moveFrom={moveFrom} 
+            board={board}
+            onCellClick={handleCellClick}
+            moveFrom={moveFrom}
             highlightedEssential={highlightedEssential}
             highlightedCaptured={highlightedCaptured}
+            lastMove={lastMove}
           />
         </div>
 
@@ -263,7 +309,14 @@ export default function Game() {
         )}
 
         <div className="game-info-bottom">
-          <span>Комната: {roomId}</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span>Комната: {roomId}</span>
+            <span style={{ fontSize: '0.75rem', opacity: 0.6 }}>
+              ⚪ {Object.values(board).filter(v => v && v.includes('бел')).length}
+              &nbsp;⚫ {Object.values(board).filter(v => v && !v.includes('бел')).length}
+            </span>
+          </span>
+          {modeAi && <span style={{ color: '#7C3AED', fontWeight: 600 }}>🤖 AI</span>}
         </div>
       </div>
     </div>

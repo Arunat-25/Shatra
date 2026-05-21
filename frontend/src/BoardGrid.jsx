@@ -10,10 +10,12 @@ function getPieceColor(pieceStr) {
   return pieceStr.includes('бел') ? 'белый' : 'черный';
 }
 
-export default function BoardGrid({ board, onCellClick, moveFrom, highlightedEssential = [], highlightedCaptured = [] }) {
+export default function BoardGrid({ board, onCellClick, moveFrom, highlightedEssential = [], highlightedCaptured = [], lastMove = null }) {
   const renderCell = (id, className) => {
     const isEssential = highlightedEssential.includes(id);
     const isCaptured = highlightedCaptured.includes(id);
+    const isLastFrom = lastMove && lastMove.from === id;
+    const isLastTo = lastMove && lastMove.to === id;
     const classes = [
       'kletka',
       className,
@@ -21,6 +23,8 @@ export default function BoardGrid({ board, onCellClick, moveFrom, highlightedEss
       moveFrom === id ? 'highlight-black' : '',
       isEssential ? 'highlight-essential' : '',
       isCaptured ? 'highlight-captured' : '',
+      isLastFrom ? 'last-move-from' : '',
+      isLastTo ? 'last-move-to' : '',
     ].filter(Boolean).join(' ');
     
     return (
