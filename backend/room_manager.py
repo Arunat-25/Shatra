@@ -3,7 +3,7 @@ from datetime import datetime
 from fastapi import HTTPException
 from backend.models import (
     Room, RoomType, RoomInfo, CreateRoomRequest,
-    CreateRoomResponse, RoomListResponse, QuickStartResponse, JoinRoomResponse
+    CreateRoomResponse, RoomListResponse
 )
 
 rooms: dict[str, Room] = {}
@@ -34,7 +34,7 @@ def list_rooms() -> RoomListResponse:
     return RoomListResponse(rooms=available)
 
 
-def join_room(room_id: str) -> JoinRoomResponse:
+def join_room(room_id: str) -> dict:
     room = rooms.get(room_id)
     if not room:
         raise HTTPException(status_code=404, detail="Комната не найдена")
@@ -42,13 +42,8 @@ def join_room(room_id: str) -> JoinRoomResponse:
         raise HTTPException(status_code=400, detail="Комната уже заполнена")
     if room.game_started:
         raise HTTPException(status_code=400, detail="Игра уже началась")
-    link = f"/Frontend/Board.html?room={room_id}"
-    return JoinRoomResponse(room_id=room_id, link=link)
+    # Помечаем, что P2 присоединился — P1 увидит это через polling
+    room.player2_connected = True
+    return {"room_id": room_id, "joined": True}
 
 
-def quick_start() -> QuickStartResponse:
-    for room_id, room in rooms.items():
-        if room.type == "quick" and not room.player2_connected and not room.game_started:
-            link = f"/Frontend/Board.html?room={room_id}"
-            return QuickStartResponse(room_id=room_id, link=link)
-    raise HTTPException(status_code=404, detail="Нет свободных комнат для быстрого старта")

@@ -1,7 +1,5 @@
-import asyncio
 from fastapi import WebSocket
 from game_engine.game_logic import GameLogic
-from backend.models import Room
 from backend.room_manager import rooms
 from backend.board_utils import board_to_json, get_starting_board
 
@@ -12,7 +10,7 @@ class ConnectionManager:
     def __init__(self):
         self.connections: dict[str, list[WebSocket]] = {}
 
-    async def connect(self, room_id: str, websocket: WebSocket) -> bool:
+    async def connect(self, room_id: str, websocket: WebSocket, player_id: int | None = None) -> bool:
         await websocket.accept()
 
         room = rooms.get(room_id)
@@ -23,15 +21,40 @@ class ConnectionManager:
         if room_id not in self.connections:
             self.connections[room_id] = []
 
-        if not room.player1_connected:
-            room.player1_connected = True
-            room.player1_ws = websocket
+        # Если игра уже началась — используем player_id для корректного сопоставления
+        if room.game_started:
+            if player_id == 1:
+                room.player1_ws = websocket
+                room.player1_connected = True
+                self.connections[room_id].append(websocket)
+                return True
+            elif player_id == 2:
+                room.player2_ws = websocket
+                room.player2_connected = True
+                self.connections[room_id].append(websocket)
+                return True
+            # WS без player_id после начала игры — отклоняем
+            await websocket.close(code=1008)
+            return False
+
+        # Если player2_connected уже true (P2 нажал "Присоединиться" через REST)
+        if room.player2_connected and not room.player2_ws and not room.game_started:
+            room.player2_ws = websocket
+            room.player2_connected = True
             self.connections[room_id].append(websocket)
             return True
 
-        if not room.player2_connected:
-            room.player2_connected = True
+        # Первый WebSocket — P1
+        if room.player1_ws is None:
+            room.player1_ws = websocket
+            room.player1_connected = True
+            self.connections[room_id].append(websocket)
+            return True
+
+        # Второй WebSocket — P2
+        if room.player2_ws is None:
             room.player2_ws = websocket
+            room.player2_connected = True
             self.connections[room_id].append(websocket)
             return True
 
@@ -42,22 +65,21 @@ class ConnectionManager:
         room = rooms.get(room_id)
         if room:
             if room.player1_ws == websocket:
-                room.player1_connected = False
                 room.player1_ws = None
-            elif room.player2_ws == websocket:
-                room.player2_connected = False
+            if room.player2_ws == websocket:
                 room.player2_ws = None
 
         if room_id in self.connections and websocket in self.connections[room_id]:
             self.connections[room_id].remove(websocket)
             if not self.connections[room_id]:
                 self.connections.pop(room_id, None)
-                games.pop(room_id, None)
-                rooms.pop(room_id, None)
 
     async def send_to_room(self, room_id: str, data: dict):
         for ws in self.connections.get(room_id, []):
-            await ws.send_json(data)
+            try:
+                await ws.send_json(data)
+            except Exception:
+                pass
 
     async def send_to_player(self, websocket: WebSocket, data: dict):
         await websocket.send_json(data)
@@ -77,43 +99,30 @@ async def init_game(room_id: str):
     }
 
 
-async def handle_player1_waiting(room_id: str, websocket: WebSocket, room: Room):
-    await manager.send_to_player(websocket, {
-        "status": "waiting",
-        "link": room_id
-    })
-    try:
-        while not room.player2_connected:
-            await asyncio.sleep(0.5)
-    except Exception:
-        await manager.disconnect(room_id, websocket)
-        return
-
-    game = games[room_id]
-    await manager.send_to_player(room.player1_ws, {
-        "players_color": "белый",
-        "movers_color": game["mover"],
-        "desk": board_to_json(game["board"])
-    })
-    await manager.send_to_player(room.player2_ws, {
-        "players_color": "черный",
-        "movers_color": game["mover"],
-        "desk": board_to_json(game["board"])
-    })
-    room.game_started = True
-
-
-async def handle_player2_join(room_id: str, room: Room):
+async def handle_player2_join(room_id: str, room):
     await init_game(room_id)
     game = games[room_id]
-    await manager.send_to_player(room.player1_ws, {
-        "players_color": "белый",
+    
+    # Отправляем "game_started" обоим игрокам
+    msg = {
+        "status": "game_started",
         "movers_color": game["mover"],
         "desk": board_to_json(game["board"])
-    })
-    await manager.send_to_player(room.player2_ws, {
-        "players_color": "черный",
-        "movers_color": game["mover"],
-        "desk": board_to_json(game["board"])
-    })
+    }
+    
+    # P1
+    if room.player1_ws:
+        try:
+            await room.player1_ws.send_json(msg)
+        except Exception:
+            pass
+    
+    # P2
+    if room.player2_ws:
+        try:
+            await room.player2_ws.send_json(msg)
+        except Exception:
+            pass
+    
+    # Отмечаем игру как начатую
     room.game_started = True

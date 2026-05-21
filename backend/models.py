@@ -39,11 +39,6 @@ class RoomListResponse(BaseModel):
     rooms: list[RoomInfo]
 
 
-class QuickStartResponse(BaseModel):
-    room_id: str
-    link: str
-
-
 class JoinRoomResponse(BaseModel):
     room_id: str
     link: str
