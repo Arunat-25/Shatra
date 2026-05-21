@@ -15,32 +15,19 @@ async function connectToGame() {
     const urlParams = new URLSearchParams(window.location.search);
     const roomParam = urlParams.get('room');
 
-    let wsUrl;
-    if (roomParam) {
-        wsUrl = `ws://localhost:8000/ws/${roomParam}/`;
-    } else {
-        try {
-            const res = await fetch("http://localhost:8000/");
-            const data = await res.json();
-            wsUrl = data.room_link;
-            
-            const roomId = wsUrl.split('/ws/')[1].split('/')[0];
-            window.history.replaceState(null, '', `?room=${roomId}`);
-        } catch (e) {
-            showMessage("Сервер недоступен (проверь порт 8000)", "ошибка");
-            console.error(e);
-            return;
-        }
+    if (!roomParam) {
+        showMessage("Не указан ID комнаты", "ошибка");
+        return;
     }
 
+    const wsUrl = `ws://localhost:8000/ws/${roomParam}/`;
     console.log("🔗 Подключаемся к:", wsUrl);
     ws = new WebSocket(wsUrl);
     setupWebSocketHandlers();
 
     const infoEl = document.getElementById("room_info");
     if (infoEl) {
-        const roomId = wsUrl.split('/ws/')[1].split('/')[0];
-        infoEl.innerHTML = `Комната: <a href="?room=${roomId}" class="room-link">${roomId}</a>`;
+        infoEl.innerHTML = `Комната: <a href="?room=${roomParam}" class="room-link">${roomParam}</a>`;
     }
 }
 
@@ -60,8 +47,55 @@ function setupWebSocketHandlers() {
     };
 }
 
+function showWaitingScreen(link) {
+    const waitingScreen = document.getElementById("waiting-screen");
+    const gameScreen = document.getElementById("game-screen");
+    const inviteInput = document.getElementById("invite-link");
+    
+    if (waitingScreen) waitingScreen.style.display = "flex";
+    if (gameScreen) gameScreen.style.display = "none";
+    
+    // Формируем полную ссылку для приглашения
+    if (inviteInput) {
+        const baseUrl = window.location.href.split('?')[0];
+        inviteInput.value = `${baseUrl}?room=${link}`;
+    }
+    
+    // Обработчик кнопки "Копировать"
+    const copyBtn = document.getElementById("btn-copy-link");
+    if (copyBtn) {
+        copyBtn.onclick = function() {
+            if (inviteInput) {
+                inviteInput.select();
+                navigator.clipboard.writeText(inviteInput.value).then(() => {
+                    copyBtn.textContent = "Скопировано!";
+                    setTimeout(() => { copyBtn.textContent = "Копировать"; }, 2000);
+                }).catch(() => {
+                    document.execCommand("copy");
+                    copyBtn.textContent = "Скопировано!";
+                    setTimeout(() => { copyBtn.textContent = "Копировать"; }, 2000);
+                });
+            }
+        };
+    }
+}
+
+function hideWaitingScreen() {
+    const waitingScreen = document.getElementById("waiting-screen");
+    const gameScreen = document.getElementById("game-screen");
+    
+    if (waitingScreen) waitingScreen.style.display = "none";
+    if (gameScreen) gameScreen.style.display = "flex";
+}
+
 function handleServerMessage(data) {
     console.log("📥 Данные от сервера:", data);
+
+    // Статус ожидания
+    if (data.status === "waiting") {
+        showWaitingScreen(data.link);
+        return;
+    }
 
     if (data.game_over) {
         showMessage(`Игра окончена: ${data.winner || ''}`, "победа");
@@ -88,6 +122,9 @@ function handleServerMessage(data) {
         my_color = data.players_color;
         movers_color = data.movers_color;
         BoardLikeDict = convertBoardKeys(data.desk);
+        
+        // Скрываем экран ожидания, показываем игру
+        hideWaitingScreen();
         
         document.getElementById("my_color").textContent = `Вы: ${my_color === 'белый' ? '⚪' : '⚫'} ${my_color === 'белый' ? 'Белые' : 'Черные'}`;
         document.getElementById("my_color").className = my_color === 'белый' ? 'color-white' : 'color-black';

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Алтай шатра</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="create-room-page">
+    <div class="create-room-container">
+        <h1>Шатра</h1>
+        <p class="subtitle">Алтайская народная игра</p>
+        
+        <div class="lobby-buttons">
+            <button id="btn-create-game" class="btn-lobby btn-lobby-primary">Создать игру</button>
+            <button id="btn-challenge-friend" class="btn-lobby btn-lobby-secondary">Вызов другу</button>
+            <button id="btn-quick-start" class="btn-lobby btn-lobby-accent">Быстрый старт</button>
+            <button id="btn-open-lobby" class="btn-lobby btn-lobby-info">Зал ожидания</button>
+        </div>
+        
+        <div id="error_container" class="error-container" style="display: none;">
+            <p id="error_message"></p>
+        </div>
+    </div>
+
+    <!-- Модальное окно зала ожидания -->
+    <div id="lobby-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Зал ожидания</h2>
+                <span id="btn-close-lobby" class="modal-close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="rooms-list" class="rooms-list">
+                    <p class="rooms-loading">Загрузка комнат...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="btn-refresh-rooms" class="btn-lobby btn-lobby-small">Обновить</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="lobby.js"></script>
+</body>
+</html>

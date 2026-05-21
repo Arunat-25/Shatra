@@ -14,7 +14,7 @@ html, body {
     overflow: hidden;
 }
 
-/* ===== СТРАНИЦА СОЗДАНИЯ КОМНАТЫ ===== */
+/* ===== СТРАНИЦА СОЗДАНИЯ КОМНАТЫ (ЛОББИ) ===== */
 body.create-room-page {
     display: flex;
     justify-content: center;
@@ -55,91 +55,245 @@ body.create-room-page {
     font-weight: 300;
 }
 
-.create-room-container .btn-play {
+/* ===== КНОПКИ ЛОББИ ===== */
+.lobby-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.btn-lobby {
     display: inline-block;
     padding: 16px 48px;
-    font-size: 1.3rem;
+    font-size: 1.1rem;
     font-weight: 600;
     color: #fff;
-    background: linear-gradient(135deg, #667eea, #764ba2);
     border: none;
     border-radius: 50px;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     text-transform: uppercase;
-    letter-spacing: 2px;
-    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    letter-spacing: 1.5px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
     position: relative;
     overflow: hidden;
+    width: 100%;
 }
 
-.create-room-container .btn-play:hover:not(:disabled) {
+.btn-lobby:hover:not(:disabled) {
     transform: translateY(-3px) scale(1.02);
-    box-shadow: 0 12px 35px rgba(102, 126, 234, 0.6);
 }
 
-.create-room-container .btn-play:active:not(:disabled) {
+.btn-lobby:active:not(:disabled) {
     transform: translateY(0) scale(0.98);
 }
 
-.create-room-container .btn-play:disabled {
+.btn-lobby:disabled {
     opacity: 0.6;
     cursor: not-allowed;
     transform: none;
 }
 
-.create-room-container .btn-play::after {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: linear-gradient(
-        45deg,
-        transparent,
-        rgba(255, 255, 255, 0.1),
-        transparent
-    );
-    transform: rotate(45deg);
-    transition: all 0.5s;
+.btn-lobby-primary {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
 }
 
-.create-room-container .btn-play:hover:not(:disabled)::after {
-    left: 100%;
+.btn-lobby-primary:hover:not(:disabled) {
+    box-shadow: 0 12px 35px rgba(102, 126, 234, 0.6);
 }
 
-.create-room-container .room-link-container {
-    margin-top: 30px;
-    padding: 20px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    animation: fadeInUp 0.5s ease-out;
+.btn-lobby-secondary {
+    background: linear-gradient(135deg, #f093fb, #f5576c);
+    box-shadow: 0 8px 25px rgba(245, 87, 108, 0.4);
 }
 
-.create-room-container .room-link-container p {
-    font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.5);
-    margin-bottom: 8px;
+.btn-lobby-secondary:hover:not(:disabled) {
+    box-shadow: 0 12px 35px rgba(245, 87, 108, 0.6);
 }
 
-.create-room-container .room-link-container a {
-    display: inline-block;
+.btn-lobby-accent {
+    background: linear-gradient(135deg, #4facfe, #00f2fe);
+    box-shadow: 0 8px 25px rgba(79, 172, 254, 0.4);
+    color: #1a1a2e;
+}
+
+.btn-lobby-accent:hover:not(:disabled) {
+    box-shadow: 0 12px 35px rgba(79, 172, 254, 0.6);
+}
+
+.btn-lobby-info {
+    background: linear-gradient(135deg, #43e97b, #38f9d7);
+    box-shadow: 0 8px 25px rgba(67, 233, 123, 0.4);
+    color: #1a1a2e;
+}
+
+.btn-lobby-info:hover:not(:disabled) {
+    box-shadow: 0 12px 35px rgba(67, 233, 123, 0.6);
+}
+
+.btn-lobby-small {
     padding: 10px 24px;
-    background: rgba(102, 126, 234, 0.2);
-    border: 1px solid rgba(102, 126, 234, 0.3);
-    border-radius: 12px;
-    color: #a8b4ff;
-    text-decoration: none;
-    font-size: 0.95rem;
-    transition: all 0.3s;
-    word-break: break-all;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+    text-transform: none;
+    border-radius: 30px;
+    width: auto;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
 }
 
-.create-room-container .room-link-container a:hover {
-    background: rgba(102, 126, 234, 0.3);
-    border-color: #667eea;
+.btn-lobby-small:hover:not(:disabled) {
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+}
+
+/* ===== СООБЩЕНИЕ ОБ ОШИБКЕ ===== */
+.error-container {
+    margin-top: 20px;
+    padding: 12px 20px;
+    background: rgba(220, 53, 69, 0.2);
+    border: 1px solid rgba(220, 53, 69, 0.3);
+    border-radius: 12px;
+    color: #f5a0a8;
+    font-size: 0.9rem;
+    animation: fadeInUp 0.3s ease-out;
+}
+
+/* ===== МОДАЛЬНОЕ ОКНО ===== */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    justify-content: center;
+    align-items: center;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.modal-content {
+    background: rgba(30, 30, 50, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 0;
+    max-width: 520px;
+    width: 90%;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+    animation: fadeInUp 0.3s ease-out;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.modal-header h2 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: #e0e0e0;
+}
+
+.modal-close {
+    font-size: 1.8rem;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    transition: color 0.3s;
+    line-height: 1;
+}
+
+.modal-close:hover {
+    color: #fff;
+}
+
+.modal-body {
+    padding: 20px 24px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    justify-content: center;
+}
+
+/* ===== СПИСОК КОМНАТ ===== */
+.rooms-list {
+    min-height: 100px;
+}
+
+.rooms-loading,
+.rooms-empty,
+.rooms-error {
+    text-align: center;
+    padding: 30px 0;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.95rem;
+}
+
+.rooms-error {
+    color: #f5a0a8;
+}
+
+.room-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 12px;
+    margin-bottom: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    transition: all 0.3s;
+}
+
+.room-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.room-item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.room-item-type {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #e0e0e0;
+}
+
+.room-item-id {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.4);
+    font-family: monospace;
+}
+
+.room-item-time {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.btn-lobby-join {
+    padding: 8px 20px;
+    font-size: 0.8rem;
+    flex-shrink: 0;
 }
 
 /* ===== СТРАНИЦА ИГРЫ ===== */
@@ -153,6 +307,16 @@ body.create-room-page {
     overflow: hidden;
     box-sizing: border-box;
     gap: 6px;
+}
+
+.game-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    height: 100%;
 }
 
 /* Верхняя панель */
@@ -501,6 +665,92 @@ body.create-room-page {
     color: #667eea;
 }
 
+/* ===== ЭКРАН ОЖИДАНИЯ ===== */
+.waiting-screen {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    z-index: 100;
+}
+
+.waiting-content {
+    text-align: center;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 24px;
+    padding: 60px 80px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    animation: fadeInUp 0.8s ease-out;
+    max-width: 500px;
+    width: 90%;
+}
+
+.waiting-spinner {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 30px;
+    border: 4px solid rgba(255, 255, 255, 0.1);
+    border-top-color: #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.waiting-title {
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: #e0e0e0;
+    margin-bottom: 16px;
+}
+
+.waiting-subtitle {
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 16px;
+}
+
+.waiting-link-container {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    justify-content: center;
+}
+
+.waiting-link-input {
+    flex: 1;
+    max-width: 350px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: 1px solid rgba(102, 126, 234, 0.3);
+    background: rgba(255, 255, 255, 0.06);
+    color: #a8b4ff;
+    font-size: 0.9rem;
+    font-family: monospace;
+    outline: none;
+    transition: border-color 0.3s;
+}
+
+.waiting-link-input:focus {
+    border-color: #667eea;
+}
+
+.waiting-link-input::selection {
+    background: rgba(102, 126, 234, 0.4);
+}
+
+.waiting-hint {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.4);
+    font-style: italic;
+}
+
 /* ===== АНИМАЦИИ ===== */
 @keyframes fadeInUp {
     from {
@@ -511,6 +761,11 @@ body.create-room-page {
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 @keyframes slideIn {
@@ -542,29 +797,38 @@ body.create-room-page {
     }
 }
 
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
 /* ===== АДАПТИВНОСТЬ ===== */
 @media (max-width: 768px) {
     .game-page {
         padding: 6px;
         gap: 4px;
     }
-    
+
+    .game-screen {
+        gap: 4px;
+    }
+
     .board {
         padding: 6px;
         border-radius: 12px;
         max-width: 100%;
     }
-    
+
     .kletka {
         width: 40px;
         height: 40px;
     }
-    
+
     .field-of-queen .kletka {
         width: 46px;
         height: 46px;
     }
-    
+
     .game-header {
         flex-direction: column;
         gap: 4px;
@@ -572,16 +836,16 @@ body.create-room-page {
         padding: 6px 12px;
         max-width: 100%;
     }
-    
+
     .game-header .header-left,
     .game-header .header-right {
         text-align: center;
     }
-    
+
     .game-header .game-title {
         font-size: 1rem;
     }
-    
+
     .game-info-bottom {
         flex-direction: column;
         gap: 4px;
@@ -589,19 +853,37 @@ body.create-room-page {
         max-width: 100%;
         padding: 4px 10px;
     }
-    
+
     .message {
         max-width: 100%;
         font-size: 0.75rem;
         padding: 6px 12px;
     }
-    
+
     .create-room-container {
         padding: 40px 30px;
     }
-    
+
     .create-room-container h1 {
         font-size: 2rem;
+    }
+
+    .waiting-content {
+        padding: 40px 30px;
+    }
+
+    .waiting-title {
+        font-size: 1.3rem;
+    }
+
+    .waiting-link-container {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .waiting-link-input {
+        max-width: 100%;
+        width: 100%;
     }
 }
 
@@ -610,58 +892,76 @@ body.create-room-page {
         padding: 4px;
         gap: 2px;
     }
-    
+
+    .game-screen {
+        gap: 2px;
+    }
+
     .board {
         padding: 4px;
     }
-    
+
     .kletka {
         width: 32px;
         height: 32px;
     }
-    
+
     .field-of-queen .kletka {
         width: 36px;
         height: 36px;
     }
-    
+
     .game-header {
         padding: 4px 8px;
     }
-    
+
     .game-header .game-title {
         font-size: 0.85rem;
     }
-    
+
     .game-header .player-info {
         font-size: 0.7rem;
     }
-    
+
     .game-header .turn-indicator {
         font-size: 0.7rem;
         padding: 3px 8px;
     }
-    
+
     .game-info-bottom {
         font-size: 0.65rem;
         padding: 3px 8px;
     }
-    
+
     .message {
         font-size: 0.65rem;
         padding: 4px 8px;
     }
-    
+
     .create-room-container {
         padding: 30px 20px;
     }
-    
+
     .create-room-container h1 {
         font-size: 1.6rem;
     }
-    
+
     .create-room-container .btn-play {
         padding: 12px 32px;
         font-size: 1rem;
+    }
+
+    .waiting-content {
+        padding: 30px 20px;
+    }
+
+    .waiting-title {
+        font-size: 1.1rem;
+    }
+
+    .waiting-spinner {
+        width: 40px;
+        height: 40px;
+        margin-bottom: 20px;
     }
 }
