@@ -1,78 +1,66 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createRoom, listRooms, joinRoom } from './api';
+import useRoomPolling from './hooks/useRoomPolling';
+import RoomCard from './components/RoomCard';
+import GameEmblem from './components/GameEmblem';
+import TimerPicker from './components/TimerPicker';
+import { ROOM_QUICK, ROOM_FRIEND, ROOM_AI, POLL_INTERVAL } from './constants';
 
 export default function Lobby() {
   const navigate = useNavigate();
-  const [rooms, setRooms] = useState([]);
-  const [error, setError] = useState('');
-  const [creating, setCreating] = useState(false);
-  const [joiningRoom, setJoiningRoom] = useState(null);
-  const pollRef = useRef(null);
+  const { rooms, error, refreshing, setError, fetchRooms } = useRoomPolling(listRooms, POLL_INTERVAL);
+  const [joinerRoomId, setJoinerRoomId] = useState(null);
+  const [showTimerPicker, setShowTimerPicker] = useState(false);
+  const [pickerMode, setPickerMode] = useState(null); // 'quick' | 'friend'
 
-  const fetchRooms = useCallback(async () => {
-    try {
-      const data = await listRooms();
-      setRooms(data.rooms);
-    } catch (e) {
-      setError(e.message);
-    }
-  }, []);
+  const dismissError = () => setError('');
 
-  useEffect(() => {
-    fetchRooms();
-    const interval = setInterval(fetchRooms, 10000);
-    const onVisibilityChange = () => {
-      if (document.hidden) {
-        clearInterval(interval);
-      } else {
-        fetchRooms();
-      }
-    };
-    document.addEventListener('visibilitychange', onVisibilityChange);
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener('visibilitychange', onVisibilityChange);
-    };
-  }, [fetchRooms]);
-
-  const handleCreateGame = async () => {
-    setCreating(true);
-    setError('');
-    try {
-      const data = await createRoom('quick');
-      navigate(`/game?room=${data.room_id}&player=1`);
-    } catch (e) {
-      setError(e.message);
-      setCreating(false);
-    }
+  const handleQuick = () => {
+    setPickerMode('quick');
+    setShowTimerPicker(true);
   };
 
-  const handleChallengeFriend = async () => {
-    setError('');
-    try {
-      const data = await createRoom('friend');
-      navigate(`/game?room=${data.room_id}&player=1&mode=friend`);
-    } catch (e) {
-      setError(e.message);
-    }
+  const handleFriend = () => {
+    setPickerMode('friend');
+    setShowTimerPicker(true);
   };
 
-  const handlePlayAI = async () => {
+  const handleAI = async () => {
     setError('');
     try {
-      const data = await createRoom('ai');
+      const data = await createRoom(ROOM_AI, null, null);
       navigate(`/game?room=${data.room_id}&player=1&mode=ai`);
     } catch (e) {
       setError(e.message);
     }
   };
 
+  const finishCreate = async (timeValue, incrementValue) => {
+    setError('');
+    try {
+      const type = pickerMode === 'friend' ? ROOM_FRIEND : ROOM_QUICK;
+      const mode = pickerMode === 'friend' ? 'friend' : '';
+      const data = await createRoom(type, timeValue, incrementValue);
+      const modeParam = mode ? `&mode=${mode}` : '';
+      navigate(`/game?room=${data.room_id}&player=1${modeParam}`);
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
+  const handleCancelTimer = () => {
+    setShowTimerPicker(false);
+    setPickerMode(null);
+  };
+
   const handleJoinRoom = async (roomId) => {
-    setJoiningRoom(roomId);
+    setJoinerRoomId(roomId);
     setError('');
     try {
       await joinRoom(roomId);
+      // После успешного join создаём WebSocket через хук
+      // Используем колбэк для редиректа
       const ws = new WebSocket(`ws://${window.location.host}/ws/${roomId}/`);
       ws.onmessage = (event) => {
         const msg = JSON.parse(event.data);
@@ -83,50 +71,45 @@ export default function Lobby() {
       ws.onerror = () => setError('Ошибка подключения к комнате');
     } catch (e) {
       setError(e.message);
-      setJoiningRoom(null);
+      setJoinerRoomId(null);
     }
   };
+
+  const showLoading = refreshing && rooms.length === 0;
 
   return (
     <div className="lobby-layout">
       <div className="lobby-left">
         <div className="lobby-left-inner">
           <div className="lobby-emblem">
-            <svg viewBox="0 0 60 60" className="lobby-emblem-svg">
-              <circle cx="30" cy="30" r="28" fill="none" stroke="#FFD700" strokeWidth="1.5" opacity="0.4" />
-              <path d="M30 8 L34 18 L44 18 L36 24 L38 34 L30 28 L22 34 L24 24 L16 18 L26 18Z" fill="none" stroke="#40E0D0" strokeWidth="1.2" opacity="0.6" />
-              <circle cx="30" cy="28" r="3" fill="none" stroke="#FFD700" strokeWidth="1" opacity="0.5" />
-            </svg>
+            <GameEmblem size={80} className="lobby-emblem-svg" />
           </div>
           <h1>Шатра</h1>
           <p className="lobby-subtitle">Алтайская народная игра</p>
-          <div className="lobby-buttons">
-            <button
-              className="btn-lobby btn-battle"
-              onClick={handleCreateGame}
-              disabled={creating}
-            >
-              <span className="btn-icon">⚔️</span>
-              <span className="btn-text">{creating ? 'Ожидание соперника...' : 'Создать игру'}</span>
-            </button>
-            <button
-              className="btn-lobby btn-ai"
-              onClick={handlePlayAI}
-            >
-              <span className="btn-icon">🤖</span>
-              <span className="btn-text">Играть с ботом</span>
-            </button>
-            <button
-              className="btn-lobby btn-invite"
-              onClick={handleChallengeFriend}
-            >
-              <span className="btn-icon">🔗</span>
-              <span className="btn-text">Вызов другу</span>
-            </button>
-          </div>
+
+          {showTimerPicker ? (
+            <TimerPicker onFinish={finishCreate} onCancel={handleCancelTimer} />
+          ) : (
+            <div className="lobby-buttons">
+              <button className="btn-lobby btn-battle" onClick={handleQuick}>
+                <span className="btn-icon">⚔️</span>
+                <span className="btn-text">Создать игру</span>
+              </button>
+              <button className="btn-lobby btn-ai" onClick={handleAI}>
+                <span className="btn-icon">🤖</span>
+                <span className="btn-text">Играть с ботом</span>
+              </button>
+              <button className="btn-lobby btn-invite" onClick={handleFriend}>
+                <span className="btn-icon">🔗</span>
+                <span className="btn-text">Вызов другу</span>
+              </button>
+            </div>
+          )}
+
           {error && (
             <div className="error-container">
               <p>{error}</p>
+              <button className="error-dismiss" onClick={dismissError} aria-label="Закрыть">✕</button>
             </div>
           )}
         </div>
@@ -134,51 +117,35 @@ export default function Lobby() {
 
       <div className="lobby-right">
         <div className="lobby-right-header">
-          <h2>Зал ожидания</h2>
-          <button className="btn-lobby btn-refresh" onClick={fetchRooms}>
-            Обновить
+          <h2>
+            Зал ожидания
+            {refreshing && <span className="waiting-spinner-small" />}
+          </h2>
+          <button className="btn-refresh" onClick={fetchRooms} disabled={refreshing}>
+            {refreshing ? 'Обновление...' : 'Обновить'}
           </button>
         </div>
         <div className="rooms-list">
-          {rooms.length === 0 ? (
+          {!refreshing && rooms.length === 0 ? (
             <div className="rooms-empty">
-              <svg viewBox="0 0 40 40" className="rooms-empty-icon">
-                <circle cx="20" cy="20" r="18" fill="none" stroke="#FFD700" strokeWidth="0.8" opacity="0.2" />
-                <path d="M20 8 Q25 12 28 18 Q15 16 14 24 Q18 28 20 30" fill="none" stroke="#40E0D0" strokeWidth="0.8" opacity="0.3" />
-              </svg>
+              <GameEmblem size={60} className="rooms-empty-icon" />
               <p>Нет доступных комнат</p>
               <span>Создайте игру или подождите других игроков</span>
             </div>
+          ) : showLoading ? (
+            <div className="rooms-empty">
+              <div className="waiting-spinner" style={{ width: 36, height: 36, marginBottom: 16 }} />
+              <p style={{ color: 'rgba(74, 55, 40, 0.4)' }}>Поиск комнат...</p>
+            </div>
           ) : (
-            rooms.map((room) => {
-              const isJoining = joiningRoom === room.room_id;
-              return (
-                <div
-                  key={room.room_id}
-                  className={`room-card ${isJoining ? 'room-card-joining' : ''}`}
-                  onClick={() => !isJoining && handleJoinRoom(room.room_id)}
-                >
-                  <div className="room-card-left">
-                    <span className="room-card-type">
-                      {room.type === 'quick' ? 'Быстрая игра' : 'Вызов другу'}
-                    </span>
-                    <span className="room-card-id">ID: {room.room_id}</span>
-                  </div>
-                  <div className="room-card-right">
-                    <span className="room-card-time">
-                      {new Date(room.created_at).toLocaleTimeString()}
-                    </span>
-                    <button
-                      className="btn-join"
-                      disabled={isJoining}
-                      onClick={(e) => { e.stopPropagation(); !isJoining && handleJoinRoom(room.room_id); }}
-                    >
-                      {isJoining ? '...' : 'Войти'}
-                    </button>
-                  </div>
-                </div>
-              );
-            })
+            rooms.map((room) => (
+              <RoomCard
+                key={room.room_id}
+                room={room}
+                isJoining={joinerRoomId === room.room_id}
+                onJoin={handleJoinRoom}
+              />
+            ))
           )}
         </div>
       </div>

@@ -3,11 +3,36 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#4A3728" />
+    <meta name="description" content="Шатра — Алтайская народная настольная игра. Играйте онлайн с друзьями или против ИИ." />
+    <meta name="keywords" content="шатра, алтайская игра, настольная игра, онлайн, алтай" />
+    <meta property="og:title" content="Шатра — Алтайская народная игра" />
+    <meta property="og:description" content="Древняя алтайская настольная игра. Сражайтесь с друзьями или ИИ." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet" />
     <title>Шатра — Алтайская народная игра</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Loading splash shown before React mounts -->
+      <div id="splash-screen" class="splash-screen">
+        <div class="splash-content">
+          <div class="splash-emblem">
+            <svg viewBox="0 0 60 60" width="60" height="60">
+              <circle cx="30" cy="30" r="28" fill="none" stroke="#D4AF37" stroke-width="1.5" opacity="0.4"/>
+              <path d="M30 8 L34 18 L44 18 L36 24 L38 34 L30 28 L22 34 L24 24 L16 18 L26 18Z" fill="none" stroke="#40E0D0" stroke-width="1.2" opacity="0.6"/>
+              <circle cx="30" cy="28" r="3" fill="none" stroke="#D4AF37" stroke-width="1" opacity="0.5"/>
+            </svg>
+          </div>
+          <div class="splash-spinner"></div>
+          <div class="splash-title">Шатра</div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

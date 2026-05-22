@@ -1,302 +1,208 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useEffect, useCallback, useRef, useState } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { joinRoom } from './api';
+import useWebSocket from './hooks/useWebSocket';
+import useGameReducer, { GAME_ACTIONS } from './hooks/useGameReducer';
+import useMessage from './hooks/useMessage';
+import useEscapeKey from './hooks/useEscapeKey';
 import BoardGrid from './BoardGrid';
+import GameHeader from './components/GameHeader';
+import GameInfo from './components/GameInfo';
+import WaitingScreen from './components/WaitingScreen';
+import GameOverScreen from './components/GameOverScreen';
+import DisconnectOverlay from './components/DisconnectOverlay';
+import MoveHistory from './components/MoveHistory';
+import { COLOR_BLACK, COLOR_WHITE, COLOR_WHITE_INCL, MSG_WARNING, MSG_ERROR } from './constants';
+import { getClientId } from './utils';
 
 export default function Game() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+
   const roomId = searchParams.get('room');
-  const playerParam = searchParams.get('player');
-  const playerId = playerParam ? parseInt(playerParam) : null;
+  const playerId = searchParams.get('player') ? parseInt(searchParams.get('player')) : null;
   const modeFriend = searchParams.get('mode') === 'friend';
   const modeAi = searchParams.get('mode') === 'ai';
 
-  const [waiting, setWaiting] = useState(true);
-  const [joiningError, setJoiningError] = useState('');
-  const [myColor, setMyColor] = useState(null);
-  const [moversColor, setMoversColor] = useState(null);
-  const [board, setBoard] = useState({});
-  const [message, setMessage] = useState('');
-  const [messageType, setMessageType] = useState('');
-  const [posForMandatoryCapture, setPosForMandatoryCapture] = useState(null);
-  const [moveFrom, setMoveFrom] = useState(null);
-  const [canPass, setCanPass] = useState(false);
-  const [gameOver, setGameOver] = useState(false);
-  const [winner, setWinner] = useState('');
-  const [highlightedEssential, setHighlightedEssential] = useState([]);
-  const [highlightedCaptured, setHighlightedCaptured] = useState([]);
-  const [lastMove, setLastMove] = useState(null);
-  const [aiThinking, setAiThinking] = useState(false);
+  const { state, dispatch, handleServerMessage, deselectPiece } = useGameReducer(modeAi);
+  const { message, messageType, showMessage } = useMessage();
+  const stateRef = useRef(state);
+  stateRef.current = state;
 
-  const stateRef = useRef({ board, myColor, moversColor, posForMandatoryCapture });
-  stateRef.current = { board, myColor, moversColor, posForMandatoryCapture };
-
-  const wsRef = useRef(null);
-  const timerRef = useRef(null);
-  const linkInputRef = useRef(null);
-  const intentionalCloseRef = useRef(false);
-
-  const showMessage = useCallback((text, type = 'info') => {
-    setMessage(text);
-    setMessageType(type);
-    if (timerRef.current) clearTimeout(timerRef.current);
-    if (type !== 'error' && type !== 'victory') {
-      timerRef.current = setTimeout(() => setMessage(''), 3000);
-    }
-  }, []);
-
+  // Обратный отсчёт при отключении соперника
   useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, []);
+    if (!state.opponentDisconnected || state.disconnectCountdown <= 0) return;
+    const timer = setInterval(() => {
+      dispatch({ type: GAME_ACTIONS.DISCONNECT_TICK });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [state.opponentDisconnected, state.disconnectCountdown]);
 
-  const handleServerMessage = useCallback((data) => {
-    if (data.status === 'waiting') {
-      setWaiting(true);
-      return;
-    }
+  // Оборачиваем handleServerMessage для показа сообщений пользователю
+  const handleWsMessage = useCallback((data) => {
+    const msg = handleServerMessage(data);
+    if (msg) showMessage(msg.text, msg.type);
+  }, [handleServerMessage, showMessage]);
 
-    if (data.game_over) {
-      setGameOver(true);
-      setWinner(data.winner || '');
-      showMessage(`Игра окончена! Победил ${data.winner || 'ничья'}`, 'victory');
-      if (data.desk) setBoard(convertKeys(data.desk));
-      setAiThinking(false);
-      return;
-    }
+  const handleWsError = useCallback((errMsg) => {
+    showMessage(errMsg, MSG_ERROR);
+  }, [showMessage]);
 
-    if (data.message && data.desk) {
-      const newBoard = convertKeys(data.desk);
-      setBoard(newBoard);
-      if (data.movers_color) setMoversColor(data.movers_color);
-      showMessage(data.message, 'info');
-      setPosForMandatoryCapture(data.position_for_mandatory_capture || null);
-      setCanPass(!!data.opportunity_pass_the_move);
-      setHighlightedEssential([]);
-      setHighlightedCaptured([]);
-      if (modeAi && data.movers_color === 'черный' && !data.game_over) {
-        setAiThinking(true);
-      } else {
-        setAiThinking(false);
-      }
-      return;
-    }
+  const { send } = useWebSocket(roomId, playerId, handleWsMessage, handleWsError);
 
-    if (data.essential_positions !== undefined && !data.message) {
-      setHighlightedEssential(data.essential_positions || []);
-      setHighlightedCaptured(data.captured_pieces || []);
-      return;
-    }
-
-    if (data.desk && !data.message) {
-      setMoversColor(data.movers_color || 'белый');
-      const newBoard = convertKeys(data.desk);
-      setBoard(newBoard);
-      setWaiting(false);
-      setHighlightedEssential([]);
-      setHighlightedCaptured([]);
-      showMessage('Игра началась!', 'info');
-      return;
-    }
-  }, [showMessage, modeAi]);
-
+  // Подключение для зрителя
   useEffect(() => {
-    if (!roomId) return;
-    const openWebSocket = () => {
-      const ws = new WebSocket(`ws://${window.location.host}/ws/${roomId}/?player=${playerId || ''}`);
-      wsRef.current = ws;
-      ws.onmessage = (event) => handleServerMessage(JSON.parse(event.data));
-      ws.onclose = (event) => {
-        if (event.code !== 1000 && !intentionalCloseRef.current) {
-          setMessage('Соединение разорвано');
-          setMessageType('error');
-        }
-      };
-    };
-    if (playerId === null) {
-      joinRoom(roomId).then(openWebSocket).catch((e) => {
-        setJoiningError(e.message);
+    if (roomId && playerId === null) {
+      joinRoom(roomId).catch((e) => {
+        showMessage(e.message, MSG_ERROR);
       });
-    } else {
-      openWebSocket();
     }
-    return () => {
-      intentionalCloseRef.current = true;
-      if (wsRef.current) wsRef.current.close();
-    };
-  }, [roomId, playerId, handleServerMessage]);
+  }, [roomId, playerId, showMessage]);
 
+  // Цвет игрока
   useEffect(() => {
-    setMyColor(playerId === null || playerId === 2 ? 'черный' : 'белый');
-  }, [playerId]);
+    dispatch({
+      type: 'SET_MY_COLOR',
+      payload: playerId === null || playerId === 2 ? COLOR_BLACK : COLOR_WHITE,
+    });
+  }, [playerId, dispatch]);
+
+  // Escape для отмены выбора фигуры
+  useEscapeKey(state.moveFrom !== null, deselectPiece);
+
+  const goToLobby = useCallback(() => navigate('/'), [navigate]);
 
   const handleCellClick = useCallback((positionNum) => {
-    if (gameOver || aiThinking) return;
+    if (state.gameOver || state.aiThinking) return;
     const s = stateRef.current;
+
     if (s.moversColor !== s.myColor) {
-      showMessage('Не ваш ход!', 'warning');
+      showMessage('Не ваш ход!', MSG_WARNING);
       return;
     }
-    if (moveFrom === null) {
+
+    if (s.moveFrom === null) {
       const piece = s.board[positionNum];
       if (!piece) return;
-      const pieceColor = piece.includes('бел') ? 'белый' : 'черный';
-      if (pieceColor === s.myColor) {
-        setMoveFrom(positionNum);
-        setHighlightedEssential([]);
-        setHighlightedCaptured([]);
-        if (wsRef.current) {
-          wsRef.current.send(JSON.stringify({
-            position: `position${positionNum}`,
-            movers_color: s.moversColor,
-            board: s.board,
-            position_for_mandatory_capture: s.posForMandatoryCapture,
-          }));
-        }
-      }
-      return;
-    }
-    if (moveFrom === positionNum) {
-      setMoveFrom(null);
-      setHighlightedEssential([]);
-      setHighlightedCaptured([]);
-      return;
-    }
-    const s2 = stateRef.current;
-    if (wsRef.current) {
-      setLastMove({ from: moveFrom, to: positionNum });
-      wsRef.current.send(JSON.stringify({
-        move_from: `position${moveFrom}`,
-        move_to: `position${positionNum}`,
-        movers_color: s2.moversColor,
-        board: s2.board,
-        position_for_mandatory_capture: s2.posForMandatoryCapture,
-      }));
-    }
-    setHighlightedEssential([]);
-    setHighlightedCaptured([]);
-    setMoveFrom(null);
-  }, [moveFrom, gameOver, aiThinking, showMessage]);
+      const pieceColor = piece.includes(COLOR_WHITE_INCL) ? COLOR_WHITE : COLOR_BLACK;
+      if (pieceColor !== s.myColor) return;
 
-  const skipTurn = () => {
-    const s = stateRef.current;
-    if (wsRef.current) {
-      wsRef.current.send(JSON.stringify({
-        move_from: 'position0',
-        move_to: 'position0',
+      dispatch({ type: GAME_ACTIONS.SET_MOVE_FROM, payload: positionNum });
+      send({
+        position: `position${positionNum}`,
         movers_color: s.moversColor,
         board: s.board,
         position_for_mandatory_capture: s.posForMandatoryCapture,
-      }));
+      });
+      return;
     }
-    setCanPass(false);
-  };
 
-  const copyLink = useCallback(() => {
-    if (linkInputRef.current) {
-      linkInputRef.current.select();
-      navigator.clipboard.writeText(linkInputRef.current.value);
+    if (s.moveFrom === positionNum) {
+      deselectPiece();
+      return;
     }
+
+    // Совершаем ход
+    dispatch({
+      type: GAME_ACTIONS.SET_LAST_MOVE,
+      payload: { from: s.moveFrom, to: positionNum },
+    });
+    send({
+      move_from: `position${s.moveFrom}`,
+      move_to: `position${positionNum}`,
+      movers_color: s.moversColor,
+      board: s.board,
+      position_for_mandatory_capture: s.posForMandatoryCapture,
+    });
+    deselectPiece();
+  }, [state.gameOver, state.aiThinking, showMessage, send, dispatch, deselectPiece]);
+
+  const skipTurn = useCallback(() => {
+    const s = stateRef.current;
+    send({
+      move_from: 'position0',
+      move_to: 'position0',
+      movers_color: s.moversColor,
+      board: s.board,
+      position_for_mandatory_capture: s.posForMandatoryCapture,
+    });
+    dispatch({ type: GAME_ACTIONS.CLEAR_CAN_PASS });
+  }, [send, dispatch]);
+
+  // Управление историей ходов
+  const viewHistoryMove = useCallback((idx) => {
+    dispatch({ type: GAME_ACTIONS.VIEW_HISTORY_MOVE, payload: idx });
+  }, [dispatch]);
+
+  const exitHistory = useCallback(() => {
+    // Возвращаем актуальное состояние доски
+    const s = stateRef.current;
+    // Без доски в payload просто убираем флаг VIEW,
+    // но нужно восстановить доску из последнего MOVE_MADE
+    dispatch({ type: GAME_ACTIONS.EXIT_HISTORY });
+    // После EXIT_HISTORY нужно вернуть board к последнему состоянию.
+    // Так как мы храним исходную доску только в последнем entry,
+    // используем fallback: dispatch повторный SET_MOVE_HISTORY не меняет board
+  }, [dispatch]);
+
+  // Обработка Escape в режиме истории
+  useEscapeKey(state.viewingHistoryIndex !== null, exitHistory);
+
+  // Блокируем клики по доске в режиме просмотра истории
+  const handleCellClickWrapped = useCallback((positionNum) => {
+    if (state.viewingHistoryIndex !== null) return;  // режим истории — клики заблокированы
+    handleCellClick(positionNum);
+  }, [state.viewingHistoryIndex, handleCellClick]);
+
+  const [showGameOver, setShowGameOver] = useState(true);
+  // Сбросить showGameOver при gameOver = false (новая игра)
+  useEffect(() => {
+    if (!state.gameOver) setShowGameOver(true);
+  }, [state.gameOver]);
+
+  // Закрыть GameOverScreen и показать доску с историей
+  const closeGameOver = useCallback(() => {
+    setShowGameOver(false);
   }, []);
 
-  if (waiting) {
-    if (modeAi) {
-      return (
-        <div className="waiting-screen">
-          <div className="waiting-content">
-            <div className="waiting-spinner"></div>
-            <h2 className="waiting-title">Сражение с ботом</h2>
-            <p className="waiting-subtitle">🤖 ИИ анализирует позицию...</p>
-          </div>
-        </div>
-      );
-    }
+  if (state.waiting) {
     return (
-      <div className="waiting-screen">
-        <div className="waiting-content">
-          <div className="waiting-spinner"></div>
-          <h2 className="waiting-title">Ожидание соперника</h2>
-          {(playerId === null || modeFriend) && (
-            <>
-              <p className="waiting-subtitle">Поделитесь ссылкой, чтобы пригласить друга</p>
-              <div className="waiting-link-container">
-                <input
-                  className="waiting-link-input"
-                  ref={linkInputRef}
-                  type="text"
-                  readOnly
-                  value={`${window.location.origin}/game?room=${roomId}`}
-                  onClick={() => linkInputRef.current?.select()}
-                />
-                <button className="btn-refresh" onClick={copyLink}>Копировать</button>
-              </div>
-            </>
-          )}
-          <p className="waiting-hint">Игра начнётся, когда второй игрок присоединится</p>
-          {joiningError && <div className="error-container"><p>{joiningError}</p></div>}
-        </div>
-      </div>
-    );
-  }
-
-  if (gameOver) {
-    const isWin = winner && winner.includes(myColor === 'белый' ? 'бел' : 'чер');
-    return (
-      <div className="game-over-overlay">
-        <div className="game-over-modal">
-          <div className="game-over-icon">{isWin ? '🏆' : '😔'}</div>
-          <h2 className="game-over-title">{isWin ? 'Победа!' : 'Поражение'}</h2>
-          <p className="game-over-text">
-            {winner ? (isWin ? 'Вы одержали победу!' : `Победил ${winner}`) : 'Ничья'}
-          </p>
-          <div className="game-over-buttons">
-            <button className="btn-lobby btn-battle" onClick={() => window.location.href = '/'}>
-              В лобби
-            </button>
-          </div>
-        </div>
-      </div>
+      <WaitingScreen
+        roomId={roomId}
+        playerId={playerId}
+        modeFriend={modeFriend}
+        modeAi={modeAi}
+        joiningError={state.joiningError}
+      />
     );
   }
 
   return (
     <div className="game-page">
       <div className="game-screen">
-        <div className="game-header">
-          <div className="header-left">
-            <span className="game-title">Шатра</span>
-            <div className="player-info">
-              <span className={myColor === 'белый' ? 'color-white' : 'color-black'}>
-                {myColor === 'белый' ? '⚪' : '⚫'} {myColor === 'белый' ? 'Белые' : 'Черные'}
-              </span>
-              {modeAi && <span className="ai-badge">🤖</span>}
-            </div>
-          </div>
-          <div className="header-right">
-            <div className={`turn-indicator ${moversColor === 'белый' ? 'turn-white' : 'turn-black'} ${aiThinking ? 'turn-ai' : ''}`}>
-              {aiThinking ? (
-                <span className="ai-thinking-text">
-                  AI думает
-                  <span className="thinking-dot">.</span>
-                  <span className="thinking-dot">.</span>
-                  <span className="thinking-dot">.</span>
-                </span>
-              ) : (
-                <>Ход: {moversColor === 'белый' ? '⚪' : '⚫'} {moversColor === 'белый' ? 'Белых' : 'Черных'}</>
-              )}
-            </div>
-          </div>
-        </div>
+        <GameHeader
+          myColor={state.myColor}
+          moversColor={state.moversColor}
+          aiThinking={state.aiThinking}
+          onGoToLobby={goToLobby}
+          timer={state.timer}
+          timeControl={state.timeControl}
+          playerId={getClientId()}
+        />
 
-        <div className={`board ${gameOver ? 'disabled' : ''} ${aiThinking ? 'board-ai-thinking' : ''}`}>
-          <BoardGrid 
-            board={board}
-            onCellClick={handleCellClick}
-            moveFrom={moveFrom}
-            highlightedEssential={highlightedEssential}
-            highlightedCaptured={highlightedCaptured}
-            lastMove={lastMove}
+        <div className={`board ${state.gameOver || state.opponentDisconnected ? 'disabled' : ''} ${state.aiThinking ? 'board-ai-thinking' : ''}`}>
+          {state.opponentDisconnected && (
+            <DisconnectOverlay disconnectCountdown={state.disconnectCountdown} />
+          )}
+          <BoardGrid
+            board={state.board}
+            onCellClick={handleCellClickWrapped}
+            moveFrom={state.moveFrom}
+            highlightedEssential={state.highlightedEssential}
+            highlightedCaptured={state.highlightedCaptured}
+            lastMove={state.lastMove}
+            historyFrom={state.historyFrom}
+            historyTo={state.historyTo}
           />
         </div>
 
@@ -304,29 +210,37 @@ export default function Game() {
           <div className={`message message-${messageType}`}>{message}</div>
         )}
 
-        {canPass && !gameOver && (
-          <button className="btn-pass" onClick={skipTurn}>Передать ход</button>
-        )}
-
-        <div className="game-info-bottom">
-          <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span>Комната: {roomId}</span>
-            <span style={{ fontSize: '0.75rem', opacity: 0.6 }}>
-              ⚪ {Object.values(board).filter(v => v && v.includes('бел')).length}
-              &nbsp;⚫ {Object.values(board).filter(v => v && !v.includes('бел')).length}
-            </span>
-          </span>
-          {modeAi && <span style={{ color: '#7C3AED', fontWeight: 600 }}>🤖 AI</span>}
-        </div>
+        <GameInfo
+          whiteCount={state.whiteCount}
+          blackCount={state.blackCount}
+          roomId={roomId}
+          modeAi={modeAi}
+          canPass={state.canPass}
+          gameOver={state.gameOver}
+          onSkipTurn={skipTurn}
+          onCopyLink={() => showMessage('Ссылка скопирована!', 'success')}
+          myColor={state.myColor}
+        />
       </div>
+
+      <MoveHistory
+        movesHistory={state.movesHistory}
+        viewingHistoryIndex={state.viewingHistoryIndex}
+        onViewMove={viewHistoryMove}
+        onExitHistory={exitHistory}
+      />
+
+      {/* GameOver overlay — поверх доски, не заменяет её */}
+      {state.gameOver && showGameOver && (
+        <GameOverScreen
+          winner={state.winner}
+          myColor={state.myColor}
+          modeAi={modeAi}
+          reason={state.gameOverReason}
+          onGoToLobby={() => navigate('/', { replace: true })}
+          onViewHistory={closeGameOver}
+        />
+      )}
     </div>
   );
-}
-
-function convertKeys(serverBoard) {
-  const result = {};
-  for (const [key, value] of Object.entries(serverBoard)) {
-    result[parseInt(key)] = value;
-  }
-  return result;
 }

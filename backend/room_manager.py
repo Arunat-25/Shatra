@@ -1,48 +1,62 @@
 import uuid
+import logging
 from datetime import datetime
-from fastapi import HTTPException
-from backend.models import (
-    Room, RoomType, RoomInfo, CreateRoomRequest,
-    CreateRoomResponse, RoomListResponse
-)
+from backend.models import CreateRoomRequest, Room
+from backend.state import get_room, set_room, delete_room
 
-rooms: dict[str, Room] = {}
+logger = logging.getLogger(__name__)
 
 
-def create_room(request: CreateRoomRequest) -> CreateRoomResponse:
-    room_id = uuid.uuid4().hex[:8]
-    now = datetime.now()
+async def create_room(request: CreateRoomRequest) -> dict:
+    room_id = str(uuid.uuid4())[:8]
+    now = datetime.utcnow()
     room = Room(
         room_id=room_id,
         type=request.type,
-        created_at=now
+        created_at=now,
+        time_control=request.time_control,
+        increment=request.increment,
     )
-    rooms[room_id] = room
-    return CreateRoomResponse(room_id=room_id, type=request.type)
+    if request.time_control:
+        room.timer_player1 = float(request.time_control)
+        room.timer_player2 = float(request.time_control)
+        room.last_tick = now.timestamp()
+
+    await set_room(room_id, room.model_dump())
+    logger.info("Room created: %s (type=%s, time_control=%s)", room_id, request.type, request.time_control)
+    return {"room_id": room_id, "type": request.type}
 
 
-def list_rooms() -> RoomListResponse:
-    available = []
-    for room in rooms.values():
-        if room.type == "quick" and not room.player2_connected and not room.game_started:
-            available.append(RoomInfo(
-                room_id=room.room_id,
-                type=room.type,
-                created_at=room.created_at
-            ))
-    return RoomListResponse(rooms=available)
+async def list_rooms() -> dict:
+    """Возвращает список активных комнат (ожидающих второго игрока)."""
+    # Redis не поддерживает сканирование по ключам с префиксом через список,
+    # используем SCAN. Но для простоты — храним set с room_id активных комнат.
+    # Пока что комнаты сканируем, но для продакшена лучше список.
+    import redis.asyncio as aioredis
+    from backend.state import redis_client
+    cursor = 0
+    rooms_data = []
+    while True:
+        cursor, keys = await redis_client.scan(cursor=cursor, match="room:*", count=100)
+        for key in keys:
+            data = await redis_client.get(key)
+            if data:
+                import json
+                r = json.loads(data)
+                if not r.get("game_started") and r.get("type") in ("quick",):
+                    rooms_data.append({
+                        "room_id": r["room_id"],
+                        "type": r["type"],
+                        "created_at": r.get("created_at", ""),
+                    })
+        if cursor == 0:
+            break
+    return {"rooms": rooms_data}
 
 
-def join_room(room_id: str) -> dict:
-    room = rooms.get(room_id)
-    if not room:
-        raise HTTPException(status_code=404, detail="Комната не найдена")
-    if room.player2_connected:
-        raise HTTPException(status_code=400, detail="Комната уже заполнена")
-    if room.game_started:
-        raise HTTPException(status_code=400, detail="Игра уже началась")
-    # Помечаем, что P2 присоединился — P1 увидит это через polling
-    room.player2_connected = True
-    return {"room_id": room_id, "joined": True}
-
-
+async def join_room(room_id: str) -> dict:
+    room_data = await get_room(room_id)
+    if not room_data:
+        logger.warning("Room not found: %s", room_id)
+        return {"error": "Комната не найдена"}
+    return {"room_id": room_id}

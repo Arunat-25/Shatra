@@ -1,0 +1,179 @@
+/* ===== BOARD — ALTAI KEDR DESIGN ===== */
+.board {
+    width: 100%;
+    flex-shrink: 0;
+    transition: opacity 0.4s ease, transform 0.3s ease;
+    position: relative;
+    padding: 14px;
+    background: linear-gradient(145deg, #D97706, #B45309);
+    border-radius: 20px;
+    box-shadow:
+        0 20px 60px rgba(180, 83, 9, 0.3),
+        0 0 0 1px rgba(255, 255, 255, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    border: 2px solid #92400E;
+    animation: scaleIn 0.5s ease-out;
+}
+
+.board::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        repeating-conic-gradient(rgba(255,255,255,0.02) 0deg 30deg, transparent 30deg 60deg),
+        radial-gradient(ellipse at 30% 20%, rgba(255, 255, 255, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 70% 80%, rgba(0, 0, 0, 0.04) 0%, transparent 50%);
+    border-radius: 18px;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.board.disabled { pointer-events: none; opacity: 0.6; transform: scale(0.98); }
+.board-ai-thinking { border-color: #7C3AED !important; }
+.board-ai-thinking::after { animation: aiPulse 1.5s ease-in-out infinite !important; }
+
+.board > * { position: relative; z-index: 1; }
+
+/* ===== FIELD LAYOUTS ===== */
+.field-of-reserve {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 3px 0;
+}
+.field-of-king {
+    display: flex;
+    justify-content: center;
+    margin: 2px 0;
+}
+.main-field {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 1px 0;
+}
+.row { display: flex; justify-content: center; }
+
+/* ===== CELLS ===== */
+.kletka {
+    display: flex;
+    width: 52px;
+    height: 52px;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 10px;
+    user-select: none;
+    z-index: 1;
+}
+
+.cell-light {
+    background: linear-gradient(145deg, #FAFAF9, #F5F5F4);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), inset 0 -1px 0 rgba(0, 0, 0, 0.03);
+}
+
+.cell-dark {
+    background: linear-gradient(145deg, #A73B24, #9A3412);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+}
+
+.kletka::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 1px solid rgba(146, 64, 14, 0.3);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* ===== RESERVE FIELD ===== */
+.field-of-reserve .kletka::before { border-color: rgba(180, 83, 9, 0.4); }
+.field-of-reserve .kletka { width: 46px; height: 46px; }
+
+/* ===== FORTRESS (Бий) ===== */
+.field-of-king .kletka {
+    width: 52px;
+    height: 52px;
+    background: linear-gradient(145deg, #FEF9C3, #FDE68A);
+    border: 3px solid #D4AF37;
+    outline: 3px solid rgba(212, 175, 55, 0.2);
+    outline-offset: -2px;
+    border-radius: 6px;
+    box-shadow: inset 0 0 20px rgba(212, 175, 55, 0.1), 0 0 15px rgba(212, 175, 55, 0.08);
+    transition: all 0.3s ease;
+}
+.field-of-king .kletka::before { border: none; }
+.field-of-king .kletka::after {
+    content: '♔';
+    position: absolute;
+    top: 2px;
+    right: 4px;
+    font-size: 14px;
+    opacity: 0.35;
+    color: #92400E;
+    pointer-events: none;
+}
+
+/* ===== MOAT (Ров) — 4-я колонка ===== */
+.main-field .row .kletka:nth-child(4) {
+    border: none;
+    box-shadow: inset 0 0 12px rgba(6, 182, 212, 0.08);
+    position: relative;
+}
+.main-field .row .kletka:nth-child(4)::before { border: 2px solid rgba(6, 182, 212, 0.35); }
+.main-field .row .kletka:nth-child(4).cell-light { background: linear-gradient(145deg, #FAFAF9, #F5F5F4); box-shadow: inset 0 0 12px rgba(6, 182, 212, 0.08); }
+.main-field .row .kletka:nth-child(4).cell-dark { background: linear-gradient(145deg, #A73B24, #9A3412); box-shadow: inset 0 0 12px rgba(6, 182, 212, 0.12); }
+
+/* ===== CELL INTERACTIONS ===== */
+.kletka.has-piece { cursor: pointer; }
+.kletka:not(.board.disabled .kletka):hover { z-index: 2; transform: scale(1.05); }
+.cell-light:not(.board.disabled .kletka):hover { filter: brightness(1.05); }
+.cell-dark:not(.board.disabled .kletka):hover { filter: brightness(1.1); }
+.kletka:not(.board.disabled .kletka):hover::before { border-color: rgba(212, 175, 55, 0.5); }
+
+/* ===== HIGHLIGHTS ===== */
+.highlight-black {
+    box-shadow: inset 0 0 0 3px rgba(6, 182, 212, 0.7), 0 0 18px rgba(6, 182, 212, 0.3) !important;
+    z-index: 3;
+    border-radius: 2px;
+}
+.highlight-essential { animation: pulseTurquoise 1.2s ease-in-out infinite; z-index: 2; }
+.highlight-essential::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 12px;
+    height: 12px;
+    background: rgba(6, 182, 212, 0.4);
+    border-radius: 50%;
+    pointer-events: none;
+}
+.highlight-captured { opacity: 0.6; filter: grayscale(30%) brightness(0.85); box-shadow: inset 0 0 0 2px rgba(220, 53, 69, 0.4); }
+
+/* ===== PIECE IMAGES ===== */
+.image-in-kletka {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.kletka:hover .image-in-kletka { transform: scale(1.08); transition: transform 0.15s ease; }
+.kletka.highlight-captured .image-in-kletka { animation: pieceCapture 0.5s ease-out forwards; }
+
+/* ===== LAST MOVE HIGHLIGHT ===== */
+.last-move-from {
+    box-shadow: inset 0 0 0 3px rgba(212, 175, 55, 0.5), 0 0 15px rgba(212, 175, 55, 0.2) !important;
+    z-index: 2;
+    animation: goldenGlow 2s ease-in-out infinite;
+}
+.last-move-to {
+    box-shadow: inset 0 0 0 3px rgba(212, 175, 55, 0.8), 0 0 20px rgba(212, 175, 55, 0.4) !important;
+    z-index: 2;
+    animation: goldenGlow 2s ease-in-out infinite;
+}
