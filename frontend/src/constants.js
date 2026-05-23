@@ -2,7 +2,6 @@
 export const COLOR_WHITE = 'белый';
 export const COLOR_BLACK = 'черный';
 export const COLOR_WHITE_INCL = 'бел';
-export const COLOR_BLACK_INCL = 'черн';
 
 // ===== Типы фигур =====
 export const PIECE_BIY = 'бий';

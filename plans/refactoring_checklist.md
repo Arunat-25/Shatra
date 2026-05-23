@@ -22,7 +22,7 @@
 - [x] `frontend/src/Game.jsx` — использует DisconnectOverlay, убран лишний импорт
 - [x] `frontend/src/components/GameHeader.jsx` — PropTypes
 - [x] `frontend/src/components/GameInfo.jsx` — PropTypes
-- [ ] `prop-types` установлен как зависимость
+- [x] `prop-types` установлен как зависимость
 
 ## Проверки
 - [x] python3 -c "from main import app" — OK

@@ -22,9 +22,36 @@ async def close_redis():
         redis_client = None
 
 
-def _ensure_client():
-    if redis_client is None:
-        raise RuntimeError("Redis not initialized. Did you forget to init_redis()?")
+def ensure_redis(fn):
+    """Декоратор: проверяет, что Redis инициализирован, перед вызовом."""
+    import functools
+    @functools.wraps(fn)
+    async def wrapper(*args, **kwargs):
+        if redis_client is None:
+            raise RuntimeError("Redis not initialized. Did you forget to init_redis()?")
+        return await fn(*args, **kwargs)
+    return wrapper
+
+
+# === REDIS UTILITY ===
+
+@ensure_redis
+async def scan_keys(pattern: str, count: int = 100) -> list[str]:
+    """Сканирует Redis по паттерну и возвращает список ключей."""
+    cursor = 0
+    all_keys = []
+    while True:
+        cursor, keys = await redis_client.scan(cursor=cursor, match=pattern, count=count)
+        all_keys.extend(keys)
+        if cursor == 0:
+            break
+    return all_keys
+
+
+@ensure_redis
+async def get_raw(key: str) -> Optional[str]:
+    """Возвращает сырое значение из Redis."""
+    return await redis_client.get(key)
 
 
 # In-memory: таймеры (asyncio tasks) — не сохраняются в Redis
@@ -37,45 +64,45 @@ DISCONNECT_TIMEOUT = 30
 
 # === GAME STATE ===
 
+@ensure_redis
 async def get_game(room_id: str) -> Optional[dict]:
     """Загружает состояние игры из Redis."""
-    _ensure_client()
     data = await redis_client.get(f"game:{room_id}")
     if data is None:
         return None
     return json.loads(data)
 
 
+@ensure_redis
 async def set_game(room_id: str, data: dict):
     """Сохраняет состояние игры в Redis."""
-    _ensure_client()
     await redis_client.set(f"game:{room_id}", json.dumps(data, default=str))
 
 
+@ensure_redis
 async def delete_game(room_id: str):
     """Удаляет состояние игры из Redis."""
-    _ensure_client()
     await redis_client.delete(f"game:{room_id}")
 
 
 # === ROOM STATE ===
 
+@ensure_redis
 async def get_room(room_id: str) -> Optional[dict]:
     """Загружает комнату из Redis."""
-    _ensure_client()
     data = await redis_client.get(f"room:{room_id}")
     if data is None:
         return None
     return json.loads(data)
 
 
+@ensure_redis
 async def set_room(room_id: str, data: dict):
     """Сохраняет комнату в Redis."""
-    _ensure_client()
     await redis_client.set(f"room:{room_id}", json.dumps(data, default=str))
 
 
+@ensure_redis
 async def delete_room(room_id: str):
     """Удаляет комнату из Redis."""
-    _ensure_client()
     await redis_client.delete(f"room:{room_id}")

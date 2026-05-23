@@ -211,7 +211,7 @@ def process_move(
         )
 
     # 8. Ход завершён — передаём ход
-    next_player = "черный" if current_color == "белый" else "белый"
+    next_player = _opponent(current_color)
     over, winner = is_game_over(next_board, position_history)
 
     chain_capture_pos = None
@@ -262,8 +262,6 @@ def _process_chain_shatra_biy(
     current_batyr_captures, piece
 ) -> GameEventResult:
     """Обрабатывает цепочку взятий для шатры/бия."""
-    import copy
-    from game_engine.dictionaries import shatra_and_biy_possible_captures
 
     possible_captures = shatra_and_biy_possible_captures.get(from_cell, {})
     if to_cell not in possible_captures:
@@ -322,7 +320,7 @@ def _process_chain_shatra_biy(
             captured_pieces=new_batyr_captures
         )
 
-    next_player = "черный" if current_color == "белый" else "белый"
+    next_player = _opponent(current_color)
     return _finish_move(
         positions=board.copy_cells(),
         mover_color=current_color,
@@ -341,7 +339,6 @@ def _process_chain_batyr(
     current_batyr_captures, piece
 ) -> GameEventResult:
     """Обрабатывает цепочку взятий для батыра."""
-    import copy
     # Проверяем, что это именно взятие, а не обычный ход
     if not piece.can_capture(board_copy, from_cell, to_cell, current_batyr_captures):
         return GameEventResult(
@@ -382,7 +379,7 @@ def _process_chain_batyr(
             captured_pieces=new_batyr_captures
         )
 
-    next_player = "черный" if current_color == "белый" else "белый"
+    next_player = _opponent(current_color)
     return _finish_move(
         positions=new_cells,
         mover_color=current_color,
@@ -425,9 +422,12 @@ def _finish_move(
     )
 
 
+def _opponent(color: str) -> str:
+    return "черный" if color == "белый" else "белый"
+
+
 def has_mandatory_from_position(cells: dict, color: str, pos: int = None) -> bool:
     """Проверяет, есть ли обязательное взятие из указанной позиции."""
-    from game_engine.validation import get_all_mandatory_captures
     board = Board(cells)
     mandatory = get_all_mandatory_captures(board, color)
     if pos is not None:

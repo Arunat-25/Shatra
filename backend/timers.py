@@ -4,8 +4,15 @@ import time
 from fastapi import WebSocket
 from backend.state import (get_room, set_room, get_game, set_game,
                             game_timers, disconnect_timers)
+from backend.ws_manager import manager
+from backend.board_utils import keys_int_to_str
 
 logger = logging.getLogger(__name__)
+
+
+def _opposite_color(color: str) -> str:
+    """Чёрный ↔ белый."""
+    return "черный" if color == "белый" else "белый"
 
 
 async def game_ticker(room_id: str):
@@ -22,23 +29,22 @@ async def game_ticker(room_id: str):
                 stop_game_timer(room_id)
                 return
 
-            # Берём таймер активного игрока
             mover = None
             game = await get_game(room_id)
             if game:
                 mover = game.get("mover")
 
-            if mover == "белый" and room_data.get("timer_player1") is not None:
-                room_data["timer_player1"] -= 1.0
-                if room_data["timer_player1"] <= 0:
-                    room_data["timer_player1"] = 0
+            if mover == "белый" and room_data.get("timer_white") is not None:
+                room_data["timer_white"] -= 1.0
+                if room_data["timer_white"] <= 0:
+                    room_data["timer_white"] = 0
                     await set_room(room_id, room_data)
                     await handle_timeout(room_id, "белый")
                     return
-            elif mover == "черный" and room_data.get("timer_player2") is not None:
-                room_data["timer_player2"] -= 1.0
-                if room_data["timer_player2"] <= 0:
-                    room_data["timer_player2"] = 0
+            elif mover == "черный" and room_data.get("timer_black") is not None:
+                room_data["timer_black"] -= 1.0
+                if room_data["timer_black"] <= 0:
+                    room_data["timer_black"] = 0
                     await set_room(room_id, room_data)
                     await handle_timeout(room_id, "черный")
                     return
@@ -46,12 +52,11 @@ async def game_ticker(room_id: str):
             room_data["last_tick"] = time.time()
             await set_room(room_id, room_data)
 
-            from backend.ws_manager import manager
             await manager.send_to_room(room_id, {
                 "type": "timer_tick",
                 "time": {
-                    "белый": room_data["timer_player1"],
-                    "черный": room_data["timer_player2"],
+                    "белый": room_data["timer_white"],
+                    "черный": room_data["timer_black"],
                 }
             })
 
@@ -65,10 +70,7 @@ async def game_ticker(room_id: str):
 
 async def handle_timeout(room_id: str, timed_out_color: str):
     """Обрабатывает окончание времени у одного из игроков."""
-    from backend.ws_manager import manager
-    from backend.board_utils import keys_int_to_str
-
-    winner = "черный" if timed_out_color == "белый" else "белый"
+    winner = _opposite_color(timed_out_color)
 
     game = await get_game(room_id)
     if game:
@@ -95,7 +97,7 @@ def stop_game_timer(room_id: str):
         logger.debug("game_timer cancelled for %s", room_id)
 
 
-async def disconnect_timer(room_id: str, remaining_ws: WebSocket, disconnected_player_id: int):
+async def disconnect_timer(room_id: str, remaining_ws: WebSocket, disconnected_client_id: str):
     """Таймер ожидания переподключения отключившегося игрока."""
     timeout = 30
     try:
@@ -110,12 +112,15 @@ async def disconnect_timer(room_id: str, remaining_ws: WebSocket, disconnected_p
                     pass
             await asyncio.sleep(1.0)
 
-        # Время вышло — завершаем игру
-        from backend.ws_manager import manager
         game = await get_game(room_id)
         if game and not game.get("game_over", False):
             game["game_over"] = True
-            winner = "игрок 2" if disconnected_player_id == 1 else "игрок 1"
+            room_data = await get_room(room_id)
+            disconnected_color = None
+            if room_data:
+                players = room_data.get("players", {})
+                disconnected_color = players.get(disconnected_client_id)
+            winner = _opposite_color(disconnected_color or "белый")
             game["winner"] = winner
             game["reason"] = "opponent_disconnected"
             await set_game(room_id, game)

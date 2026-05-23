@@ -1,114 +1,136 @@
 import asyncio
 import logging
 from fastapi import WebSocket
-from game_engine.game_logic import logic
-from backend.state import (redis_client, get_game, set_game, delete_game,
+from backend.state import (get_game, set_game, delete_game,
                             get_room, set_room, delete_room,
                             game_timers, disconnect_timers)
-from backend.board_utils import keys_int_to_str, get_starting_board
+from backend.board_utils import get_starting_board
+from backend.game_helpers import build_game_started_response
 
 logger = logging.getLogger(__name__)
 
 
 class ConnectionManager:
     def __init__(self):
-        # room_id -> {player_id: WebSocket}
-        self.connections: dict[str, dict[int, WebSocket]] = {}
+        # room_id -> {client_id: WebSocket}
+        self.connections: dict[str, dict[str, WebSocket]] = {}
 
-    async def connect(self, room_id: str, websocket: WebSocket,
-                      client_id: str | None = None,
-                      player_id: int | None = None) -> bool:
-        # Сохраняем переданный player_id отдельно (client_id может его перезаписать)
-        player_id_param = player_id
+    async def connect(self, room_id: str, websocket: WebSocket, client_id: str) -> bool:
         await websocket.accept()
         room_data = await get_room(room_id)
         if not room_data:
-            await websocket.close(code=1008)
+            await websocket.close(code=1008, reason="Комната не найдена")
             return False
 
         if room_id not in self.connections:
             self.connections[room_id] = {}
 
-        # Определяем player_id (по приоритету):
-        # 1) Переданный player_id из URL (если не занят)
-        # 2) По client_id (если привязан и не занят)
-        # 3) Назначаем свободный
-        if player_id_param is not None and player_id_param not in self.connections[room_id]:
-            player_id = player_id_param
+        players = room_data.setdefault("players", {})
 
-        if player_id is None and client_id:
-            if (room_data.get("player1_client_id") == client_id
-                    and 1 not in self.connections[room_id]):
-                player_id = 1
-            elif (room_data.get("player2_client_id") == client_id
-                    and 2 not in self.connections[room_id]):
-                player_id = 2
-
-        if player_id is None:
-            # Назначаем свободный
-            if 1 not in self.connections[room_id]:
-                player_id = 1
-            elif 2 not in self.connections[room_id]:
-                player_id = 2
-            else:
-                await websocket.close(code=1008)
+        # Reconnect: client_id уже в комнате — только если нет активного WS
+        if client_id in players:
+            if client_id in self.connections.get(room_id, {}):
+                # Уже есть активное соединение — это не reconnect, а дубль
+                await websocket.close(code=1008, reason="Вы уже в игре")
                 return False
+            self.connections[room_id][client_id] = websocket
 
-        self.connections[room_id][player_id] = websocket
-
-        if player_id == 1:
-            room_data["player1_connected"] = True
-            if client_id:
-                room_data["player1_client_id"] = client_id
-        elif player_id == 2:
-            room_data["player2_connected"] = True
-            if client_id:
-                room_data["player2_client_id"] = client_id
-        await set_room(room_id, room_data)
-
-        # Если игра уже началась — проверяем таймер переподключения
-        if room_data.get("game_started"):
+            # Отменяем таймер отключения
             task = disconnect_timers.pop(room_id, None)
             if task and not task.done():
                 task.cancel()
-                other_id = 2 if player_id == 1 else 1
-                other_ws = self.get_player_ws(room_id, other_id)
-                if other_ws:
-                    try:
-                        await other_ws.send_json({"status": "opponent_reconnected"})
-                    except Exception as e:
-                        logger.warning("opponent_reconnected notification failed: %s", e)
+            # Уведомляем соперника
+            opponent = self.get_opponent_ws(room_id, client_id)
+            if opponent:
+                try:
+                    await opponent.send_json({"status": "opponent_reconnected"})
+                except Exception:
+                    pass
+            return True
 
+        # Новый игрок
+        if len(players) >= 2:
+            # Комната заполнена
+            await websocket.close(code=1008, reason="Комната уже заполнена")
+            return False
+
+        if len(players) == 0:
+            players[client_id] = "белый"
+            # Первый игрок становится creator'ом
+            room_data["creator_client_id"] = client_id
+        elif len(players) == 1:
+            players[client_id] = "черный"
+
+        self.connections[room_id][client_id] = websocket
+        await set_room(room_id, room_data)
+        logger.info("Player %s joined room %s as %s", client_id[:6], room_id, players[client_id])
         return True
+
+    async def _destroy_room(self, room_id: str, open_connections: dict[str, WebSocket] | None = None):
+        """Удаляет комнату, игру и закрывает все активные WebSocket-соединения."""
+        conns = open_connections if open_connections is not None else self.connections.get(room_id, {})
+        for ws in list(conns.values()):
+            try:
+                await ws.close(code=1000, reason="Комната закрыта")
+            except Exception:
+                pass
+        self.connections.pop(room_id, None)
+
+        task = disconnect_timers.pop(room_id, None)
+        if task and not task.done():
+            task.cancel()
+        from backend.timers import stop_game_timer
+        stop_game_timer(room_id)
+
+        await delete_game(room_id)
+        await delete_room(room_id)
+        logger.info("Room %s deleted", room_id)
 
     async def disconnect(self, room_id: str, websocket: WebSocket):
         room_conns = self.connections.get(room_id, {})
-        player_id = self._find_player_id(room_id, websocket)
-        if player_id:
-            room_conns.pop(player_id, None)
-            room_data = await get_room(room_id)
-            if room_data:
-                if player_id == 1:
-                    room_data["player1_connected"] = False
-                elif player_id == 2:
-                    room_data["player2_connected"] = False
-                await set_room(room_id, room_data)
+        client_id = None
+        for cid, ws in list(room_conns.items()):
+            if ws == websocket:
+                client_id = cid
+                room_conns.pop(cid, None)
+                break
+
+        room_data = await get_room(room_id)
+        is_creator = (
+            room_data
+            and client_id
+            and room_data.get("creator_client_id") == client_id
+        )
+
+        if is_creator:
+            await self._destroy_room(room_id, room_conns)
+            return
 
         if not room_conns:
             self.connections.pop(room_id, None)
+            if room_data and room_data.get("type") != "ai":
+                asyncio.create_task(delete_room(room_id))
+                asyncio.create_task(delete_game(room_id))
+                logger.info("Room %s deleted (no players left)", room_id)
+            elif room_data and room_data.get("type") == "ai":
+                logger.info("AI room %s: no connections left, keeping data", room_id)
+        elif room_data:
+            await set_room(room_id, room_data)
 
-    def _find_player_id(self, room_id: str, websocket: WebSocket) -> int | None:
-        for pid, ws in self.connections.get(room_id, {}).items():
+    def get_client_id(self, room_id: str, websocket: WebSocket) -> str | None:
+        for cid, ws in self.connections.get(room_id, {}).items():
             if ws == websocket:
-                return pid
+                return cid
         return None
 
-    def get_player_ws(self, room_id: str, player_id: int) -> WebSocket | None:
-        return self.connections.get(room_id, {}).get(player_id)
+    def get_ws(self, room_id: str, client_id: str) -> WebSocket | None:
+        return self.connections.get(room_id, {}).get(client_id)
 
-    def get_other_player_ws(self, room_id: str, player_id: int) -> WebSocket | None:
-        other = 2 if player_id == 1 else 1
-        return self.get_player_ws(room_id, other)
+    def get_opponent_ws(self, room_id: str, client_id: str) -> WebSocket | None:
+        for cid, ws in self.connections.get(room_id, {}).items():
+            if cid != client_id:
+                return ws
+        return None
 
     async def send_to_room(self, room_id: str, data: dict):
         for ws in self.connections.get(room_id, {}).values():
@@ -145,20 +167,11 @@ async def handle_player2_join(room_id: str, room_data: dict):
     await init_game(room_id)
     game = await get_game(room_id)
 
-    response = {
-        "status": "game_started",
-        "movers_color": game["mover"],
-        "desk": keys_int_to_str(game["board"]),
-    }
-    if room_data.get("time_control"):
-        response["time_control"] = room_data["time_control"]
-        response["increment"] = room_data.get("increment")
-        response["time"] = {
-            "белый": room_data.get("timer_player1") or 0,
-            "черный": room_data.get("timer_player2") or 0,
-        }
-
-    await manager.send_to_room(room_id, response)
+    for cid, color in room_data.get("players", {}).items():
+        response = build_game_started_response(game, room_data, color)
+        ws = manager.get_ws(room_id, cid)
+        if ws:
+            await manager.send_to_player(ws, response)
 
     room_data["game_started"] = True
     await set_room(room_id, room_data)

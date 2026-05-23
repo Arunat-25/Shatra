@@ -3,26 +3,22 @@ import PageTransition from './components/PageTransition';
 import Lobby from './Lobby';
 import Game from './Game';
 
+const routes = [
+  { path: '/', element: <Lobby /> },
+  { path: '/:roomId', element: <Game /> },
+];
+
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route
-          path="/"
-          element={
-            <PageTransition>
-              <Lobby />
-            </PageTransition>
-          }
-        />
-        <Route
-          path="/game"
-          element={
-            <PageTransition>
-              <Game />
-            </PageTransition>
-          }
-        />
+        {routes.map(({ path, element }) => (
+          <Route
+            key={path}
+            path={path}
+            element={<PageTransition>{element}</PageTransition>}
+          />
+        ))}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

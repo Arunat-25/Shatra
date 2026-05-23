@@ -9,6 +9,7 @@ export default function useRoomPolling(fetchFn, interval) {
   const [rooms, setRooms] = useState([]);
   const [error, setError] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const intervalRef = useRef(null);
 
   const fetchRooms = useCallback(async () => {
     setRefreshing(true);
@@ -25,22 +26,29 @@ export default function useRoomPolling(fetchFn, interval) {
     }
   }, [fetchFn]);
 
+  const dismissError = useCallback(() => setError(''), []);
+  const setExternalError = useCallback((msg) => setError(msg), []);
+
   useEffect(() => {
-    fetchRooms();
-    const id = setInterval(fetchRooms, interval);
+    const initialTimer = setTimeout(() => { void fetchRooms(); }, 0);
+    intervalRef.current = setInterval(fetchRooms, interval);
+
     const onVisibilityChange = () => {
       if (document.hidden) {
-        clearInterval(id);
+        clearInterval(intervalRef.current);
       } else {
         fetchRooms();
+        intervalRef.current = setInterval(fetchRooms, interval);
       }
     };
     document.addEventListener('visibilitychange', onVisibilityChange);
+
     return () => {
-      clearInterval(id);
+      clearTimeout(initialTimer);
+      clearInterval(intervalRef.current);
       document.removeEventListener('visibilitychange', onVisibilityChange);
     };
   }, [fetchRooms, interval]);
 
-  return { rooms, error, refreshing, setError, fetchRooms };
+  return { rooms, error, refreshing, dismissError, setExternalError, fetchRooms };
 }

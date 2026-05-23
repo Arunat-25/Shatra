@@ -1,6 +1,8 @@
+import { useNavigate } from 'react-router-dom';
 import { isWinner } from '../utils';
 
 export default function GameOverScreen({ winner, myColor, modeAi, reason, onGoToLobby, onViewHistory }) {
+  const navigate = useNavigate();
   const isWin = isWinner(winner, myColor);
   const isDisconnect = reason === 'opponent_disconnected';
 
@@ -26,7 +28,7 @@ export default function GameOverScreen({ winner, myColor, modeAi, reason, onGoTo
             В лобби
           </button>
           {modeAi && (
-            <button className="btn-lobby btn-ai" onClick={() => window.location.reload()}>
+            <button className="btn-lobby btn-ai" onClick={() => navigate(0)}>
               Играть снова
             </button>
           )}

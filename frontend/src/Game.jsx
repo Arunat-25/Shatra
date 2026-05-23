@@ -1,10 +1,10 @@
 import { useEffect, useCallback, useRef, useState } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
-import { joinRoom } from './api';
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import useWebSocket from './hooks/useWebSocket';
 import useGameReducer, { GAME_ACTIONS } from './hooks/useGameReducer';
 import useMessage from './hooks/useMessage';
 import useEscapeKey from './hooks/useEscapeKey';
+import useCellClick from './hooks/useCellClick';
 import BoardGrid from './BoardGrid';
 import GameHeader from './components/GameHeader';
 import GameInfo from './components/GameInfo';
@@ -12,165 +12,99 @@ import WaitingScreen from './components/WaitingScreen';
 import GameOverScreen from './components/GameOverScreen';
 import DisconnectOverlay from './components/DisconnectOverlay';
 import MoveHistory from './components/MoveHistory';
-import { COLOR_BLACK, COLOR_WHITE, COLOR_WHITE_INCL, MSG_WARNING, MSG_ERROR } from './constants';
-import { getClientId } from './utils';
+import { MSG_SUCCESS } from './constants';
+import { getClientId } from './api';
+import { buildPassPayload } from './utils/wsPayloads';
 
 export default function Game() {
   const navigate = useNavigate();
+  const { roomId } = useParams();
   const [searchParams] = useSearchParams();
-
-  const roomId = searchParams.get('room');
-  const playerId = searchParams.get('player') ? parseInt(searchParams.get('player')) : null;
-  const modeFriend = searchParams.get('mode') === 'friend';
   const modeAi = searchParams.get('mode') === 'ai';
 
   const { state, dispatch, handleServerMessage, deselectPiece } = useGameReducer(modeAi);
   const { message, messageType, showMessage } = useMessage();
+  const myColorRef = useRef(null);
   const stateRef = useRef(state);
-  stateRef.current = state;
+  const handleServerMessageRef = useRef(handleServerMessage);
+  const showMessageRef = useRef(showMessage);
+  const dispatchRef = useRef(dispatch);
 
-  // Обратный отсчёт при отключении соперника
+  useEffect(() => {
+    stateRef.current = state;
+    handleServerMessageRef.current = handleServerMessage;
+    showMessageRef.current = showMessage;
+    dispatchRef.current = dispatch;
+  });
+
   useEffect(() => {
     if (!state.opponentDisconnected || state.disconnectCountdown <= 0) return;
     const timer = setInterval(() => {
       dispatch({ type: GAME_ACTIONS.DISCONNECT_TICK });
     }, 1000);
     return () => clearInterval(timer);
-  }, [state.opponentDisconnected, state.disconnectCountdown]);
+  }, [state.opponentDisconnected, state.disconnectCountdown, dispatch]);
 
-  // Оборачиваем handleServerMessage для показа сообщений пользователю
   const handleWsMessage = useCallback((data) => {
-    const msg = handleServerMessage(data);
-    if (msg) showMessage(msg.text, msg.type);
-  }, [handleServerMessage, showMessage]);
+    if (data.your_color && !myColorRef.current) {
+      myColorRef.current = data.your_color;
+      dispatchRef.current({
+        type: GAME_ACTIONS.SET_MY_COLOR,
+        payload: data.your_color === 'белый' ? 'белый' : 'черный',
+      });
+    }
+    const msg = handleServerMessageRef.current(data);
+    if (msg) showMessageRef.current(msg.text, msg.type);
+  }, []);
 
   const handleWsError = useCallback((errMsg) => {
-    showMessage(errMsg, MSG_ERROR);
-  }, [showMessage]);
-
-  const { send } = useWebSocket(roomId, playerId, handleWsMessage, handleWsError);
-
-  // Подключение для зрителя
-  useEffect(() => {
-    if (roomId && playerId === null) {
-      joinRoom(roomId).catch((e) => {
-        showMessage(e.message, MSG_ERROR);
-      });
+    dispatchRef.current({ type: GAME_ACTIONS.SET_JOINING_ERROR, payload: errMsg });
+    if (errMsg.includes('заполнена') || errMsg.includes('уже в игре')) {
+      setTimeout(() => navigate('/'), 2000);
     }
-  }, [roomId, playerId, showMessage]);
+  }, [navigate]);
 
-  // Цвет игрока
-  useEffect(() => {
-    dispatch({
-      type: 'SET_MY_COLOR',
-      payload: playerId === null || playerId === 2 ? COLOR_BLACK : COLOR_WHITE,
-    });
-  }, [playerId, dispatch]);
+  const { send } = useWebSocket(roomId, handleWsMessage, handleWsError);
 
-  // Escape для отмены выбора фигуры
-  useEscapeKey(state.moveFrom !== null, deselectPiece);
+  const isBoardBlocked =
+    state.gameOver || state.aiThinking || state.opponentDisconnected;
 
-  const goToLobby = useCallback(() => navigate('/'), [navigate]);
+  const handleCellClick = useCellClick({
+    stateRef,
+    dispatch,
+    send,
+    deselectPiece,
+    showMessage,
+    isBlocked: isBoardBlocked,
+  });
 
-  const handleCellClick = useCallback((positionNum) => {
-    if (state.gameOver || state.aiThinking) return;
-    const s = stateRef.current;
-
-    if (s.moversColor !== s.myColor) {
-      showMessage('Не ваш ход!', MSG_WARNING);
-      return;
-    }
-
-    if (s.moveFrom === null) {
-      const piece = s.board[positionNum];
-      if (!piece) return;
-      const pieceColor = piece.includes(COLOR_WHITE_INCL) ? COLOR_WHITE : COLOR_BLACK;
-      if (pieceColor !== s.myColor) return;
-
-      dispatch({ type: GAME_ACTIONS.SET_MOVE_FROM, payload: positionNum });
-      send({
-        position: `position${positionNum}`,
-        movers_color: s.moversColor,
-        board: s.board,
-        position_for_mandatory_capture: s.posForMandatoryCapture,
-      });
-      return;
-    }
-
-    if (s.moveFrom === positionNum) {
-      deselectPiece();
-      return;
-    }
-
-    // Совершаем ход
-    dispatch({
-      type: GAME_ACTIONS.SET_LAST_MOVE,
-      payload: { from: s.moveFrom, to: positionNum },
-    });
-    send({
-      move_from: `position${s.moveFrom}`,
-      move_to: `position${positionNum}`,
-      movers_color: s.moversColor,
-      board: s.board,
-      position_for_mandatory_capture: s.posForMandatoryCapture,
-    });
-    deselectPiece();
-  }, [state.gameOver, state.aiThinking, showMessage, send, dispatch, deselectPiece]);
-
-  const skipTurn = useCallback(() => {
-    const s = stateRef.current;
-    send({
-      move_from: 'position0',
-      move_to: 'position0',
-      movers_color: s.moversColor,
-      board: s.board,
-      position_for_mandatory_capture: s.posForMandatoryCapture,
-    });
-    dispatch({ type: GAME_ACTIONS.CLEAR_CAN_PASS });
-  }, [send, dispatch]);
-
-  // Управление историей ходов
-  const viewHistoryMove = useCallback((idx) => {
-    dispatch({ type: GAME_ACTIONS.VIEW_HISTORY_MOVE, payload: idx });
-  }, [dispatch]);
-
-  const exitHistory = useCallback(() => {
-    // Возвращаем актуальное состояние доски
-    const s = stateRef.current;
-    // Без доски в payload просто убираем флаг VIEW,
-    // но нужно восстановить доску из последнего MOVE_MADE
-    dispatch({ type: GAME_ACTIONS.EXIT_HISTORY });
-    // После EXIT_HISTORY нужно вернуть board к последнему состоянию.
-    // Так как мы храним исходную доску только в последнем entry,
-    // используем fallback: dispatch повторный SET_MOVE_HISTORY не меняет board
-  }, [dispatch]);
-
-  // Обработка Escape в режиме истории
-  useEscapeKey(state.viewingHistoryIndex !== null, exitHistory);
-
-  // Блокируем клики по доске в режиме просмотра истории
   const handleCellClickWrapped = useCallback((positionNum) => {
-    if (state.viewingHistoryIndex !== null) return;  // режим истории — клики заблокированы
+    if (state.viewingHistoryIndex !== null) return;
     handleCellClick(positionNum);
   }, [state.viewingHistoryIndex, handleCellClick]);
 
-  const [showGameOver, setShowGameOver] = useState(true);
-  // Сбросить showGameOver при gameOver = false (новая игра)
-  useEffect(() => {
-    if (!state.gameOver) setShowGameOver(true);
-  }, [state.gameOver]);
+  useEscapeKey(state.moveFrom !== null, deselectPiece);
+  useEscapeKey(state.viewingHistoryIndex !== null, () => {
+    dispatch({ type: GAME_ACTIONS.EXIT_HISTORY });
+  });
 
-  // Закрыть GameOverScreen и показать доску с историей
-  const closeGameOver = useCallback(() => {
-    setShowGameOver(false);
-  }, []);
+  const goToLobby = useCallback(() => navigate('/'), [navigate]);
+
+  const skipTurn = useCallback(() => {
+    send(buildPassPayload(stateRef.current));
+    dispatch({ type: GAME_ACTIONS.CLEAR_CAN_PASS });
+  }, [send, dispatch]);
+
+  const gameOverSessionKey = state.gameOver
+    ? `${roomId}-${state.movesHistory.length}-${state.winner}`
+    : null;
+  const [dismissedGameOverKey, setDismissedGameOverKey] = useState(null);
+  const showGameOverScreen = gameOverSessionKey && dismissedGameOverKey !== gameOverSessionKey;
 
   if (state.waiting) {
     return (
       <WaitingScreen
         roomId={roomId}
-        playerId={playerId}
-        modeFriend={modeFriend}
         modeAi={modeAi}
         joiningError={state.joiningError}
       />
@@ -184,13 +118,20 @@ export default function Game() {
           myColor={state.myColor}
           moversColor={state.moversColor}
           aiThinking={state.aiThinking}
+          modeAi={modeAi}
           onGoToLobby={goToLobby}
           timer={state.timer}
           timeControl={state.timeControl}
           playerId={getClientId()}
         />
 
-        <div className={`board ${state.gameOver || state.opponentDisconnected ? 'disabled' : ''} ${state.aiThinking ? 'board-ai-thinking' : ''}`}>
+        <div
+          className={[
+            'board',
+            isBoardBlocked ? 'disabled' : '',
+            state.aiThinking ? 'board-ai-thinking' : '',
+          ].filter(Boolean).join(' ')}
+        >
           {state.opponentDisconnected && (
             <DisconnectOverlay disconnectCountdown={state.disconnectCountdown} />
           )}
@@ -218,27 +159,25 @@ export default function Game() {
           canPass={state.canPass}
           gameOver={state.gameOver}
           onSkipTurn={skipTurn}
-          onCopyLink={() => showMessage('Ссылка скопирована!', 'success')}
-          myColor={state.myColor}
+          onCopyLink={() => showMessage('Ссылка скопирована!', MSG_SUCCESS)}
         />
       </div>
 
       <MoveHistory
         movesHistory={state.movesHistory}
         viewingHistoryIndex={state.viewingHistoryIndex}
-        onViewMove={viewHistoryMove}
-        onExitHistory={exitHistory}
+        onViewMove={(idx) => dispatch({ type: GAME_ACTIONS.VIEW_HISTORY_MOVE, payload: idx })}
+        onExitHistory={() => dispatch({ type: GAME_ACTIONS.EXIT_HISTORY })}
       />
 
-      {/* GameOver overlay — поверх доски, не заменяет её */}
-      {state.gameOver && showGameOver && (
+      {showGameOverScreen && (
         <GameOverScreen
           winner={state.winner}
           myColor={state.myColor}
           modeAi={modeAi}
           reason={state.gameOverReason}
           onGoToLobby={() => navigate('/', { replace: true })}
-          onViewHistory={closeGameOver}
+          onViewHistory={() => setDismissedGameOverKey(gameOverSessionKey)}
         />
       )}
     </div>

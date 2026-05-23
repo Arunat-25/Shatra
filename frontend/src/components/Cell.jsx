@@ -1,34 +1,38 @@
+import { memo } from 'react';
 import ShatraPiece from '../ShatraPiece';
 import { getPieceType, getPieceColor } from '../utils';
 
-function getCellClasses(id, className, board, moveFrom, highlightedEssential, highlightedCaptured, lastMove, historyFrom, historyTo) {
+function cellClass(id, className, board, moveFrom, hE, hC, lastMove, hF, hT) {
   return [
-    'kletka',
-    className,
+    'kletka', className,
     board[id] ? 'has-piece' : '',
     moveFrom === id ? 'highlight-black' : '',
-    highlightedEssential.includes(id) ? 'highlight-essential' : '',
-    highlightedCaptured.includes(id) ? 'highlight-captured' : '',
+    hE.includes(id) ? 'highlight-essential' : '',
+    hC.includes(id) ? 'highlight-captured' : '',
     lastMove && lastMove.from === id ? 'last-move-from' : '',
     lastMove && lastMove.to === id ? 'last-move-to' : '',
-    historyFrom === id ? 'cell-history-from' : '',
-    historyTo === id ? 'cell-history-to' : '',
+    hF === id ? 'cell-history-from' : '',
+    hT === id ? 'cell-history-to' : '',
   ].filter(Boolean).join(' ');
 }
 
-export default function Cell({ id, className, board, moveFrom, highlightedEssential, highlightedCaptured, lastMove, historyFrom, historyTo, onCellClick }) {
+const Cell = memo(function Cell(props) {
+  const { id, className, board, moveFrom, highlightedEssential = [], highlightedCaptured = [],
+          lastMove = null, historyFrom = null, historyTo = null, onCellClick } = props;
+  const piece = board[id];
+
   return (
     <div
-      key={id}
       id={`position${id}`}
-      className={getCellClasses(id, className, board, moveFrom, highlightedEssential, highlightedCaptured, lastMove, historyFrom, historyTo)}
+      className={cellClass(id, className, board, moveFrom, highlightedEssential,
+                           highlightedCaptured, lastMove, historyFrom, historyTo)}
       onClick={() => onCellClick(id)}
     >
-      {board[id] && (
+      {piece && (
         <div className="image-in-kletka">
           <ShatraPiece
-            type={getPieceType(board[id])}
-            color={getPieceColor(board[id])}
+            type={getPieceType(piece)}
+            color={getPieceColor(piece)}
             isSelected={moveFrom === id}
             isTarget={highlightedCaptured.includes(id)}
             positionNum={id}
@@ -37,4 +41,6 @@ export default function Cell({ id, className, board, moveFrom, highlightedEssent
       )}
     </div>
   );
-}
+});
+
+export default Cell;

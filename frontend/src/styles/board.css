@@ -166,14 +166,29 @@
 .kletka:hover .image-in-kletka { transform: scale(1.08); transition: transform 0.15s ease; }
 .kletka.highlight-captured .image-in-kletka { animation: pieceCapture 0.5s ease-out forwards; }
 
-/* ===== LAST MOVE HIGHLIGHT ===== */
-.last-move-from {
-    box-shadow: inset 0 0 0 3px rgba(212, 175, 55, 0.5), 0 0 15px rgba(212, 175, 55, 0.2) !important;
+/* ===== LAST MOVE — заливка всей клетки (перекрывает градиент cell-light/cell-dark) ===== */
+.kletka.last-move-from {
+    background: rgba(128, 128, 128, 0.62) !important;
+    box-shadow: inset 0 0 0 1px rgba(90, 90, 90, 0.45) !important;
     z-index: 2;
-    animation: goldenGlow 2s ease-in-out infinite;
 }
-.last-move-to {
-    box-shadow: inset 0 0 0 3px rgba(212, 175, 55, 0.8), 0 0 20px rgba(212, 175, 55, 0.4) !important;
+.kletka.last-move-to {
+    background: rgba(88, 155, 100, 0.62) !important;
+    box-shadow: inset 0 0 0 1px rgba(56, 120, 68, 0.5) !important;
     z-index: 2;
-    animation: goldenGlow 2s ease-in-out infinite;
+}
+.field-of-king .kletka.last-move-from {
+    background: rgba(128, 128, 128, 0.58) !important;
+    border-color: rgba(90, 90, 90, 0.5) !important;
+}
+.field-of-king .kletka.last-move-to {
+    background: rgba(88, 155, 100, 0.58) !important;
+    border-color: rgba(56, 120, 68, 0.5) !important;
+}
+.main-field .row .kletka:nth-child(4).last-move-from,
+.main-field .row .kletka:nth-child(4).last-move-to {
+    background: rgba(128, 128, 128, 0.62) !important;
+}
+.main-field .row .kletka:nth-child(4).last-move-to {
+    background: rgba(88, 155, 100, 0.62) !important;
 }

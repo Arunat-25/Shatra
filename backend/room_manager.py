@@ -1,8 +1,12 @@
 import uuid
+import json
 import logging
 from datetime import datetime
+
+from fastapi import HTTPException
+
 from backend.models import CreateRoomRequest, Room
-from backend.state import get_room, set_room, delete_room
+from backend.state import get_room, set_room, delete_room, scan_keys, get_raw
 
 logger = logging.getLogger(__name__)
 
@@ -18,8 +22,8 @@ async def create_room(request: CreateRoomRequest) -> dict:
         increment=request.increment,
     )
     if request.time_control:
-        room.timer_player1 = float(request.time_control)
-        room.timer_player2 = float(request.time_control)
+        room.timer_white = float(request.time_control)
+        room.timer_black = float(request.time_control)
         room.last_tick = now.timestamp()
 
     await set_room(room_id, room.model_dump())
@@ -29,28 +33,18 @@ async def create_room(request: CreateRoomRequest) -> dict:
 
 async def list_rooms() -> dict:
     """Возвращает список активных комнат (ожидающих второго игрока)."""
-    # Redis не поддерживает сканирование по ключам с префиксом через список,
-    # используем SCAN. Но для простоты — храним set с room_id активных комнат.
-    # Пока что комнаты сканируем, но для продакшена лучше список.
-    import redis.asyncio as aioredis
-    from backend.state import redis_client
-    cursor = 0
+    keys = await scan_keys("room:*")
     rooms_data = []
-    while True:
-        cursor, keys = await redis_client.scan(cursor=cursor, match="room:*", count=100)
-        for key in keys:
-            data = await redis_client.get(key)
-            if data:
-                import json
-                r = json.loads(data)
-                if not r.get("game_started") and r.get("type") in ("quick",):
-                    rooms_data.append({
-                        "room_id": r["room_id"],
-                        "type": r["type"],
-                        "created_at": r.get("created_at", ""),
-                    })
-        if cursor == 0:
-            break
+    for key in keys:
+        raw = await get_raw(key)
+        if raw:
+            r = json.loads(raw)
+            if not r.get("game_started") and r.get("type") in ("quick", "friend"):
+                rooms_data.append({
+                    "room_id": r["room_id"],
+                    "type": r["type"],
+                    "created_at": r.get("created_at", ""),
+                })
     return {"rooms": rooms_data}
 
 
@@ -58,5 +52,5 @@ async def join_room(room_id: str) -> dict:
     room_data = await get_room(room_id)
     if not room_data:
         logger.warning("Room not found: %s", room_id)
-        return {"error": "Комната не найдена"}
+        raise HTTPException(status_code=404, detail="Комната не найдена")
     return {"room_id": room_id}

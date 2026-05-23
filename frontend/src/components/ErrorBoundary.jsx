@@ -10,6 +10,12 @@ export default class ErrorBoundary extends Component {
     return { hasError: true, error };
   }
 
+  componentDidMount() {
+    // Убираем splash, если он ещё виден (например, при ошибке до монтирования App)
+    const splash = document.getElementById('splash-screen');
+    if (splash) splash.remove();
+  }
+
   render() {
     if (this.state.hasError) {
       return (

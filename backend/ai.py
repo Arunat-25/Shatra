@@ -1,15 +1,8 @@
-import copy
-from game_engine.game_logic import GameLogic
+from game_engine.hints import get_hints
 from game_engine.moves import execute_move
-from game_engine.dictionaries import (
-    shatra_and_biy_possible_captures,
-    batyr_moves_and_captures,
-)
 
 PIECE_VALUES = {"шатра": 100, "батыр": 300, "бий": 500}
 CENTER = {20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43}
-
-_logic = GameLogic()  # единственный экземпляр для хинтов
 
 
 def _count_pieces(cells):
@@ -50,7 +43,7 @@ def get_legal_moves(cells, color, batyr_captured_this_turn=None):
             continue
         if ("бел" in name and color != "белый") or ("чер" in name and color != "черный"):
             continue
-        result = _logic.get_hints(cells, color, cell, batyr_captured_this_turn=batyr_captured_this_turn)
+        result = get_hints(cells, color, cell, batyr_captured_this_turn=batyr_captured_this_turn)
         for target in (result.essential_positions or []):
             moves.append((cell, target))
     return moves

@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 
-export default function GameHeader({ myColor, moversColor, aiThinking, onGoToLobby, timer, timeControl, playerId }) {
+export default function GameHeader({ myColor, moversColor, aiThinking, modeAi, onGoToLobby, timer, timeControl, playerId }) {
   const formatTime = (seconds) => {
     if (seconds === null || seconds === undefined) return null;
     const s = Math.max(0, Math.round(seconds));
@@ -24,7 +24,7 @@ export default function GameHeader({ myColor, moversColor, aiThinking, onGoToLob
             {myColor === 'белый' ? '⚪' : '⚫'} {myColor === 'белый' ? 'Белые' : 'Черные'}
             {playerId && <span className="player-id" title={playerId}> #{playerId.slice(0, 6)}</span>}
           </span>
-          {aiThinking !== undefined && <span className="ai-badge">AI</span>}
+          {modeAi && <span className="ai-badge">AI</span>}
         </div>
       </div>
       <div className="header-right">
@@ -63,6 +63,7 @@ GameHeader.propTypes = {
   myColor: PropTypes.string,
   moversColor: PropTypes.string,
   aiThinking: PropTypes.bool,
+  modeAi: PropTypes.bool,
   onGoToLobby: PropTypes.func.isRequired,
   timer: PropTypes.shape({
     белый: PropTypes.number,

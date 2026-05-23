@@ -1,4 +1,6 @@
-import { COLOR_WHITE, COLOR_WHITE_INCL, PIECE_BIY, PIECE_BATYR } from './constants';
+import { COLOR_WHITE, COLOR_BLACK, COLOR_WHITE_INCL, PIECE_BIY, PIECE_BATYR } from './constants';
+
+export { buildHintPayload, buildMovePayload, buildPassPayload, positionLabel } from './utils/wsPayloads';
 
 /**
  * Преобразует ключи доски сервера (строки) в числа.
@@ -35,36 +37,12 @@ export function getPieceType(pieceStr) {
  * Определяет цвет фигуры по строке с сервера.
  */
 export function getPieceColor(pieceStr) {
-  return pieceStr.includes(COLOR_WHITE_INCL) ? COLOR_WHITE : 'черный';
+  return pieceStr.includes(COLOR_WHITE_INCL) ? COLOR_WHITE : COLOR_BLACK;
 }
 
 /**
  * Определяет, является ли победитель текущим игроком.
  */
 export function isWinner(winner, myColor) {
-  if (!winner) return false;
-  const winnerIncl = winner.includes(COLOR_WHITE_INCL) ? COLOR_WHITE_INCL : 'чер';
-  return myColor.includes(winnerIncl);
-}
-
-const CLIENT_ID_KEY = 'shatra_client_id';
-
-/**
- * Возвращает UUID анонимного игрока. Создаётся один раз, хранится в localStorage.
- */
-export function getClientId() {
-  let id = localStorage.getItem(CLIENT_ID_KEY);
-  if (!id) {
-    id = crypto.randomUUID();
-    localStorage.setItem(CLIENT_ID_KEY, id);
-  }
-  return id;
-}
-
-/**
- * Формирует WebSocket URL.
- */
-export function getWsUrl(roomId, playerId) {
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  return `${protocol}//${window.location.host}/ws/${roomId}/?player=${playerId || ''}&client_id=${getClientId()}`;
+  return !!(winner && winner === myColor);
 }

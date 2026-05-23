@@ -7,11 +7,7 @@ def keys_str_to_int(board: dict) -> dict:
 
 
 def change_position_name_from_frontend(position: str | int) -> int:
-    if isinstance(position, int):
-        return position
-    if isinstance(position, str):
-        return int(position.replace("position", ""))
-    return int(position)
+    return position if isinstance(position, int) else int(str(position).replace("position", ""))
 
 
 def get_starting_board():

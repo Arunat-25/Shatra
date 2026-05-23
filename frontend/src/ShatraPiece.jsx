@@ -1,15 +1,12 @@
-import { PIECE_BIY, PIECE_BATYR, COLOR_WHITE, COLOR_BLACK } from './constants';
+import { PIECE_BIY, PIECE_BATYR, COLOR_WHITE } from './constants';
 
-const WHITE_BODY = '#F5F5DC';
 const WHITE_STROKE = '#D2B48C';
-const BLACK_BODY = '#1A1A1A';
 const BLACK_STROKE = '#444444';
 const GOLD_COLOR = '#FFD700';
 const FIRE_RED = '#B22222';
 const TURQUOISE = '#40E0D0';
 
 export default function ShatraPiece({ type, color, isSelected, isTarget, positionNum }) {
-  const pieceColor = color === COLOR_WHITE ? WHITE_BODY : BLACK_BODY;
   const strokeColor = color === COLOR_WHITE ? WHITE_STROKE : BLACK_STROKE;
   const runeColor = color === COLOR_WHITE ? FIRE_RED : TURQUOISE;
   const glowColor = isSelected ? TURQUOISE : isTarget ? FIRE_RED : 'none';

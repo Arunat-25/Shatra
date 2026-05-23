@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { TIMER_PRESETS, INCREMENT_PRESETS } from '../constants';
 
 /**

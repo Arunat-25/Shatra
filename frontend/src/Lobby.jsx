@@ -9,43 +9,36 @@ import { ROOM_QUICK, ROOM_FRIEND, ROOM_AI, POLL_INTERVAL } from './constants';
 
 export default function Lobby() {
   const navigate = useNavigate();
-  const { rooms, error, refreshing, setError, fetchRooms } = useRoomPolling(listRooms, POLL_INTERVAL);
+  const { rooms, error, refreshing, dismissError, setExternalError, fetchRooms } = useRoomPolling(listRooms, POLL_INTERVAL);
   const [joinerRoomId, setJoinerRoomId] = useState(null);
   const [showTimerPicker, setShowTimerPicker] = useState(false);
   const [pickerMode, setPickerMode] = useState(null); // 'quick' | 'friend'
 
-  const dismissError = () => setError('');
-
-  const handleQuick = () => {
-    setPickerMode('quick');
-    setShowTimerPicker(true);
-  };
-
-  const handleFriend = () => {
-    setPickerMode('friend');
+  const handleTimerPicker = (mode) => {
+    setPickerMode(mode);
     setShowTimerPicker(true);
   };
 
   const handleAI = async () => {
-    setError('');
+    dismissError();
     try {
       const data = await createRoom(ROOM_AI, null, null);
-      navigate(`/game?room=${data.room_id}&player=1&mode=ai`);
+      navigate(`/${data.room_id}?mode=ai`);
     } catch (e) {
-      setError(e.message);
+      setExternalError(e.message);
     }
   };
 
   const finishCreate = async (timeValue, incrementValue) => {
-    setError('');
+    dismissError();
     try {
       const type = pickerMode === 'friend' ? ROOM_FRIEND : ROOM_QUICK;
       const mode = pickerMode === 'friend' ? 'friend' : '';
       const data = await createRoom(type, timeValue, incrementValue);
-      const modeParam = mode ? `&mode=${mode}` : '';
-      navigate(`/game?room=${data.room_id}&player=1${modeParam}`);
+      const modeParam = mode ? `?mode=${mode}` : '';
+      navigate(`/${data.room_id}${modeParam}`);
     } catch (e) {
-      setError(e.message);
+      setExternalError(e.message);
     }
   };
 
@@ -56,21 +49,12 @@ export default function Lobby() {
 
   const handleJoinRoom = async (roomId) => {
     setJoinerRoomId(roomId);
-    setError('');
+    dismissError();
     try {
       await joinRoom(roomId);
-      // После успешного join создаём WebSocket через хук
-      // Используем колбэк для редиректа
-      const ws = new WebSocket(`ws://${window.location.host}/ws/${roomId}/`);
-      ws.onmessage = (event) => {
-        const msg = JSON.parse(event.data);
-        if (msg.status === 'game_started' || msg.movers_color) {
-          navigate(`/game?room=${roomId}&player=2`);
-        }
-      };
-      ws.onerror = () => setError('Ошибка подключения к комнате');
+      navigate(`/${roomId}`);
     } catch (e) {
-      setError(e.message);
+      setExternalError(e.message);
       setJoinerRoomId(null);
     }
   };
@@ -91,7 +75,7 @@ export default function Lobby() {
             <TimerPicker onFinish={finishCreate} onCancel={handleCancelTimer} />
           ) : (
             <div className="lobby-buttons">
-              <button className="btn-lobby btn-battle" onClick={handleQuick}>
+              <button className="btn-lobby btn-battle" onClick={() => handleTimerPicker('quick')}>
                 <span className="btn-icon">⚔️</span>
                 <span className="btn-text">Создать игру</span>
               </button>
@@ -99,7 +83,7 @@ export default function Lobby() {
                 <span className="btn-icon">🤖</span>
                 <span className="btn-text">Играть с ботом</span>
               </button>
-              <button className="btn-lobby btn-invite" onClick={handleFriend}>
+              <button className="btn-lobby btn-invite" onClick={() => handleTimerPicker('friend')}>
                 <span className="btn-icon">🔗</span>
                 <span className="btn-text">Вызов другу</span>
               </button>

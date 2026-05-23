@@ -1,5 +1,7 @@
 import { useRef, useEffect } from 'react';
 
+const COLOR_LABELS = { 'белый': 'Белые', 'черный': 'Чёрные' };
+
 export default function MoveHistory({
   movesHistory,
   viewingHistoryIndex,
@@ -15,8 +17,6 @@ export default function MoveHistory({
     }
   }, [movesHistory.length]);
 
-  const colorLabel = (mover) => (mover === 'белый' ? 'Белые' : 'Чёрные');
-
   return (
     <div className="move-history-panel">
       <div className="move-history-header">История ходов</div>
@@ -31,7 +31,7 @@ export default function MoveHistory({
             onClick={() => onViewMove(idx)}
           >
             <span className="move-number">{entry.move_number}.</span>
-            <span className="move-color">{colorLabel(entry.mover)}</span>
+            <span className="move-color">{COLOR_LABELS[entry.mover] || entry.mover}</span>
             <span className="move-from-to">{entry.from_pos} → {entry.to_pos}</span>
           </div>
         ))}
