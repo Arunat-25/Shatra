@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 
-export default function WaitingScreen({ roomId, modeAi, joiningError }) {
+export default function WaitingScreen({ roomId, modeAi, joiningError, reconnectMessage }) {
   const linkInputRef = useRef(null);
 
   const copyLink = () => {
@@ -18,6 +18,7 @@ export default function WaitingScreen({ roomId, modeAi, joiningError }) {
           <h2 className="waiting-title">Сражение с ботом</h2>
           <p className="waiting-subtitle">Подключение к игре…</p>
           <p className="waiting-hint">Скоро откроется доска</p>
+          {reconnectMessage && <p className="waiting-hint">{reconnectMessage}</p>}
         </div>
       </div>
     );
@@ -51,6 +52,7 @@ export default function WaitingScreen({ roomId, modeAi, joiningError }) {
               <button className="btn-refresh" onClick={copyLink}>Копировать</button>
             </div>
             <p className="waiting-hint">Игра начнётся, когда второй игрок присоединится</p>
+            {reconnectMessage && <p className="waiting-hint">{reconnectMessage}</p>}
           </>
         )}
       </div>

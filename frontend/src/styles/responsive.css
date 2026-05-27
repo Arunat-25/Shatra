@@ -1,4 +1,19 @@
 /* ===== RESPONSIVE ===== */
+
+/* На широких экранах — доска слева, история ходов справа */
+@media (min-width: 860px) {
+    .game-page {
+        flex-direction: row;
+        align-items: flex-start;
+        justify-content: center;
+        gap: 12px;
+    }
+    .game-screen {
+        max-width: unset;
+        width: auto;
+    }
+}
+
 @media (max-width: 860px) {
     .lobby-layout {
         flex-direction: column;

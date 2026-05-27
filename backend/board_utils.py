@@ -19,12 +19,15 @@ def get_starting_board():
         board[i] = "черная шатра"
     board[10] = "черный бий"
     board[11] = "черный батыр"
-    board[17] = "черный батыр"
+    for i in range(12, 25):
+        board[i] = "черная шатра"
 
     for i in range(54, 63):
         board[i] = "белая шатра"
     board[53] = "белый бий"
+    for i in range(39, 53):
+        board[i] = "белая шатра"
     board[46] = "белый батыр"
-    board[52] = "белый батыр"
+
 
     return board

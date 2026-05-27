@@ -12,9 +12,11 @@ import WaitingScreen from './components/WaitingScreen';
 import GameOverScreen from './components/GameOverScreen';
 import DisconnectOverlay from './components/DisconnectOverlay';
 import MoveHistory from './components/MoveHistory';
-import { MSG_SUCCESS } from './constants';
+import { MSG_ERROR, MSG_SUCCESS, MSG_WARNING } from './constants';
 import { getClientId } from './api';
 import { buildPassPayload } from './utils/wsPayloads';
+
+const ROOM_ERROR_TYPES = new Set(['room_full', 'already_in_game', 'room_not_found']);
 
 export default function Game() {
   const navigate = useNavigate();
@@ -24,6 +26,7 @@ export default function Game() {
 
   const { state, dispatch, handleServerMessage, deselectPiece } = useGameReducer(modeAi);
   const { message, messageType, showMessage } = useMessage();
+  const [connectionStatus, setConnectionStatus] = useState({ type: 'idle', message: '' });
   const myColorRef = useRef(null);
   const stateRef = useRef(state);
   const handleServerMessageRef = useRef(handleServerMessage);
@@ -57,14 +60,53 @@ export default function Game() {
     if (msg) showMessageRef.current(msg.text, msg.type);
   }, []);
 
-  const handleWsError = useCallback((errMsg) => {
-    dispatchRef.current({ type: GAME_ACTIONS.SET_JOINING_ERROR, payload: errMsg });
-    if (errMsg.includes('заполнена') || errMsg.includes('уже в игре')) {
-      setTimeout(() => navigate('/'), 2000);
+  const handleWsStatus = useCallback((statusInfo) => {
+    if (!statusInfo) {
+      setConnectionStatus({ type: 'idle', message: '' });
+      return;
     }
-  }, [navigate]);
 
-  const { send } = useWebSocket(roomId, handleWsMessage, handleWsError);
+    if (statusInfo.type === 'reconnecting') {
+      setConnectionStatus({ type: 'reconnecting', message: statusInfo.message });
+      showMessage(statusInfo.message, MSG_WARNING);
+      return;
+    }
+
+    if (statusInfo.type === 'connected') {
+      setConnectionStatus({ type: 'idle', message: '' });
+      showMessage('Соединение восстановлено');
+    }
+  }, [showMessage]);
+
+  const handleWsError = useCallback((errorInfo) => {
+    const error = typeof errorInfo === 'string'
+      ? { type: 'unknown', recoverable: false, message: errorInfo }
+      : errorInfo;
+
+    if (!error?.message) {
+      return;
+    }
+
+    if (error.recoverable) {
+      showMessage(error.message, MSG_WARNING);
+      return;
+    }
+
+    if (ROOM_ERROR_TYPES.has(error.type)) {
+      dispatchRef.current({ type: GAME_ACTIONS.SET_JOINING_ERROR, payload: error.message });
+      setTimeout(() => navigate('/'), 2000);
+      return;
+    }
+
+    if (state.waiting) {
+      dispatchRef.current({ type: GAME_ACTIONS.SET_JOINING_ERROR, payload: error.message });
+      return;
+    }
+
+    showMessage(error.message, MSG_ERROR);
+  }, [navigate, showMessage, state.waiting]);
+
+  const { send } = useWebSocket(roomId, handleWsMessage, handleWsError, handleWsStatus);
 
   const isBoardBlocked =
     state.gameOver || state.aiThinking || state.opponentDisconnected;
@@ -107,6 +149,7 @@ export default function Game() {
         roomId={roomId}
         modeAi={modeAi}
         joiningError={state.joiningError}
+        reconnectMessage={connectionStatus.type === 'reconnecting' ? connectionStatus.message : ''}
       />
     );
   }

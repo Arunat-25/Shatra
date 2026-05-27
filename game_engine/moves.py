@@ -135,6 +135,10 @@ def process_move(
     )
 
     piece = Board(board_copy).get_piece_object(from_cell)
+    # Если from_cell уже пуста после execute_move (фигура переместилась),
+    # читаем тип из to_cell
+    if piece is None:
+        piece = Board(board_copy).get_piece_object(to_cell)
     piece_kind = piece.get_type() if piece else ""
 
     # 5b. Превращение шатры в батыра при достижении края доски
@@ -198,15 +202,19 @@ def process_move(
             captured_pieces=new_batyr_captures
         )
 
-    # Если бий взял, больше некого бить — даём кнопку передать ход
-    if piece_kind == "бий" and has_captured:
-        return GameEventResult(
-            message="Продолжайте взятие или передайте ход!",
-            movers_color=current_color,
-            updated_positions=new_cells,
+    # Если взятие завершилось — ход передаётся сопернику.
+    if has_captured and not can_continue_chain:
+        next_player = _opponent(current_color)
+        over, winner = is_game_over(next_board, position_history)
+        return _finish_move(
+            positions=new_cells,
+            mover_color=current_color,
+            message=f"Теперь ходит {next_player}",
+            history=True,
+            clear_pending=True,
+            game_over=over,
+            winner=winner,
             captured_positions=captured_positions,
-            opportunity_pass_the_move=True,
-            position_for_mandatory_capture=to_cell,
             captured_pieces=new_batyr_captures
         )
 
@@ -216,8 +224,9 @@ def process_move(
 
     chain_capture_pos = None
     if next_player and not over:
-        if has_mandatory_from_position(new_cells, next_player):
-            chain_capture_pos = to_cell
+        mandatory_captures = get_all_mandatory_captures(Board(new_cells), next_player)
+        if mandatory_captures:
+            chain_capture_pos = mandatory_captures[0][0]
 
     return _finish_move(
         positions=new_cells,

@@ -19,7 +19,11 @@ export const messageHandlers = [
   {
     check: (d) => d.message && d.desk,
     handle: (d, dispatch, modeAi) => {
-      const aiThinking = modeAi && d.movers_color === COLOR_BLACK && !d.game_over;
+      // aiThinking: only when playing vs AI AND next mover is AI color
+      // additionally, don't mark AI as thinking if server indicates
+      // there's a mandatory capture for the (human) player — that means
+      // the human must act next.
+      const aiThinking = modeAi && d.movers_color === COLOR_BLACK && !d.game_over && !d.position_for_mandatory_capture;
       if (d.move_history) {
         dispatch({ type: GAME_ACTIONS.SET_MOVE_HISTORY, payload: d.move_history });
       }

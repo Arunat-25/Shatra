@@ -34,16 +34,21 @@ async def handle_ai_move(room_id: str, game: dict, max_recursion: int = 5):
     """Вычислить и отправить ход AI."""
     if max_recursion <= 0:
         return
-    await asyncio.sleep(1.5)
+    await asyncio.sleep(0.3)
 
     board = game["board"]
     board_snapshot = dict(board)
     ai_color = game["mover"]
-    move = get_best_move(
+
+    loop = asyncio.get_running_loop()
+    move = await loop.run_in_executor(
+        None,
+        get_best_move,
         board,
         ai_color,
-        depth=3,
-        batyr_captured_this_turn=game.get("pending_batyr_captures"),
+        3,
+        game.get("pending_batyr_captures"),
+        game.get("pending_mandatory_position"),
     )
     if move is None:
         logger.warning("AI has no legal moves in room %s — game over", room_id)
@@ -71,23 +76,44 @@ async def handle_ai_move(room_id: str, game: dict, max_recursion: int = 5):
             mover_color=ai_color,
             from_pos=from_cell,
             to_pos=to_cell,
+            position_for_mandatory_capture=game.get("pending_mandatory_position"),
         ),
         batyr_captured_this_turn=game.get("pending_batyr_captures"),
         position_history=game.get("position_history", {}),
     )
 
+    # Если ход был отклонён (например, "нужно бить" или "продолжайте взятие"),
+    # пробуем следующий ход из списка
+    if result.updated_positions and result.updated_positions == board and game["mover"] == ai_color:
+        logger.warning(
+            "AI move %s->%s rejected in room %s: %s. Retrying...",
+            from_cell, to_cell, room_id, result.message,
+        )
+        # Сброс pending_mandatory, чтобы AI мог выбрать другой ход
+        game.pop("pending_mandatory_position", None)
+        game["board"] = board  # Восстанавливаем состояние
+        await handle_ai_move(room_id, game, max_recursion - 1)
+        return
+
     response = await apply_move_result(room_id, game, result, prev_mover, from_cell, to_cell)
     logger.info(
-        "AI move for room %s: %s -> %s, game_over=%s",
+        "AI move for room %s: %s -> %s, game_over=%s, chain_next=%s",
         room_id,
         from_cell,
         to_cell,
         result.game_over,
+        result.position_for_mandatory_capture,
     )
     await manager.send_to_room(room_id, response)
 
     if not result.updated_positions or result.updated_positions == board_snapshot:
         return
+
+    # Сохраняем обязательное продолжение взятия для следующего AI-хода
+    if result.position_for_mandatory_capture:
+        game["pending_mandatory_position"] = result.position_for_mandatory_capture
+    else:
+        game.pop("pending_mandatory_position", None)
 
     if result.movers_color == ai_color and not result.game_over:
         await handle_ai_move(room_id, game, max_recursion - 1)
@@ -245,6 +271,12 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                 batyr_captured_this_turn=game.get("pending_batyr_captures"),
                 position_history=game.get("position_history", {}),
             )
+
+            # Сбрасываем состояние обязательных взятий после хода человека
+            if result.position_for_mandatory_capture:
+                game["pending_mandatory_position"] = result.position_for_mandatory_capture
+            else:
+                game.pop("pending_mandatory_position", None)
 
             response = await apply_move_result(
                 room_id, game, result, prev_mover, raw_from, raw_to

@@ -3,11 +3,12 @@ import logging
 import time
 from fastapi import WebSocket
 from backend.state import (get_room, set_room, get_game, set_game,
-                            game_timers, disconnect_timers)
+                            game_timers, disconnect_timers, DISCONNECT_TIMEOUT)
 from backend.ws_manager import manager
 from backend.board_utils import keys_int_to_str
 
 logger = logging.getLogger(__name__)
+TICK_INTERVAL_SECONDS = 1.0
 
 
 def _opposite_color(color: str) -> str:
@@ -35,14 +36,14 @@ async def game_ticker(room_id: str):
                 mover = game.get("mover")
 
             if mover == "белый" and room_data.get("timer_white") is not None:
-                room_data["timer_white"] -= 1.0
+                room_data["timer_white"] -= TICK_INTERVAL_SECONDS
                 if room_data["timer_white"] <= 0:
                     room_data["timer_white"] = 0
                     await set_room(room_id, room_data)
                     await handle_timeout(room_id, "белый")
                     return
             elif mover == "черный" and room_data.get("timer_black") is not None:
-                room_data["timer_black"] -= 1.0
+                room_data["timer_black"] -= TICK_INTERVAL_SECONDS
                 if room_data["timer_black"] <= 0:
                     room_data["timer_black"] = 0
                     await set_room(room_id, room_data)
@@ -60,7 +61,7 @@ async def game_ticker(room_id: str):
                 }
             })
 
-            await asyncio.sleep(1.0)
+            await asyncio.sleep(TICK_INTERVAL_SECONDS)
     except asyncio.CancelledError:
         pass
     except Exception as e:
@@ -99,9 +100,8 @@ def stop_game_timer(room_id: str):
 
 async def disconnect_timer(room_id: str, remaining_ws: WebSocket, disconnected_client_id: str):
     """Таймер ожидания переподключения отключившегося игрока."""
-    timeout = 30
     try:
-        for i in range(timeout, 0, -1):
+        for i in range(DISCONNECT_TIMEOUT, 0, -1):
             if remaining_ws:
                 try:
                     await remaining_ws.send_json({
@@ -110,7 +110,7 @@ async def disconnect_timer(room_id: str, remaining_ws: WebSocket, disconnected_c
                     })
                 except Exception:
                     pass
-            await asyncio.sleep(1.0)
+            await asyncio.sleep(TICK_INTERVAL_SECONDS)
 
         game = await get_game(room_id)
         if game and not game.get("game_over", False):
