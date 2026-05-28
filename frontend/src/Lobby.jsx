@@ -7,12 +7,52 @@ import GameEmblem from './components/GameEmblem';
 import TimerPicker from './components/TimerPicker';
 import { ROOM_QUICK, ROOM_FRIEND, ROOM_AI, POLL_INTERVAL } from './constants';
 
+const LOBBY_ACTIONS = [
+  {
+    id: 'quick',
+    className: 'action-card--play',
+    label: 'Создать игру',
+    desc: 'Открытая комната в зале ожидания',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+      </svg>
+    ),
+  },
+  {
+    id: 'ai',
+    className: 'action-card--ai',
+    label: 'Играть с ботом',
+    desc: 'Тренировка против ИИ',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+        <rect x="4" y="8" width="16" height="12" rx="2" />
+        <path d="M9 8V6a3 3 0 0 1 6 0v2" />
+        <circle cx="9" cy="14" r="1" fill="currentColor" />
+        <circle cx="15" cy="14" r="1" fill="currentColor" />
+      </svg>
+    ),
+  },
+  {
+    id: 'friend',
+    className: 'action-card--friend',
+    label: 'Вызов другу',
+    desc: 'Приватная ссылка для соперника',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+      </svg>
+    ),
+  },
+];
+
 export default function Lobby() {
   const navigate = useNavigate();
   const { rooms, error, refreshing, dismissError, setExternalError, fetchRooms } = useRoomPolling(listRooms, POLL_INTERVAL);
   const [joinerRoomId, setJoinerRoomId] = useState(null);
   const [showTimerPicker, setShowTimerPicker] = useState(false);
-  const [pickerMode, setPickerMode] = useState(null); // 'quick' | 'friend'
+  const [pickerMode, setPickerMode] = useState(null);
 
   const handleTimerPicker = (mode) => {
     setPickerMode(mode);
@@ -59,6 +99,11 @@ export default function Lobby() {
     }
   };
 
+  const handleAction = (id) => {
+    if (id === 'ai') handleAI();
+    else handleTimerPicker(id === 'friend' ? 'friend' : 'quick');
+  };
+
   const showLoading = refreshing && rooms.length === 0;
 
   return (
@@ -66,7 +111,7 @@ export default function Lobby() {
       <div className="lobby-left">
         <div className="lobby-left-inner">
           <div className="lobby-emblem">
-            <GameEmblem size={80} className="lobby-emblem-svg" />
+            <GameEmblem size={72} className="lobby-emblem-svg" />
           </div>
           <h1>Шатра</h1>
           <p className="lobby-subtitle">Алтайская народная игра</p>
@@ -75,25 +120,28 @@ export default function Lobby() {
             <TimerPicker onFinish={finishCreate} onCancel={handleCancelTimer} />
           ) : (
             <div className="lobby-buttons">
-              <button className="btn-lobby btn-battle" onClick={() => handleTimerPicker('quick')}>
-                <span className="btn-icon">⚔️</span>
-                <span className="btn-text">Создать игру</span>
-              </button>
-              <button className="btn-lobby btn-ai" onClick={handleAI}>
-                <span className="btn-icon">🤖</span>
-                <span className="btn-text">Играть с ботом</span>
-              </button>
-              <button className="btn-lobby btn-invite" onClick={() => handleTimerPicker('friend')}>
-                <span className="btn-icon">🔗</span>
-                <span className="btn-text">Вызов другу</span>
-              </button>
+              {LOBBY_ACTIONS.map((action) => (
+                <button
+                  key={action.id}
+                  type="button"
+                  className={`action-card ${action.className}`}
+                  onClick={() => handleAction(action.id)}
+                >
+                  <span className="action-card__icon">{action.icon}</span>
+                  <span className="action-card__body">
+                    <strong>{action.label}</strong>
+                    <span>{action.desc}</span>
+                  </span>
+                  <span className="action-card__arrow" aria-hidden>→</span>
+                </button>
+              ))}
             </div>
           )}
 
           {error && (
             <div className="error-container">
               <p>{error}</p>
-              <button className="error-dismiss" onClick={dismissError} aria-label="Закрыть">✕</button>
+              <button type="button" className="error-dismiss" onClick={dismissError} aria-label="Закрыть">✕</button>
             </div>
           )}
         </div>
@@ -105,21 +153,21 @@ export default function Lobby() {
             Зал ожидания
             {refreshing && <span className="waiting-spinner-small" />}
           </h2>
-          <button className="btn-refresh" onClick={fetchRooms} disabled={refreshing}>
-            {refreshing ? 'Обновление...' : 'Обновить'}
+          <button type="button" className="btn-lobby btn-refresh" onClick={fetchRooms} disabled={refreshing}>
+            {refreshing ? '…' : 'Обновить'}
           </button>
         </div>
         <div className="rooms-list">
           {!refreshing && rooms.length === 0 ? (
             <div className="rooms-empty">
-              <GameEmblem size={60} className="rooms-empty-icon" />
+              <GameEmblem size={48} className="rooms-empty-icon" />
               <p>Нет доступных комнат</p>
-              <span>Создайте игру или подождите других игроков</span>
+              <span>Создайте игру или дождитесь других игроков</span>
             </div>
           ) : showLoading ? (
             <div className="rooms-empty">
               <div className="waiting-spinner" style={{ width: 36, height: 36, marginBottom: 16 }} />
-              <p style={{ color: 'rgba(74, 55, 40, 0.4)' }}>Поиск комнат...</p>
+              <p>Поиск комнат…</p>
             </div>
           ) : (
             rooms.map((room) => (

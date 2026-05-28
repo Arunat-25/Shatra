@@ -12,7 +12,6 @@ def test_capture_own_piece_shatra():
     shatra = Shatra('белый')
     result = shatra.can_capture(board, 20, 36)
     assert not result, f"Ожидался False, получен {result}"
-    print("✅ test_capture_own_piece_shatra пройден")
 
 
 def test_capture_own_piece_biy():
@@ -21,7 +20,6 @@ def test_capture_own_piece_biy():
     biy = Biy('черный')
     result = biy.can_capture(board, 10, 28)
     assert not result, f"Ожидался False, получен {result}"
-    print("✅ test_capture_own_piece_biy пройден")
 
 
 def test_capture_own_piece_batyr():
@@ -30,7 +28,6 @@ def test_capture_own_piece_batyr():
     batyr = Batyr('белый')
     result = batyr.can_capture(board, 20, 36)
     assert not result, f"Ожидался False, получен {result}"
-    print("✅ test_capture_own_piece_batyr пройден")
 
 
 def test_capture_enemy_piece():
@@ -39,7 +36,6 @@ def test_capture_enemy_piece():
     shatra = Shatra('белый')
     result = shatra.can_capture(board, 20, 36)
     assert result, f"Ожидался True, получен {result}"
-    print("✅ test_capture_enemy_piece пройден")
 
 
 def test_get_color():
@@ -50,7 +46,6 @@ def test_get_color():
     assert b.get_color() == 'черный'
     k = Batyr('белый')
     assert k.get_color() == 'белый'
-    print("✅ test_get_color пройден")
 
 
 def test_get_type():
@@ -58,14 +53,3 @@ def test_get_type():
     assert Shatra('белый').get_type() == 'шатра'
     assert Biy('черный').get_type() == 'бий'
     assert Batyr('белый').get_type() == 'батыр'
-    print("✅ test_get_type пройден")
-
-
-if __name__ == '__main__':
-    test_capture_own_piece_shatra()
-    test_capture_own_piece_biy()
-    test_capture_own_piece_batyr()
-    test_capture_enemy_piece()
-    test_get_color()
-    test_get_type()
-    print("\n🎉 Все тесты base пройдены!")

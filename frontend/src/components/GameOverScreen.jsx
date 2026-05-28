@@ -20,8 +20,8 @@ export default function GameOverScreen({ winner, myColor, modeAi, reason, onGoTo
         </p>
         <div className="game-over-buttons">
           {onViewHistory && (
-            <button className="btn-secondary btn-history" onClick={onViewHistory}>
-              📜 Просмотреть историю
+            <button type="button" className="btn-secondary btn-history" onClick={onViewHistory}>
+              Просмотреть историю
             </button>
           )}
           <button className="btn-lobby btn-battle" onClick={onGoToLobby}>

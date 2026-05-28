@@ -49,7 +49,7 @@ export default function WaitingScreen({ roomId, modeAi, joiningError, reconnectM
                 value={`${window.location.origin}/${roomId}`}
                 onClick={() => linkInputRef.current?.select()}
               />
-              <button className="btn-refresh" onClick={copyLink}>Копировать</button>
+              <button type="button" className="btn-copy" onClick={copyLink}>Копировать</button>
             </div>
             <p className="waiting-hint">Игра начнётся, когда второй игрок присоединится</p>
             {reconnectMessage && <p className="waiting-hint">{reconnectMessage}</p>}

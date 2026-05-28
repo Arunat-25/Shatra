@@ -3,15 +3,41 @@ import copy
 
 from game_engine.board import Board
 from game_engine.models import GameEventResult
-from game_engine.endgame import is_game_over
+from game_engine.endgame import is_game_over, _count_biys
 from game_engine.validation import (
     get_all_mandatory_captures,
+    batyr_can_continue_capture,
     find_captured_enemy,
     validate_move,
 )
 from game_engine.dictionaries import (
     shatra_and_biy_possible_captures,
 )
+
+import json
+import time
+
+# region agent log
+_DEBUG_LOG_PATH = "/home/arunat/coding/Shatra/.cursor/debug-55e98f.log"
+_DBG_COUNTS: dict[str, int] = {}
+def _dbg(hypothesis_id: str, location: str, message: str, data: dict):
+    try:
+        _DBG_COUNTS[hypothesis_id] = _DBG_COUNTS.get(hypothesis_id, 0) + 1
+        if _DBG_COUNTS[hypothesis_id] > 60:
+            return
+        with open(_DEBUG_LOG_PATH, "a", encoding="utf-8") as f:
+            f.write(json.dumps({
+                "sessionId": "55e98f",
+                "runId": "pre-fix",
+                "hypothesisId": hypothesis_id,
+                "location": location,
+                "message": message,
+                "data": data,
+                "timestamp": int(time.time() * 1000),
+            }, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
+# endregion
 
 # Позиции превращения шатры в батыра
 PROMOTION_FOR_WHITE = {1, 2, 3}
@@ -74,7 +100,8 @@ def process_move(
     to_cell: int,
     chain_capture_cell: int = None,
     batyr_captured_this_turn: List[int] = None,
-    position_history: dict = None
+    position_history: dict = None,
+    moves_with_two_biys: int = 0
 ) -> GameEventResult:
     """Обрабатывает ход: валидация, выполнение, проверка окончания."""
     if batyr_captured_this_turn is None:
@@ -87,7 +114,7 @@ def process_move(
 
     # 1. Проверка конца игры перед ходом
     board_obj = Board(board_copy)
-    over, winner = is_game_over(board_obj, position_history)
+    over, winner = is_game_over(board_obj, position_history, moves_with_two_biys)
     if over:
         return GameEventResult(
             message=f"Игра окончена: {winner}",
@@ -99,7 +126,7 @@ def process_move(
 
     # 2. Обработка передачи хода (бий нажал "передать ход")
     if chain_capture_cell == 0:
-        over, winner = is_game_over(Board(board_copy), position_history)
+        over, winner = is_game_over(Board(board_copy), position_history, moves_with_two_biys)
         return _finish_move(
             positions=board_copy,
             mover_color=current_color,
@@ -114,7 +141,7 @@ def process_move(
     if chain_capture_cell is not None and chain_capture_cell != 0:
         return _process_chain_capture(
             board_copy, cells, current_color, from_cell, to_cell,
-            chain_capture_cell, current_batyr_captures
+            chain_capture_cell, current_batyr_captures, position_history, moves_with_two_biys
         )
 
     # 4. Валидация хода (если не было цепочки)
@@ -123,6 +150,10 @@ def process_move(
             board_copy, from_cell, to_cell, current_color, current_batyr_captures
         )
         if not valid:
+            _dbg("H6", "game_engine/moves.py:validate", "move rejected", {
+                "color": current_color, "from": from_cell, "to": to_cell, "msg": error_msg,
+                "chain": chain_capture_cell, "batyr_caps": current_batyr_captures,
+            })
             return GameEventResult(
                 message=error_msg,
                 movers_color=current_color,
@@ -133,6 +164,10 @@ def process_move(
     new_cells, captured_positions, new_batyr_captures = execute_move(
         board_copy, from_cell, to_cell, current_color, current_batyr_captures
     )
+    _dbg("H6", "game_engine/moves.py:execute", "after execute_move", {
+        "color": current_color, "from": from_cell, "to": to_cell,
+        "captured": captured_positions, "batyr_caps": new_batyr_captures,
+    })
 
     piece = Board(board_copy).get_piece_object(from_cell)
     # Если from_cell уже пуста после execute_move (фигура переместилась),
@@ -158,7 +193,7 @@ def process_move(
 
     # 5a. Проверка конца игры (съели бия?)
     next_board = Board(new_cells)
-    over, winner = is_game_over(next_board, position_history)
+    over, winner = is_game_over(next_board, position_history, moves_with_two_biys)
     if over:
         return GameEventResult(
             message=f"Игра окончена: {winner}",
@@ -185,13 +220,18 @@ def process_move(
                         can_continue_chain = True
                         break
         else:
-            can_continue_chain = any(f == to_cell for f, _ in next_mandatory_captures)
+            can_continue_chain = batyr_can_continue_capture(
+                next_board, to_cell, current_color, new_batyr_captures
+            )
 
     can_pass_turn = False
     if piece_kind == "бий" and has_captured:
         can_pass_turn = True
 
     if can_continue_chain:
+        _dbg("H6", "game_engine/moves.py:chain", "continue chain", {
+            "piece_kind": piece_kind, "from": from_cell, "to": to_cell, "captured": captured_positions,
+        })
         return GameEventResult(
             message="Продолжайте взятие!",
             movers_color=current_color,
@@ -204,8 +244,11 @@ def process_move(
 
     # Если взятие завершилось — ход передаётся сопернику.
     if has_captured and not can_continue_chain:
+        _dbg("H6", "game_engine/moves.py:chain", "capture ended; turn passes", {
+            "piece_kind": piece_kind, "from": from_cell, "to": to_cell, "captured": captured_positions,
+        })
         next_player = _opponent(current_color)
-        over, winner = is_game_over(next_board, position_history)
+        over, winner = is_game_over(next_board, position_history, moves_with_two_biys)
         return _finish_move(
             positions=new_cells,
             mover_color=current_color,
@@ -220,13 +263,17 @@ def process_move(
 
     # 8. Ход завершён — передаём ход
     next_player = _opponent(current_color)
-    over, winner = is_game_over(next_board, position_history)
+    over, winner = is_game_over(next_board, position_history, moves_with_two_biys)
 
     chain_capture_pos = None
     if next_player and not over:
         mandatory_captures = get_all_mandatory_captures(Board(new_cells), next_player)
         if mandatory_captures:
             chain_capture_pos = mandatory_captures[0][0]
+    _dbg("H6", "game_engine/moves.py:finish", "finish move", {
+        "next_player": next_player, "over": over, "mandatory_pos": chain_capture_pos,
+        "captured": captured_positions,
+    })
 
     return _finish_move(
         positions=new_cells,
@@ -244,7 +291,7 @@ def process_move(
 
 def _process_chain_capture(
     board_copy, cells, current_color, from_cell, to_cell,
-    chain_capture_cell, current_batyr_captures
+    chain_capture_cell, current_batyr_captures, position_history: dict = None, moves_with_two_biys: int = 0
 ) -> GameEventResult:
     """Обрабатывает продолжение цепочки взятий."""
     if from_cell != chain_capture_cell:
@@ -255,9 +302,29 @@ def _process_chain_capture(
         )
     piece = Board(board_copy).get_piece_object(from_cell)
     if piece and piece.get_type() in ["шатра", "бий"]:
-        return _process_chain_shatra_biy(board_copy, cells, current_color, from_cell, to_cell, current_batyr_captures, piece)
+        return _process_chain_shatra_biy(
+            board_copy,
+            cells,
+            current_color,
+            from_cell,
+            to_cell,
+            current_batyr_captures,
+            piece,
+            position_history=position_history,
+            moves_with_two_biys=moves_with_two_biys,
+        )
     elif piece and piece.get_type() == "батыр":
-        return _process_chain_batyr(board_copy, cells, current_color, from_cell, to_cell, current_batyr_captures, piece)
+        return _process_chain_batyr(
+            board_copy,
+            cells,
+            current_color,
+            from_cell,
+            to_cell,
+            current_batyr_captures,
+            piece,
+            position_history=position_history,
+            moves_with_two_biys=moves_with_two_biys,
+        )
     else:
         return GameEventResult(
             message="Неизвестная фигура",
@@ -268,7 +335,7 @@ def _process_chain_capture(
 
 def _process_chain_shatra_biy(
     board_copy, cells, current_color, from_cell, to_cell,
-    current_batyr_captures, piece
+    current_batyr_captures, piece, position_history: dict = None, moves_with_two_biys: int = 0
 ) -> GameEventResult:
     """Обрабатывает цепочку взятий для шатры/бия."""
 
@@ -303,6 +370,19 @@ def _process_chain_shatra_biy(
     captured_positions = [enemy_cell]
     new_batyr_captures = copy.copy(current_batyr_captures)
     piece_kind = "бий" if piece.get_type() == "бий" else "шатра"
+
+    # Если был взят бий соперника — игра завершается сразу, даже если есть продолжение цепочки.
+    over, winner = is_game_over(board, position_history, moves_with_two_biys)
+    if over:
+        return GameEventResult(
+            message=f"Игра окончена: {winner}",
+            movers_color=None,
+            updated_positions=board.copy_cells(),
+            game_over=True,
+            winner=winner,
+            captured_positions=captured_positions,
+            captured_pieces=new_batyr_captures,
+        )
 
     # Проверяем, может ли фигура продолжить
     can_continue_chain = False
@@ -345,7 +425,7 @@ def _process_chain_shatra_biy(
 
 def _process_chain_batyr(
     board_copy, cells, current_color, from_cell, to_cell,
-    current_batyr_captures, piece
+    current_batyr_captures, piece, position_history: dict = None, moves_with_two_biys: int = 0
 ) -> GameEventResult:
     """Обрабатывает цепочку взятий для батыра."""
     # Проверяем, что это именно взятие, а не обычный ход
@@ -362,7 +442,7 @@ def _process_chain_batyr(
     )
     board = Board(new_cells)
 
-    over, winner = is_game_over(board)
+    over, winner = is_game_over(board, position_history, moves_with_two_biys)
     if over:
         return GameEventResult(
             message=f"Игра окончена: {winner}",
@@ -373,9 +453,10 @@ def _process_chain_batyr(
             captured_positions=captured_positions
         )
 
-    # Проверяем, может ли батыр продолжить
-    next_mandatory = get_all_mandatory_captures(board, current_color, new_batyr_captures)
-    can_continue = any(f == to_cell for f, _ in next_mandatory)
+    # Проверяем, может ли батыр продолжить (только на свободные клетки)
+    can_continue = batyr_can_continue_capture(
+        board, to_cell, current_color, new_batyr_captures
+    )
 
     if can_continue:
         return GameEventResult(

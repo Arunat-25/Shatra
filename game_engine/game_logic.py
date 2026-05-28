@@ -9,7 +9,8 @@ class GameLogic:
 
     def handle_event(self, data: GameEvent,
                      batyr_captured_this_turn: Optional[list[int]] = None,
-                     position_history: Optional[dict[str, int]] = None) -> GameEventResult:
+                     position_history: Optional[dict[str, int]] = None,
+                     moves_with_two_biys: int = 0) -> GameEventResult:
         """
         Единая точка входа.
         data.position — первое нажатие (подсказки)
@@ -35,7 +36,8 @@ class GameLogic:
                 to_cell=data.to_pos,
                 chain_capture_cell=data.position_for_mandatory_capture,
                 batyr_captured_this_turn=_captured,
-                position_history=_history
+                position_history=_history,
+                moves_with_two_biys=moves_with_two_biys
             )
         return GameEventResult(message="Некорректные данные события")
 

@@ -1,115 +1,96 @@
 /* ===== RESPONSIVE ===== */
 
-/* На широких экранах — доска слева, история ходов справа */
 @media (min-width: 860px) {
-    .game-page {
-        flex-direction: row;
-        align-items: flex-start;
-        justify-content: center;
-        gap: 12px;
-    }
-    .game-screen {
-        max-width: unset;
-        width: auto;
-    }
+  .game-page {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 16px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  .game-screen {
+    max-width: unset;
+    width: auto;
+  }
 }
 
 @media (max-width: 860px) {
-    .lobby-layout {
-        flex-direction: column;
-        height: auto;
-        gap: 20px;
-        padding: 20px;
-        max-height: none;
-    }
-    .lobby-left, .lobby-right { padding: 32px 24px; }
-    .lobby-left h1 { font-size: 2.4rem; }
-    .lobby-right { max-height: 50vh; }
-    .lobby-right-header h2 { font-size: 1.1rem; }
+  .lobby-layout {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .lobby-left { padding: 32px 24px; }
+  .lobby-left h1 { font-size: 2rem; }
+  .lobby-right { max-height: 50vh; }
 }
 
 @media (max-width: 768px) {
-    .game-page { padding: 8px; gap: 6px; }
-    .game-screen { gap: 6px; }
-    .board { padding: 10px; }
-    .kletka { width: 44px; height: 44px; }
-    .field-of-reserve .kletka { width: 38px; height: 38px; }
-    .game-header { padding: 8px 14px; flex-wrap: nowrap; }
-    .game-header .game-title { font-size: 1.1rem; }
-    .game-header .player-info { font-size: 0.8rem; }
-    .game-header .turn-indicator { font-size: 0.8rem; padding: 4px 12px; }
-    .game-header .player-info .player-badge { font-size: 0.8rem; padding: 2px 8px; }
-    .game-info-bottom { font-size: 0.75rem; padding: 6px 12px; }
-    .message { font-size: 0.8rem; padding: 6px 12px; }
-    .waiting-content { padding: 40px 32px; }
-    .waiting-title { font-size: 1.2rem; }
-    .waiting-link-container { flex-direction: column; align-items: center; }
-    .waiting-link-input { max-width: 100%; width: 100%; }
-    .keyboard-hint { display: none; }
+  #root { padding: 12px 10px; }
+  .game-page { gap: 8px; }
+  .game-screen { gap: 8px; }
+  .board { padding: 10px; }
+  .kletka { width: 44px; height: 44px; }
+  .field-of-reserve .kletka { width: 38px; height: 38px; }
+  .game-header { padding: 8px 12px; flex-wrap: wrap; }
+  .game-header .game-title { font-size: 0.9rem; }
+  .game-header .turn-indicator { font-size: 0.72rem; padding: 4px 10px; }
+  .waiting-content { padding: 36px 28px; }
+  .waiting-link-container { flex-direction: column; align-items: stretch; }
+  .waiting-link-input { max-width: 100%; }
+  .keyboard-hint { display: none; }
+  .move-history-panel {
+    width: 100%;
+    min-width: unset;
+    max-width: 560px;
+    max-height: 280px;
+  }
 }
 
 @media (max-width: 500px) {
-    .game-page { padding: 6px; gap: 5px; }
-    .game-screen { gap: 5px; }
-    .kletka { width: 36px; height: 36px; }
-    .field-of-king .kletka { width: 36px; height: 36px; }
-    .field-of-reserve .kletka { width: 32px; height: 32px; }
-    .board { padding: 8px; }
-    .game-header { padding: 6px 10px; gap: 4px; flex-wrap: wrap; justify-content: center; }
-    .game-header .header-left, .game-header .header-right { flex-wrap: wrap; justify-content: center; }
-    .game-header .game-title { font-size: 1rem; }
-    .game-header .player-info { font-size: 0.75rem; }
-    .game-header .turn-indicator { font-size: 0.7rem; padding: 3px 8px; }
-    .game-header .player-info .player-badge { font-size: 0.7rem; padding: 2px 6px; }
-    .game-info-bottom { font-size: 0.7rem; padding: 5px 10px; flex-direction: column; gap: 6px; text-align: center; }
-    .message { font-size: 0.75rem; padding: 5px 10px; }
-    .lobby-layout { flex-direction: column; height: auto; gap: 16px; padding: 12px; }
-    .lobby-left, .lobby-right { padding: 24px 18px; }
-    .lobby-left h1 { font-size: 1.8rem; }
-    .lobby-subtitle { margin-bottom: 28px; }
-    .lobby-right { max-height: 45vh; }
-    .waiting-content { padding: 32px 24px; }
-    .waiting-title { font-size: 1.1rem; }
-    .waiting-spinner { width: 40px; height: 40px; margin-bottom: 20px; }
-    .game-over-modal { padding: 36px 28px; }
-    .game-over-icon { font-size: 3.5rem; }
-    .game-over-title { font-size: 1.6rem; }
-    .game-over-text { font-size: 1rem; margin-bottom: 24px; }
-    .btn-lobby { padding: 14px 28px; font-size: 0.95rem; }
-    .btn-battle { padding: 16px 32px; font-size: 1rem; }
+  .kletka { width: 36px; height: 36px; }
+  .field-of-king .kletka { width: 36px; height: 36px; }
+  .field-of-reserve .kletka { width: 32px; height: 32px; }
+  .board { padding: 8px; border-radius: var(--radius-lg); }
+  .lobby-left, .lobby-right { padding: 24px 18px; }
+  .lobby-left h1 { font-size: 1.75rem; }
+  .lobby-subtitle { margin-bottom: 24px; }
+  .action-card { padding: 12px 14px; }
+  .action-card__icon { width: 36px; height: 36px; }
+  .game-header .header-left, .game-header .header-right { flex-wrap: wrap; }
+  .game-info-bottom { flex-direction: column; text-align: center; gap: 6px; }
+  .game-over-modal { padding: 32px 24px; }
+  .game-over-title { font-size: 1.35rem; }
 }
 
 @media (max-width: 400px) {
-    .kletka { width: 30px; height: 30px; }
-    .field-of-reserve .kletka { width: 26px; height: 26px; }
-    .field-of-king .kletka { width: 30px; height: 30px; }
-    .board { padding: 6px; border-radius: 14px; }
-    .lobby-layout { padding: 8px; gap: 12px; }
-    .lobby-left, .lobby-right { padding: 20px 14px; }
-    .waiting-content { padding: 24px 16px; }
-    .game-over-modal { padding: 28px 20px; }
+  .kletka { width: 30px; height: 30px; }
+  .field-of-reserve .kletka { width: 26px; height: 26px; }
+  .field-of-king .kletka { width: 30px; height: 30px; }
+  .board { padding: 6px; }
 }
 
-/* ===== TOUCH DEVICE OPTIMIZATIONS ===== */
 @media (hover: none) and (pointer: coarse) {
-    .kletka { -webkit-tap-highlight-color: transparent; }
-    .kletka:active { transform: scale(0.95); }
-    .kletka:active .image-in-kletka { transform: scale(0.95); }
-    .btn-lobby, .btn-join, .btn-refresh, .btn-pass { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
-    .btn-lobby:active:not(:disabled), .btn-join:active:not(:disabled), .btn-refresh:active:not(:disabled) { transform: scale(0.97); }
-    .room-card { -webkit-tap-highlight-color: transparent; }
-    .room-card:active { transform: scale(0.98); background: rgba(255, 255, 255, 0.8); }
+  .kletka { -webkit-tap-highlight-color: transparent; }
+  .kletka:active { transform: scale(0.96); }
+  .action-card, .btn-join, .btn-pass, .btn-lobby {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .room-card:active { transform: scale(0.99); }
 }
 
-/* ===== REDUCED MOTION ===== */
 @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
-/* ===== PRINT STYLES ===== */
 @media print {
-    html, body { background: white; overflow: visible; }
-    .game-page, .lobby-layout { height: auto; overflow: visible; }
-    .board { break-inside: avoid; box-shadow: none; border: 2px solid #92400E; }
-    .btn-lobby, .btn-join, .btn-refresh, .btn-pass, .btn-exit { display: none; }
+  html, body { background: white; overflow: visible; color: black; }
+  .game-page, .lobby-layout { height: auto; overflow: visible; }
+  .board { break-inside: avoid; box-shadow: none; }
+  .action-card, .btn-join, .btn-pass, .btn-exit, .btn-lobby { display: none; }
 }

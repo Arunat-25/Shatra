@@ -14,12 +14,11 @@ def get_starting_board():
     board = {}
     for i in range(1, 63):
         board[i] = None
-
+    # Начальная расстановка (см. game_engine/game_rules.md)
     for i in range(1, 10):
         board[i] = "черная шатра"
     board[10] = "черный бий"
-    board[11] = "черный батыр"
-    for i in range(12, 25):
+    for i in range(11, 25):
         board[i] = "черная шатра"
 
     for i in range(54, 63):
@@ -27,7 +26,5 @@ def get_starting_board():
     board[53] = "белый бий"
     for i in range(39, 53):
         board[i] = "белая шатра"
-    board[46] = "белый батыр"
-
 
     return board

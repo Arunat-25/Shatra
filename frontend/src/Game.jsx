@@ -187,6 +187,7 @@ export default function Game() {
             lastMove={state.lastMove}
             historyFrom={state.historyFrom}
             historyTo={state.historyTo}
+            myColor={state.myColor}
           />
         </div>
 

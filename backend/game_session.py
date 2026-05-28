@@ -270,7 +270,17 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                 event,
                 batyr_captured_this_turn=game.get("pending_batyr_captures"),
                 position_history=game.get("position_history", {}),
+                moves_with_two_biys=game.get("moves_with_two_biys", 0),
             )
+
+            # Обновляем счётчик ходов с двумя биями (только когда других фигур нет)
+            from game_engine.endgame import _only_two_biys_left
+            from game_engine.board import Board
+            current_count = game.get("moves_with_two_biys", 0)
+            if _only_two_biys_left(Board(result.updated_positions or game["board"])):
+                game["moves_with_two_biys"] = current_count + 1
+            else:
+                game["moves_with_two_biys"] = 0
 
             # Сбрасываем состояние обязательных взятий после хода человека
             if result.position_for_mandatory_capture:

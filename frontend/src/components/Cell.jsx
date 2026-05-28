@@ -28,6 +28,7 @@ const Cell = memo(function Cell(props) {
                            highlightedCaptured, lastMove, historyFrom, historyTo)}
       onClick={() => onCellClick(id)}
     >
+      <span className="cell-number">{id}</span>
       {piece && (
         <div className="image-in-kletka">
           <ShatraPiece

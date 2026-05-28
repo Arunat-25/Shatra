@@ -58,28 +58,21 @@ class Shatra(Piece):
         if enemy_cell in captured_this_turn:
             return False
 
-        # Шатры с большого поля не могут бить в свою крепость или ворота
-        if self.color == "белый":
-            if 32 <= from_cell <= 52 and 53 <= to_cell <= 62:
-                return False
-        else:
-            if 11 <= from_cell <= 31 and 1 <= to_cell <= 10:
-                return False
-
         return self._can_enter_fortress(cells, from_cell, to_cell)
 
     def _can_enter_fortress(self, cells: dict, from_cell: int, to_cell: int) -> bool:
-        if self.color == "черный" and 53 <= to_cell <= 62:
-            if from_cell not in range(53, 63):
-                for cell in range(53, 63):
-                    if cells.get(cell) and not _is_own_color(cells[cell], self.color):
-                        return False
+        # Нельзя входить в свою крепость/ворота, если там есть своя шатра
+        if self.color == "черный" and 1 <= to_cell <= 10:
+            for cell in range(1, 10):
+                piece = cells.get(cell)
+                if piece and "черная шатра" in piece:
+                    return False
             return True
-        if self.color == "белый" and 1 <= to_cell <= 10:
-            if from_cell not in range(1, 11):
-                for cell in range(1, 11):
-                    if cells.get(cell) and not _is_own_color(cells[cell], self.color):
-                        return False
+        if self.color == "белый" and 53 <= to_cell <= 62:
+            for cell in range(54, 63):
+                piece = cells.get(cell)
+                if piece and "белая шатра" in piece:
+                    return False
             return True
         return True
 

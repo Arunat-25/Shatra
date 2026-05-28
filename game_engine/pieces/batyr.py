@@ -39,7 +39,10 @@ class Batyr(Piece):
     def _can_capture_impl(self, cells: dict, from_cell: int, to_cell: int, captured_this_turn: list = None) -> bool:
         if captured_this_turn is None:
             captured_this_turn = []
-        
+
+        if cells.get(to_cell) is not None:
+            return False
+
         enemy_cell = self._find_enemy_cell_for_capture(cells, from_cell, to_cell)
         if not enemy_cell:
             return False
@@ -54,9 +57,9 @@ class Batyr(Piece):
         return self._check_path(cells, from_cell, to_cell, capture=True, pending_captures=captured_this_turn)
         
     def _is_entering_own_fortress(self, to_cell: int) -> bool:
-        if self.color == "черный" and 1 <= to_cell <= 9:
+        if self.color == "черный" and 1 <= to_cell <= 10:
             return True
-        if self.color == "белый" and 54 <= to_cell <= 62:
+        if self.color == "белый" and 53 <= to_cell <= 62:
             return True
         return False
         
@@ -89,11 +92,11 @@ class Batyr(Piece):
             for cell in direction:
                 if cell == to_cell:
                     if pieces_count == 0:
-                        return True
+                        return not capture and cells.get(to_cell) is None
                     if pieces_count == 1 and enemy_cell:
                         if not capture:
                             return False
-                        return True
+                        return cells.get(to_cell) is None
                     return False
 
                 cell_content = cells.get(cell)

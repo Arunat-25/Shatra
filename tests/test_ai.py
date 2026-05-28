@@ -1,10 +1,11 @@
-from backend.ai import get_best_move
+from backend.ai import SearchState, _is_cell_capturable, _move_exposes_biy, get_best_move
 from backend.board_utils import get_starting_board
 from game_engine.board import Board
 from game_engine.endgame import is_game_over
 from game_engine.game_logic import logic
 from game_engine.hints import get_hints
 from game_engine.models import GameEvent
+from game_engine.moves import process_move
 
 
 def _is_legal_move(board, color, move):
@@ -14,7 +15,7 @@ def _is_legal_move(board, color, move):
     from_cell, to_cell = move
     piece = board.get(from_cell)
     if piece is None:
-        return False
+        return False 
 
     hints = get_hints(board, color, from_cell)
     return to_cell in hints.essential_positions
@@ -107,3 +108,42 @@ def test_get_best_move_returns_legal_move_after_reproduced_sequence():
 
 def test_get_best_move_returns_none_for_empty_board():
     assert get_best_move({}, "белый", depth=2) is None
+
+
+def test_ai_does_not_move_biy_into_capture():
+    board = {i: None for i in range(1, 63)}
+    board[10] = "черный бий"
+    board[28] = "белая шатра"
+    board[36] = None
+
+    move = get_best_move(board, "черный", depth=3)
+    assert move is not None
+    state = SearchState(board, "черный")
+    assert not _move_exposes_biy(state, move, "черный")
+
+
+def test_ai_takes_enemy_biy_when_it_wins():
+    """Взятие единственного вражеского бия при своём бие на доске — победа."""
+    board = {i: None for i in range(1, 63)}
+    board[10] = "черный бий"
+    board[29] = "белый бий"
+    board[36] = "черная шатра"
+
+    move = get_best_move(board, "черный", depth=3)
+    assert move is not None
+    assert move == (36, 22)
+    result = process_move(board, "черный", move[0], move[1])
+    assert result.game_over
+    assert "черн" in result.winner.lower()
+
+
+def test_shatra_promotion_turns_into_batyr_when_reaching_promotion_cell():
+    """По правилам шатра превращается в батыра при достижении 60–62 (для чёрных)."""
+    board = {i: None for i in range(1, 63)}
+    board[57] = "черная шатра"
+    board[10] = "черный бий"
+    board[53] = "белый бий"
+
+    # 57 -> 60 разрешён словарём ходов чёрной шатры
+    result = process_move(board, "черный", 57, 60)
+    assert result.updated_positions[60] == "черный батыр"

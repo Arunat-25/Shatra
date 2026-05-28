@@ -1,11 +1,12 @@
-import { BOARD_SECTIONS } from './constants';
+import { getBoardSections } from './constants';
 import Cell from './components/Cell';
 
 export default function BoardGrid(props) {
-  const { board, onCellClick, moveFrom, highlightedEssential = [], highlightedCaptured = [], lastMove = null, historyFrom = null, historyTo = null } = props;
+  const { board, onCellClick, moveFrom, highlightedEssential = [], highlightedCaptured = [], lastMove = null, historyFrom = null, historyTo = null, myColor } = props;
+  const sections = getBoardSections(myColor);
   return (
     <>
-      {BOARD_SECTIONS.map((section) => (
+      {sections.map((section) => (
         <div key={`${section.class}-${section.rows?.[0]?.[0]?.id ?? 0}`} className={section.class}>
           {section.rows.map((row, rowIdx) => (
             <div key={rowIdx} className="row">

@@ -171,3 +171,103 @@ def test_capture_chain_uses_the_correct_mandatory_piece():
     assert result.movers_color == "черный"
     assert result.position_for_mandatory_capture is None
     assert result.captured_positions == [29]
+
+
+def _replay_moves(moves, board=None, pending=None, batyr_caps=None):
+    """Проигрывает ходы, возвращает (board, pending, batyr_caps, last_result)."""
+    state = {
+        "board": dict(board or get_starting_board()),
+        "mover": "белый",
+        "pending": pending,
+        "batyr_caps": list(batyr_caps or []),
+    }
+    last = None
+    for color, from_pos, to_pos in moves:
+        last = logic.handle_event(
+            GameEvent(
+                positions=state["board"],
+                mover_color=state["mover"],
+                from_pos=from_pos,
+                to_pos=to_pos,
+                position_for_mandatory_capture=state["pending"],
+            ),
+            batyr_captured_this_turn=state["batyr_caps"],
+        )
+        state["board"] = last.updated_positions
+        state["batyr_caps"] = last.captured_pieces or []
+        state["pending"] = last.position_for_mandatory_capture
+        if last.movers_color:
+            state["mover"] = last.movers_color
+    return state["board"], state["pending"], state["batyr_caps"], last
+
+
+def test_batyr_chain_ends_and_clears_pending_when_landing_blocked():
+    """После 36→50 цепочка не продолжается, если следующая клетка приземления занята."""
+    # Минимальная позиция:
+    # - чёрный батыр 36 бьёт белую фигуру на 43 и приземляется на 50
+    # - затем у батыра есть потенциальное продолжение 50→38 (через 44),
+    #   но 38 занята — цепочка должна завершиться.
+    board = make_empty_board()
+    board[36] = "черный батыр"
+    board[43] = "белая шатра"
+    board[44] = "белая шатра"
+    board[38] = "белая шатра"  # блокируем клетку приземления для 50→38
+
+    result = logic.handle_event(
+        GameEvent(
+            positions=board,
+            mover_color="черный",
+            from_pos=36,
+            to_pos=50,
+            position_for_mandatory_capture=36,
+        ),
+        batyr_captured_this_turn=[],
+    )
+
+    assert result.movers_color == "белый"
+    assert result.position_for_mandatory_capture is None
+    assert result.captured_positions == [43]
+
+    piece = Board(result.updated_positions).get_piece_object(50)
+    assert not piece.can_capture(result.updated_positions, 50, 38, result.captured_pieces)
+
+
+def test_game_ends_immediately_when_biy_captured_in_shatra_chain():
+    """
+    Регрессия: если бий взят в середине/конце цепочки шатры, игра должна завершиться сразу,
+    без передачи хода и без предложения продолжать цепочку.
+    """
+    # Используем словарь захватов шатры/бия:
+    # 7 -> 15 берёт 10 (shatra_and_biy_possible_captures[7][15] == 10)
+    # 15 -> 31 берёт 23 (shatra_and_biy_possible_captures[15][31] == 23)
+    board = make_empty_board()
+    board[7] = "белая шатра"
+    board[10] = "черная шатра"
+    board[23] = "черный бий"
+    board[53] = "белый бий"
+
+    first = logic.handle_event(
+        GameEvent(
+            positions=board,
+            mover_color="белый",
+            from_pos=7,
+            to_pos=15,
+            position_for_mandatory_capture=None,
+        )
+    )
+    assert first.game_over is False
+    assert first.movers_color == "белый"
+    assert first.position_for_mandatory_capture == 15
+
+    second = logic.handle_event(
+        GameEvent(
+            positions=first.updated_positions,
+            mover_color="белый",
+            from_pos=15,
+            to_pos=31,
+            position_for_mandatory_capture=first.position_for_mandatory_capture,
+        )
+    )
+    assert second.game_over is True
+    assert second.movers_color is None
+    assert second.winner == "Белый бий победил!"

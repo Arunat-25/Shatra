@@ -61,6 +61,8 @@ def update_captures(game: dict, result) -> None:
         game["pending_batyr_captures"] = []
     elif result.captured_pieces:
         game["pending_batyr_captures"] = result.captured_pieces
+    elif not result.position_for_mandatory_capture:
+        game["pending_batyr_captures"] = []
 
 
 def save_move_to_history(
