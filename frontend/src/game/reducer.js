@@ -206,6 +206,9 @@ export function gameReducer(state, action) {
       }
       return { ...state, disconnectCountdown: state.disconnectCountdown - 1 };
 
+    case GAME_ACTIONS.SET_DISCONNECT_COUNTDOWN:
+      return { ...state, disconnectCountdown: action.payload };
+
     case GAME_ACTIONS.TIMER_TICK:
       return { ...state, timer: action.payload };
 
@@ -218,6 +221,7 @@ export function gameReducer(state, action) {
       if (!entry) return state;
       const boardFromHistory = convertKeys(entry.desk || {});
       const counts = countPieces(boardFromHistory);
+      const countsByType = countPiecesByType(boardFromHistory);
       const lastIdx = state.movesHistory.length - 1;
       return {
         ...state,
@@ -226,6 +230,7 @@ export function gameReducer(state, action) {
         board: boardFromHistory,
         whiteCount: counts.white,
         blackCount: counts.black,
+        countsByType,
         historyFrom: entry.from_pos,
         historyTo: entry.to_pos,
         moveFrom: null,
@@ -261,6 +266,7 @@ export function gameReducer(state, action) {
       }
       const boardLive = convertKeys(lastEntry.desk);
       const counts = countPieces(boardLive);
+      const countsByType = countPiecesByType(boardLive);
       return {
         ...state,
         viewingHistoryIndex: null,
@@ -269,6 +275,7 @@ export function gameReducer(state, action) {
         board: boardLive,
         whiteCount: counts.white,
         blackCount: counts.black,
+        countsByType,
       };
     }
 

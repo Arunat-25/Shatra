@@ -1,3 +1,7 @@
+import { useState, useEffect, useCallback } from 'react';
+
+const RESIGN_ARM_MS = 4000;
+
 function FlagIcon() {
   return (
     <svg className="room-icon-svg" viewBox="0 0 24 24" aria-hidden="true">
@@ -17,16 +21,29 @@ export default function GameControls({
   canPass,
   onPass,
   onOfferDraw,
+  onAcceptDraw,
   onDeclineDraw,
   onResign,
   drawPending = false,
   drawIncoming = false,
+  hideDraw = false,
 }) {
-  const drawActive = drawPending || drawIncoming;
+  const [resignArmed, setResignArmed] = useState(false);
 
-  let drawTitle = 'Предложить ничью';
-  if (drawPending) drawTitle = 'Ожидание ответа соперника';
-  else if (drawIncoming) drawTitle = 'Принять ничью';
+  useEffect(() => {
+    if (!resignArmed) return undefined;
+    const timer = setTimeout(() => setResignArmed(false), RESIGN_ARM_MS);
+    return () => clearTimeout(timer);
+  }, [resignArmed]);
+
+  const handleResignClick = useCallback(() => {
+    if (!resignArmed) {
+      setResignArmed(true);
+      return;
+    }
+    setResignArmed(false);
+    onResign();
+  }, [resignArmed, onResign]);
 
   return (
     <div className="room-actions-block">
@@ -36,36 +53,53 @@ export default function GameControls({
         </button>
       )}
       <div className="room-icon-actions">
+        {!hideDraw && (
+          drawIncoming ? (
+            <>
+              <button
+                type="button"
+                className="btn-draw-text btn-draw-text--accept room-icon-btn--draw-active"
+                onClick={onAcceptDraw}
+                title="Принять ничью"
+              >
+                Принять ничью
+              </button>
+              <button
+                type="button"
+                className="room-icon-btn room-icon-btn--draw-active room-icon-btn--draw-decline"
+                onClick={onDeclineDraw}
+                title="Отклонить ничью"
+                aria-label="Отклонить ничью"
+              >
+                <span className="room-icon-decline">✕</span>
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className={[
+                'room-icon-btn',
+                drawPending ? 'room-icon-btn--draw-active' : '',
+              ].filter(Boolean).join(' ')}
+              onClick={onOfferDraw}
+              disabled={drawPending}
+              title={drawPending ? 'Ожидание ответа соперника' : 'Предложить ничью'}
+              aria-label={drawPending ? 'Ожидание ответа соперника' : 'Предложить ничью'}
+            >
+              <span className="room-icon-half">½</span>
+            </button>
+          )
+        )}
         <button
           type="button"
           className={[
             'room-icon-btn',
-            drawActive ? 'room-icon-btn--draw-active' : '',
+            'room-icon-btn--danger',
+            resignArmed ? 'room-icon-btn--resign-armed' : '',
           ].filter(Boolean).join(' ')}
-          onClick={onOfferDraw}
-          disabled={drawPending}
-          title={drawTitle}
-          aria-label={drawTitle}
-        >
-          <span className="room-icon-half">½</span>
-        </button>
-        {drawIncoming && (
-          <button
-            type="button"
-            className="room-icon-btn room-icon-btn--draw-active room-icon-btn--draw-decline"
-            onClick={onDeclineDraw}
-            title="Отклонить ничью"
-            aria-label="Отклонить ничью"
-          >
-            <span className="room-icon-decline">✕</span>
-          </button>
-        )}
-        <button
-          type="button"
-          className="room-icon-btn room-icon-btn--danger"
-          onClick={onResign}
-          title="Сдаться"
-          aria-label="Сдаться"
+          onClick={handleResignClick}
+          title={resignArmed ? 'Нажмите ещё раз, чтобы сдаться' : 'Сдаться'}
+          aria-label={resignArmed ? 'Подтвердите сдачу' : 'Сдаться'}
         >
           <FlagIcon />
         </button>

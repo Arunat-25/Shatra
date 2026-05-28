@@ -552,6 +552,13 @@
   display: block;
 }
 
+.waiting-copy-status {
+  margin: 8px 0 0;
+  font-size: 0.85rem;
+  color: var(--turquoise);
+  font-weight: 500;
+}
+
 .waiting-invite-note {
   margin: 0;
   font-size: 0.92rem;

@@ -73,9 +73,28 @@ export function winnerColor(winner) {
 
 /**
  * Текст окончания игры для UI (две строки).
- * Пример: "Игра окончена!\nПобедил чёрный Бий!"
+ * @param {string} [winner]
+ * @param {string} [reason] — timeout | resign | draw_agreed | opponent_disconnected
  */
-export function formatGameOverMessage(winner) {
+export function formatGameOverMessage(winner, reason) {
+  const color = winnerColor(winner);
+  const colorLabel = color === 'белый' ? 'белых' : color === 'чёрный' ? 'чёрных' : null;
+
+  if (reason === 'timeout' && colorLabel) {
+    return `Игра окончена!\nВремя вышло у ${colorLabel}`;
+  }
+  if (reason === 'resign' && color) {
+    const winnerLabel = color === 'белый' ? 'белые' : 'чёрные';
+    return `Игра окончена!\n${winnerLabel} победили (сдача)`;
+  }
+  if (reason === 'draw_agreed') {
+    return 'Игра окончена!\nНичья по согласию';
+  }
+  if (reason === 'opponent_disconnected' && color) {
+    const winnerLabel = color === 'белый' ? 'белые' : 'чёрные';
+    return `Игра окончена!\n${winnerLabel} победили (соперник отключился)`;
+  }
+
   if (!winner) return 'Игра окончена!\nНичья';
 
   const w = winner.toLowerCase();
@@ -84,10 +103,18 @@ export function formatGameOverMessage(winner) {
     return `Игра окончена!\n${line}!`;
   }
 
-  const color = winnerColor(winner);
   if (!color) return `Игра окончена!\n${winner}`;
 
   return `Игра окончена!\nПобедил ${color} Бий!`;
+}
+
+/** Формат mm:ss для игровых часов */
+export function formatClockTime(seconds) {
+  if (seconds == null || Number.isNaN(seconds)) return '—';
+  const total = Math.max(0, Math.ceil(seconds));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
 }
 
 /**

@@ -161,17 +161,7 @@ async def apply_move_result(
     to_cell: int | None = None,
 ) -> dict:
     """Применяет результат хода к game в Redis и возвращает WS-ответ."""
-    def _norm_board(b: dict) -> dict:
-        # normalize key types (int/str) to avoid false "changed" comparisons
-        out = {}
-        for k, v in (b or {}).items():
-            try:
-                out[int(k)] = v
-            except Exception:
-                out[k] = v
-        return out
-
-    prev_board = _norm_board(game.get("board", {}))
+    prev_board = _norm_board_keys(game.get("board", {}))
     if result.updated_positions:
         game["board"] = result.updated_positions
 
@@ -198,7 +188,7 @@ async def apply_move_result(
         from_cell is not None
         and to_cell is not None
         and result.updated_positions
-        and _norm_board(result.updated_positions) != prev_board
+        and _norm_board_keys(result.updated_positions) != prev_board
     ):
         save_move_to_history(
             game,
@@ -212,7 +202,61 @@ async def apply_move_result(
     return build_move_response(game, result, prev_mover, from_cell, to_cell)
 
 
+def ws_error_payload(message: str) -> dict:
+    return {"status": "error", "message": message}
+
+
+KNOWN_CONTROL_MESSAGE_TYPES = frozenset({
+    "request_rematch",
+    "decline_draw",
+    "offer_draw",
+    "resign",
+})
+
+
+def is_control_message(data: dict) -> bool:
+    return data.get("type") in KNOWN_CONTROL_MESSAGE_TYPES
+
+
+def is_move_message(data: dict) -> bool:
+    return isinstance(data, dict) and isinstance(data.get("board"), dict) and "movers_color" in data
+
+
+def _norm_board_keys(board: dict) -> dict:
+    out = {}
+    for k, v in (board or {}).items():
+        try:
+            out[int(k)] = v
+        except (TypeError, ValueError):
+            out[k] = v
+    return out
+
+
+def is_rejected_move(
+    result,
+    prev_board: dict,
+    raw_from: int | None,
+    raw_to: int | None,
+) -> bool:
+    """Ход отклонён движком: есть сообщение об ошибке, доска не изменилась."""
+    if raw_from is None or raw_to is None:
+        return False
+    if raw_from == 0 and raw_to == 0:
+        return False
+    if result.game_over or result.essential_positions:
+        return False
+    if not result.message:
+        return False
+    new_board = _norm_board_keys(result.updated_positions) if result.updated_positions else prev_board
+    return new_board == _norm_board_keys(prev_board)
+
+
 def parse_client_event(data: dict) -> tuple[GameEvent, int | None, int | None]:
+    if not isinstance(data.get("board"), dict):
+        raise ValueError("Отсутствует состояние доски")
+    if not data.get("movers_color"):
+        raise ValueError("Не указан цвет ходящего")
+
     raw_from = (
         change_position_name_from_frontend(data.get("move_from"))
         if data.get("move_from")

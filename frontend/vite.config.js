@@ -5,6 +5,9 @@ const API_HOST = process.env.API_HOST || 'localhost:8000'
 
 export default defineConfig({
   plugins: [react()],
+  test: {
+    environment: 'node',
+  },
   server: {
     proxy: {
       '/rooms': {

@@ -27,6 +27,10 @@ from backend.game_helpers import (
     parse_client_event,
     get_player_color,
     get_ai_color,
+    ws_error_payload,
+    is_move_message,
+    is_rejected_move,
+    _norm_board_keys,
 )
 from backend.board_utils import keys_int_to_str
 
@@ -34,6 +38,10 @@ logger = logging.getLogger(__name__)
 
 def _opposite_color(color: str) -> str:
     return "черный" if color == "белый" else "белый"
+
+
+async def _send_ws_error(websocket: WebSocket, message: str) -> None:
+    await manager.send_to_player(websocket, ws_error_payload(message))
 
 
 async def _broadcast_rematch_status(room_id: str, room_data: dict) -> None:
@@ -311,7 +319,12 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
         return
 
     room_obj = Room(**room_data)
-    room_obj.correct_timers_after_restart()
+    mover_for_timer = None
+    if room_data.get("game_started"):
+        game_snapshot = await get_game(room_id)
+        if game_snapshot:
+            mover_for_timer = game_snapshot.get("mover")
+    room_obj.correct_timers_after_restart(mover_for_timer)
     room_data = room_obj.model_dump()
     await set_room(room_id, room_data)
 
@@ -359,206 +372,247 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                 if "WebSocket is not connected" in msg:
                     logger.info("WebSocket not connected in room %s (closing loop)", room_id)
                     break
-                logger.error(
+                logger.warning(
                     "Invalid JSON from client %s in room %s: %s",
                     client_id[:6],
                     room_id,
                     e,
                 )
+                await _send_ws_error(websocket, "Некорректный JSON")
                 continue
 
-            # === Rematch / Реванш (только PvP) ===
-            if isinstance(data, dict) and data.get("type") == "request_rematch":
-                if is_ai_room:
-                    continue
-                game = await get_game(room_id)
-                room_data = await get_room(room_id)
-                if not game or not room_data or not game.get("game_over", False):
-                    continue
-                if client_id not in manager.connections.get(room_id, {}):
-                    continue
-                ready = list(room_data.get("rematch_ready") or [])
-                if client_id not in ready:
-                    ready.append(client_id)
-                room_data["rematch_ready"] = ready
-                await set_room(room_id, room_data)
-
-                conns = manager.connections.get(room_id, {})
-                if len(conns) < 2:
-                    await manager.send_to_player(websocket, {
-                        "status": "rematch_status",
-                        "self_ready": True,
-                        "opponent_ready": False,
-                    })
-                    continue
-
-                await _broadcast_rematch_status(room_id, room_data)
-                if len(ready) >= 2 and all(cid in ready for cid in conns):
-                    await _start_rematch(room_id, room_data)
+            if not isinstance(data, dict):
+                await _send_ws_error(websocket, "Ожидается JSON-объект")
                 continue
 
-            # === Decline draw / Отклонить ничью ===
-            if isinstance(data, dict) and data.get("type") == "decline_draw":
-                game = await get_game(room_id)
-                if not game or game.get("game_over", False):
-                    continue
-                room_data = await get_room(room_id)
-                if not room_data:
-                    continue
-                my_color = room_data.get("players", {}).get(client_id)
-                offerer = game.get("draw_offer_from")
-                if offerer and my_color and offerer != my_color:
-                    await _decline_draw_offer(room_id, game, room_data)
-                continue
-
-            # === Offer draw / Предложить ничью ===
-            if isinstance(data, dict) and data.get("type") == "offer_draw":
-                game = await get_game(room_id)
-                if not game or game.get("game_over", False):
-                    continue
-                room_data = await get_room(room_id)
-                my_color = None
-                if room_data:
-                    my_color = room_data.get("players", {}).get(client_id)
-                if not my_color:
-                    my_color = "белый"
-
-                if is_ai_room:
-                    if game.get("draw_offer_from"):
-                        game.pop("draw_offer_from", None)
-                        await set_game(room_id, game)
-                    await manager.send_to_player(websocket, {
-                        "status": "draw_declined",
-                        "message": "Бот не принимает ничью.",
-                    })
-                    continue
-
-                other_color = _opposite_color(my_color)
-                pending = game.get("draw_offer_from")
-
-                if pending == other_color:
-                    draw_msg = "Ничья! Обоюдное согласие."
-                    game["game_over"] = True
-                    game["winner"] = draw_msg
-                    game["reason"] = "draw_agreed"
-                    game.pop("draw_offer_from", None)
-                    await set_game(room_id, game)
-                    room_data["rematch_ready"] = []
-                    await set_room(room_id, room_data)
-                    try:
-                        from backend.timers import stop_game_timer
-                        stop_game_timer(room_id)
-                    except Exception:
-                        pass
-                    await manager.send_to_room(room_id, {
-                        "game_over": True,
-                        "winner": draw_msg,
-                        "reason": "draw_agreed",
-                        "desk": keys_int_to_str(game.get("board", {})),
-                    })
-                    continue
-
-                if pending == my_color:
-                    await manager.send_to_player(websocket, {
-                        "status": "draw_offered",
-                        "message": "Вы уже предложили ничью. Ожидание ответа соперника.",
-                    })
-                    continue
-
-                game["draw_offer_from"] = my_color
-                await set_game(room_id, game)
-
-                for cid, ws in manager.connections.get(room_id, {}).items():
-                    color = room_data.get("players", {}).get(cid)
-                    if color == my_color:
-                        text = "Вы предложили ничью. Ожидание ответа соперника."
-                    else:
-                        text = "Соперник предлагает ничью. Нажмите ½, чтобы принять."
-                    try:
-                        await ws.send_json({"status": "draw_offered", "message": text, "by": my_color})
-                    except Exception:
-                        pass
-                continue
-
-            # === Resign / Сдаться ===
-            if isinstance(data, dict) and data.get("type") == "resign":
-                game = await get_game(room_id)
-                if not game or game.get("game_over", False):
-                    continue
-                room_data = await get_room(room_id)
-                my_color = None
-                if room_data:
-                    my_color = room_data.get("players", {}).get(client_id)
-                if not my_color:
-                    # Fallback: if unknown, assume resigning player is white
-                    my_color = "белый"
-                winner = _opposite_color(my_color)
-                game["game_over"] = True
-                game["winner"] = winner
-                game["reason"] = "resign"
-                game.pop("draw_offer_from", None)
-                await set_game(room_id, game)
-                if not is_ai_room:
-                    room_data = await get_room(room_id)
-                    if room_data:
-                        room_data["rematch_ready"] = []
-                        await set_room(room_id, room_data)
-                try:
-                    from backend.timers import stop_game_timer
-                    stop_game_timer(room_id)
-                except Exception:
-                    pass
-                await manager.send_to_room(room_id, {
-                    "game_over": True,
-                    "winner": winner,
-                    "reason": "resign",
-                    "desk": keys_int_to_str(game.get("board", {})),
-                })
-                continue
-
-            event, raw_from, raw_to = parse_client_event(data)
-
-            game = await get_game(room_id)
-            if not game:
+            if not await process_client_message(
+                room_id, client_id, data, websocket, is_ai_room=is_ai_room
+            ):
                 break
-
-            room_data = await get_room(room_id) or room_data
-            if game.get("draw_offer_from"):
-                await _decline_draw_offer(room_id, game, room_data)
-                game = await get_game(room_id)
-                if not game:
-                    break
-
-            prev_mover = game["mover"]
-            result = logic.handle_event(
-                event,
-                batyr_captured_this_turn=game.get("pending_batyr_captures"),
-                position_history=game.get("position_history", {}),
-                moves_with_two_biys=game.get("moves_with_two_biys", 0),
-            )
-
-            # Обновляем счётчик ходов с двумя биями (только когда других фигур нет)
-            from game_engine.endgame import _only_two_biys_left
-            from game_engine.board import Board
-            current_count = game.get("moves_with_two_biys", 0)
-            if _only_two_biys_left(Board(result.updated_positions or game["board"])):
-                game["moves_with_two_biys"] = current_count + 1
-            else:
-                game["moves_with_two_biys"] = 0
-
-            # Сбрасываем состояние обязательных взятий после хода человека
-            if result.position_for_mandatory_capture:
-                game["pending_mandatory_position"] = result.position_for_mandatory_capture
-            else:
-                game.pop("pending_mandatory_position", None)
-
-            response = await apply_move_result(
-                room_id, game, result, prev_mover, raw_from, raw_to
-            )
-            await manager.send_to_room(room_id, response)
-
-            if is_ai_room and not result.game_over and game["mover"] == get_ai_color(room_data):
-                await handle_ai_move(room_id, game)
 
     except WebSocketDisconnect:
         await _handle_disconnect(room_id, websocket, is_ai_room)
+
+
+async def process_client_message(
+    room_id: str,
+    client_id: str,
+    data: dict,
+    websocket: WebSocket,
+    *,
+    is_ai_room: bool,
+) -> bool:
+    """Обрабатывает одно входящее WS-сообщение. False — завершить цикл сессии."""
+    if data.get("type") == "request_rematch":
+        if is_ai_room:
+            return True
+        game = await get_game(room_id)
+        room_data = await get_room(room_id)
+        if not game or not room_data or not game.get("game_over", False):
+            return True
+        if client_id not in manager.connections.get(room_id, {}):
+            return True
+        ready = list(room_data.get("rematch_ready") or [])
+        if client_id not in ready:
+            ready.append(client_id)
+        room_data["rematch_ready"] = ready
+        await set_room(room_id, room_data)
+
+        conns = manager.connections.get(room_id, {})
+        if len(conns) < 2:
+            await manager.send_to_player(websocket, {
+                "status": "rematch_status",
+                "self_ready": True,
+                "opponent_ready": False,
+            })
+            return True
+
+        await _broadcast_rematch_status(room_id, room_data)
+        if len(ready) >= 2 and all(cid in ready for cid in conns):
+            await _start_rematch(room_id, room_data)
+        return True
+
+    if data.get("type") == "decline_draw":
+        game = await get_game(room_id)
+        if not game or game.get("game_over", False):
+            return True
+        room_data = await get_room(room_id)
+        if not room_data:
+            return True
+        my_color = room_data.get("players", {}).get(client_id)
+        offerer = game.get("draw_offer_from")
+        if offerer and my_color and offerer != my_color:
+            await _decline_draw_offer(room_id, game, room_data)
+        return True
+
+    if data.get("type") == "offer_draw":
+        game = await get_game(room_id)
+        if not game or game.get("game_over", False):
+            return True
+        room_data = await get_room(room_id)
+        my_color = None
+        if room_data:
+            my_color = room_data.get("players", {}).get(client_id)
+        if not my_color:
+            my_color = "белый"
+
+        if is_ai_room:
+            if game.get("draw_offer_from"):
+                game.pop("draw_offer_from", None)
+                await set_game(room_id, game)
+            await manager.send_to_player(websocket, {
+                "status": "draw_declined",
+                "message": "Бот не принимает ничью.",
+            })
+            return True
+
+        other_color = _opposite_color(my_color)
+        pending = game.get("draw_offer_from")
+
+        if pending == other_color:
+            draw_msg = "Ничья! Обоюдное согласие."
+            game["game_over"] = True
+            game["winner"] = draw_msg
+            game["reason"] = "draw_agreed"
+            game.pop("draw_offer_from", None)
+            await set_game(room_id, game)
+            room_data["rematch_ready"] = []
+            await set_room(room_id, room_data)
+            try:
+                from backend.timers import stop_game_timer
+                stop_game_timer(room_id)
+            except Exception:
+                pass
+            await manager.send_to_room(room_id, {
+                "game_over": True,
+                "winner": draw_msg,
+                "reason": "draw_agreed",
+                "desk": keys_int_to_str(game.get("board", {})),
+            })
+            return True
+
+        if pending == my_color:
+            await manager.send_to_player(websocket, {
+                "status": "draw_offered",
+                "message": "Вы уже предложили ничью. Ожидание ответа соперника.",
+            })
+            return True
+
+        game["draw_offer_from"] = my_color
+        await set_game(room_id, game)
+
+        for cid, ws in manager.connections.get(room_id, {}).items():
+            color = room_data.get("players", {}).get(cid)
+            if color == my_color:
+                text = "Вы предложили ничью. Ожидание ответа соперника."
+            else:
+                text = "Соперник предлагает ничью. Нажмите ½, чтобы принять."
+            try:
+                await ws.send_json({"status": "draw_offered", "message": text, "by": my_color})
+            except Exception:
+                pass
+        return True
+
+    if data.get("type") == "resign":
+        game = await get_game(room_id)
+        if not game or game.get("game_over", False):
+            return True
+        room_data = await get_room(room_id)
+        my_color = None
+        if room_data:
+            my_color = room_data.get("players", {}).get(client_id)
+        if not my_color:
+            my_color = "белый"
+        winner = _opposite_color(my_color)
+        game["game_over"] = True
+        game["winner"] = winner
+        game["reason"] = "resign"
+        game.pop("draw_offer_from", None)
+        await set_game(room_id, game)
+        if not is_ai_room:
+            room_data = await get_room(room_id)
+            if room_data:
+                room_data["rematch_ready"] = []
+                await set_room(room_id, room_data)
+        try:
+            from backend.timers import stop_game_timer
+            stop_game_timer(room_id)
+        except Exception:
+            pass
+        await manager.send_to_room(room_id, {
+            "game_over": True,
+            "winner": winner,
+            "reason": "resign",
+            "desk": keys_int_to_str(game.get("board", {})),
+        })
+        return True
+
+    if data.get("type"):
+        await _send_ws_error(websocket, "Неизвестная команда")
+        return True
+
+    if not is_move_message(data):
+        await _send_ws_error(websocket, "Неизвестное сообщение")
+        return True
+
+    try:
+        event, raw_from, raw_to = parse_client_event(data)
+    except ValueError as exc:
+        await _send_ws_error(websocket, str(exc))
+        return True
+    except (KeyError, TypeError):
+        await _send_ws_error(websocket, "Некорректные данные хода")
+        return True
+
+    game = await get_game(room_id)
+    if not game:
+        return False
+
+    if game.get("game_over"):
+        await _send_ws_error(websocket, "Игра уже окончена")
+        return True
+
+    room_data = await get_room(room_id)
+    if game.get("draw_offer_from") and room_data:
+        await _decline_draw_offer(room_id, game, room_data)
+        game = await get_game(room_id)
+        if not game:
+            return False
+
+    prev_mover = game["mover"]
+    prev_board = _norm_board_keys(game.get("board", {}))
+    result = logic.handle_event(
+        event,
+        batyr_captured_this_turn=game.get("pending_batyr_captures"),
+        position_history=game.get("position_history", {}),
+        moves_with_two_biys=game.get("moves_with_two_biys", 0),
+    )
+
+    if is_rejected_move(result, prev_board, raw_from, raw_to):
+        await _send_ws_error(websocket, result.message or "Ход невозможен")
+        return True
+
+    from game_engine.endgame import _only_two_biys_left
+    from game_engine.board import Board
+
+    current_count = game.get("moves_with_two_biys", 0)
+    if _only_two_biys_left(Board(result.updated_positions or game["board"])):
+        game["moves_with_two_biys"] = current_count + 1
+    else:
+        game["moves_with_two_biys"] = 0
+
+    if result.position_for_mandatory_capture:
+        game["pending_mandatory_position"] = result.position_for_mandatory_capture
+    else:
+        game.pop("pending_mandatory_position", None)
+
+    response = await apply_move_result(
+        room_id, game, result, prev_mover, raw_from, raw_to
+    )
+    await manager.send_to_room(room_id, response)
+
+    room_data = await get_room(room_id)
+    if is_ai_room and not result.game_over and room_data and game["mover"] == get_ai_color(room_data):
+        await handle_ai_move(room_id, game)
+
+    return True

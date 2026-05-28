@@ -14,8 +14,10 @@ export default function useCellClick({
 }) {
   const selectPiece = useCallback((positionNum, s) => {
     dispatch({ type: GAME_ACTIONS.SET_MOVE_FROM, payload: positionNum });
-    send(buildHintPayload(s, positionNum));
-  }, [dispatch, send]);
+    if (!send(buildHintPayload(s, positionNum))) {
+      showMessage('Нет соединения. Дождитесь переподключения…', MSG_WARNING);
+    }
+  }, [dispatch, send, showMessage]);
 
   return useCallback((positionNum) => {
     if (isBlocked) return;
@@ -44,7 +46,10 @@ export default function useCellClick({
       return;
     }
 
-    send(buildMovePayload(s, s.moveFrom, positionNum));
+    if (!send(buildMovePayload(s, s.moveFrom, positionNum))) {
+      showMessage('Нет соединения. Дождитесь переподключения…', MSG_WARNING);
+      return;
+    }
     deselectPiece();
   }, [isBlocked, stateRef, showMessage, selectPiece, deselectPiece, send]);
 }

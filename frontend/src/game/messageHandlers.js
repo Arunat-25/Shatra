@@ -8,6 +8,10 @@ function isAiThinking(modeAi, moversColor, myColor, payload) {
 
 export const messageHandlers = [
   {
+    check: (d) => d.status === 'error',
+    handle: (d) => ({ text: d.message || 'Ошибка сервера', type: 'error' }),
+  },
+  {
     check: (d) => d.status === 'waiting',
     handle: (_d, dispatch) => {
       dispatch({ type: GAME_ACTIONS.SET_WAITING });
@@ -117,6 +121,15 @@ export const messageHandlers = [
       return null;
     },
   },
+  {
+    check: (d) => d.type === 'disconnect_tick',
+    handle: (d, dispatch) => {
+      if (typeof d.remaining === 'number') {
+        dispatch({ type: GAME_ACTIONS.SET_DISCONNECT_COUNTDOWN, payload: d.remaining });
+      }
+      return null;
+    },
+  },
 ];
 
 export function dispatchServerMessage(data, dispatch, modeAi, getMyColor) {
@@ -124,6 +137,9 @@ export function dispatchServerMessage(data, dispatch, modeAi, getMyColor) {
     if (check(data)) {
       return handle(data, dispatch, modeAi, getMyColor);
     }
+  }
+  if (import.meta.env?.DEV) {
+    console.warn('[ws] unhandled server message', data);
   }
   return null;
 }

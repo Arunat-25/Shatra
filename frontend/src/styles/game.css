@@ -160,6 +160,11 @@
   background: linear-gradient(135deg, rgba(170, 43, 16, 0.16), rgba(170, 43, 16, 0.06));
 }
 
+.room-icon-btn--resign-armed {
+  animation: drawOfferPulse 1.2s ease-in-out infinite;
+  box-shadow: 0 0 0 2px rgba(170, 43, 16, 0.45);
+}
+
 .room-icon-btn:disabled {
   cursor: not-allowed;
   opacity: 1;
@@ -208,6 +213,42 @@
 
 .room-icon-btn--draw-decline {
   flex: 0.85;
+}
+
+.btn-draw-text {
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--gold);
+  background: var(--gold-dim);
+  color: var(--gold);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--duration-fast);
+}
+
+.btn-draw-text--accept {
+  animation: drawOfferPulse 2s ease-in-out infinite;
+}
+
+.btn-draw-text:hover {
+  background: rgba(212, 175, 55, 0.25);
+}
+
+.game-result-hint {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-align: center;
+  margin: 0 0 6px;
+  line-height: 1.35;
+}
+
+.game-result-hint--warn {
+  color: var(--gold);
+  margin-top: 4px;
+  margin-bottom: 0;
 }
 
 .room-icon-svg {
@@ -625,6 +666,12 @@
 .timer-item.timer-active { color: var(--gold); font-weight: 700; }
 .timer-item.timer-low { color: var(--danger); animation: timerPulse 1s ease-in-out infinite; }
 .timer-separator { color: var(--text-faint); font-weight: 300; }
+
+.timer-you {
+  margin-left: 4px;
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
 
 /* ===== GAME SETUP (lobby) ===== */
 .game-setup-picker {

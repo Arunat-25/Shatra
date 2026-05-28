@@ -1,37 +1,11 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { getWsUrl } from '../api';
-
-const RECONNECT_BASE_DELAY_MS = 500;
-const RECONNECT_MAX_DELAY_MS = 5000;
-
-const FATAL_CLOSE_REASONS = ['комната уже заполнена', 'комната не найдена', 'вы уже в игре'];
-
-function getReconnectDelay(attempt) {
-  const delay = RECONNECT_BASE_DELAY_MS * 2 ** (attempt - 1);
-  return Math.min(delay, RECONNECT_MAX_DELAY_MS);
-}
-
-function classifyClose(event) {
-  const reason = (event.reason || '').toLowerCase();
-
-  if (event.code === 1000) {
-    return { recoverable: false, type: 'normal' };
-  }
-
-  if (FATAL_CLOSE_REASONS.some((item) => reason.includes(item))) {
-    return {
-      recoverable: false,
-      type: 'fatal',
-      message: event.reason || 'Не удалось подключиться к комнате',
-    };
-  }
-
-  return {
-    recoverable: true,
-    type: 'transient',
-    message: event.reason || 'Потеряно соединение. Пытаюсь восстановить...',
-  };
-}
+import {
+  classifyClose,
+  getReconnectDelay,
+  parseWsMessage,
+  shouldStopReconnecting,
+} from '../wsReconnect';
 
 export default function useWebSocket(roomId, onMessage, onError, onStatus) {
   const wsRef = useRef(null);
@@ -39,6 +13,7 @@ export default function useWebSocket(roomId, onMessage, onError, onStatus) {
   const reconnectTimerRef = useRef(null);
   const reconnectAttemptsRef = useRef(0);
   const reconnectWarningShownRef = useRef(false);
+  const outboundQueueRef = useRef([]);
   const connectRef = useRef(null);
   const onMessageRef = useRef(onMessage);
   const onErrorRef = useRef(onError);
@@ -57,6 +32,14 @@ export default function useWebSocket(roomId, onMessage, onError, onStatus) {
     }
   }, []);
 
+  const flushOutboundQueue = useCallback(() => {
+    const ws = wsRef.current;
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    while (outboundQueueRef.current.length > 0) {
+      ws.send(outboundQueueRef.current.shift());
+    }
+  }, []);
+
   const connect = useCallback(() => {
     if (!roomId) {
       return;
@@ -68,18 +51,19 @@ export default function useWebSocket(roomId, onMessage, onError, onStatus) {
     wsRef.current = ws;
 
     ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        onMessageRef.current?.(data);
-      } catch {
-        // ignore malformed messages
+      const parsed = parseWsMessage(event.data);
+      if (!parsed.ok) {
+        onErrorRef.current?.(parsed.error);
+        return;
       }
+      onMessageRef.current?.(parsed.data);
     };
 
     ws.onopen = () => {
       reconnectAttemptsRef.current = 0;
       reconnectWarningShownRef.current = false;
       clearReconnectTimer();
+      flushOutboundQueue();
       onStatusRef.current?.({ type: 'connected' });
     };
 
@@ -91,6 +75,7 @@ export default function useWebSocket(roomId, onMessage, onError, onStatus) {
       const closeInfo = classifyClose(event);
 
       if (!closeInfo.recoverable) {
+        outboundQueueRef.current = [];
         onErrorRef.current?.({
           type: closeInfo.type,
           recoverable: false,
@@ -100,6 +85,17 @@ export default function useWebSocket(roomId, onMessage, onError, onStatus) {
       }
 
       reconnectAttemptsRef.current += 1;
+
+      if (shouldStopReconnecting(reconnectAttemptsRef.current)) {
+        outboundQueueRef.current = [];
+        onErrorRef.current?.({
+          type: 'reconnect_failed',
+          recoverable: false,
+          message: 'Не удалось восстановить соединение. Обновите страницу или вернитесь в лобби.',
+        });
+        return;
+      }
+
       if (!reconnectWarningShownRef.current) {
         reconnectWarningShownRef.current = true;
         onStatusRef.current?.({ type: 'reconnecting', message: closeInfo.message });
@@ -115,30 +111,51 @@ export default function useWebSocket(roomId, onMessage, onError, onStatus) {
     ws.onerror = () => {
       // Ошибка будет обработана в onclose.
     };
-  }, [clearReconnectTimer, roomId]);
+  }, [clearReconnectTimer, flushOutboundQueue, roomId]);
 
   useEffect(() => {
     connectRef.current = connect;
+    reconnectAttemptsRef.current = 0;
+    outboundQueueRef.current = [];
     connect();
 
     return () => {
       intentionalCloseRef.current = true;
       clearReconnectTimer();
+      outboundQueueRef.current = [];
       wsRef.current?.close();
     };
   }, [connect, clearReconnectTimer]);
 
   const send = useCallback((data) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify(data));
+    const payload = JSON.stringify(data);
+    const ws = wsRef.current;
+    if (ws?.readyState === WebSocket.OPEN) {
+      ws.send(payload);
+      return true;
     }
+    if (ws?.readyState === WebSocket.CONNECTING) {
+      outboundQueueRef.current.push(payload);
+      return true;
+    }
+    return false;
   }, []);
+
+  const retryConnect = useCallback(() => {
+    clearReconnectTimer();
+    reconnectAttemptsRef.current = 0;
+    reconnectWarningShownRef.current = false;
+    intentionalCloseRef.current = false;
+    wsRef.current?.close();
+    connect();
+  }, [clearReconnectTimer, connect]);
 
   const close = useCallback(() => {
     intentionalCloseRef.current = true;
     clearReconnectTimer();
+    outboundQueueRef.current = [];
     wsRef.current?.close();
   }, [clearReconnectTimer]);
 
-  return { send, close, wsRef, intentionalCloseRef };
+  return { send, close, retryConnect, wsRef, intentionalCloseRef };
 }

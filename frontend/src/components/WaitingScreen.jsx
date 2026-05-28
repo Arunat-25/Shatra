@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 function CopyIcon() {
   return (
@@ -9,22 +9,56 @@ function CopyIcon() {
   );
 }
 
+async function copyTextToClipboard(text) {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // fallback below
+    }
+  }
+  try {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'fixed';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(textarea);
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
 export default function WaitingScreen({
   roomId,
   modeAi,
   showInviteLink = false,
   joiningError,
   reconnectMessage,
+  onCopyFeedback,
 }) {
+  const [copyStatus, setCopyStatus] = useState('');
+
   const inviteUrl = useMemo(
-    () => (roomId ? `${window.location.origin}/${roomId}` : ''),
+    () => (roomId ? `${window.location.origin}/${roomId}?mode=private` : ''),
     [roomId],
   );
 
-  const copyLink = useCallback(() => {
+  const copyLink = useCallback(async () => {
     if (!inviteUrl) return;
-    navigator.clipboard.writeText(inviteUrl);
-  }, [inviteUrl]);
+    const ok = await copyTextToClipboard(inviteUrl);
+    const message = ok ? 'Ссылка скопирована' : 'Не удалось скопировать ссылку';
+    setCopyStatus(message);
+    onCopyFeedback?.(ok ? 'success' : 'error', message);
+    if (ok) {
+      setTimeout(() => setCopyStatus(''), 2500);
+    }
+  }, [inviteUrl, onCopyFeedback]);
 
   if (modeAi) {
     return (
@@ -66,6 +100,7 @@ export default function WaitingScreen({
                 <CopyIcon />
               </button>
             </div>
+            {copyStatus && <p className="waiting-copy-status">{copyStatus}</p>}
             <p className="waiting-invite-note">
               С вами сыграет первый, кто перейдёт по ссылке
             </p>

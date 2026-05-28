@@ -47,8 +47,10 @@ Vite проксирует `/rooms` и `/ws` на `localhost:8000` (см. `fronte
 ```bash
 source .venv/bin/activate
 pip install -r requirements-dev.txt
-python3 -m pytest tests/ -q
+pytest tests/ -q
 ```
+
+Структура тестов: см. [tests/README.md](tests/README.md).
 
 ## Линт фронтенда
 

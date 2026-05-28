@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback, useRef, useState } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import useWebSocket from './hooks/useWebSocket';
 import useGameReducer, { GAME_ACTIONS } from './hooks/useGameReducer';
@@ -20,9 +20,15 @@ import {
   buildResignPayload,
 } from './utils/wsPayloads';
 import GameControls from './components/GameControls';
+import GameClock from './components/GameClock';
 import { formatGameOverMessage, isWinner } from './utils';
 
-const ROOM_ERROR_TYPES = new Set(['room_full', 'already_in_game', 'room_not_found']);
+const ROOM_ERROR_TYPES = new Set([
+  'room_full',
+  'already_in_game',
+  'room_not_found',
+  'reconnect_failed',
+]);
 
 export default function Game() {
   const navigate = useNavigate();
@@ -37,6 +43,7 @@ export default function Game() {
     () => myColorRef.current,
   );
   const { message, messageType, showMessage } = useMessage();
+  const [wsReconnecting, setWsReconnecting] = useState(false);
   const stateRef = useRef(state);
   const handleServerMessageRef = useRef(handleServerMessage);
   const showMessageRef = useRef(showMessage);
@@ -67,14 +74,6 @@ export default function Game() {
     dispatch({ type: GAME_ACTIONS.RESET_GAME });
   }, [roomId, modeAi, dispatch]);
 
-  useEffect(() => {
-    if (!state.opponentDisconnected || state.disconnectCountdown <= 0) return;
-    const timer = setInterval(() => {
-      dispatch({ type: GAME_ACTIONS.DISCONNECT_TICK });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [state.opponentDisconnected, state.disconnectCountdown, dispatch]);
-
   const handleWsMessage = useCallback((data) => {
     if (data.your_color) {
       myColorRef.current = data.your_color;
@@ -90,10 +89,12 @@ export default function Game() {
   const handleWsStatus = useCallback((statusInfo) => {
     if (!statusInfo) return;
     if (statusInfo.type === 'reconnecting') {
+      setWsReconnecting(true);
       showMessage(statusInfo.message, MSG_WARNING);
       return;
     }
     if (statusInfo.type === 'connected') {
+      setWsReconnecting(false);
       showMessage('Соединение восстановлено');
     }
   }, [showMessage]);
@@ -111,23 +112,25 @@ export default function Game() {
     }
 
     if (ROOM_ERROR_TYPES.has(error.type)) {
+      setWsReconnecting(false);
       dispatchRef.current({ type: GAME_ACTIONS.SET_JOINING_ERROR, payload: error.message });
-      setTimeout(() => navigate('/'), 2000);
+      const delay = error.type === 'reconnect_failed' ? 4000 : 2000;
+      setTimeout(() => navigate('/'), delay);
       return;
     }
 
-    if (state.waiting) {
+    if (stateRef.current.waiting) {
       dispatchRef.current({ type: GAME_ACTIONS.SET_JOINING_ERROR, payload: error.message });
       return;
     }
 
     showMessage(error.message, MSG_ERROR);
-  }, [navigate, showMessage, state.waiting]);
+  }, [navigate, showMessage]);
 
   const { send } = useWebSocket(roomId, handleWsMessage, handleWsError, handleWsStatus);
 
   const isBoardBlocked =
-    state.gameOver || state.aiThinking || state.opponentDisconnected;
+    state.gameOver || state.aiThinking || state.opponentDisconnected || wsReconnecting;
 
   const handleCellClick = useCellClick({
     stateRef,
@@ -164,8 +167,19 @@ export default function Game() {
     const s = stateRef.current;
     if (s.gameOver) return;
     if (s.drawOfferFrom === s.myColor) return;
-    send(buildOfferDrawPayload());
-  }, [send]);
+    if (!send(buildOfferDrawPayload())) {
+      showMessage('Нет соединения. Дождитесь переподключения…', MSG_WARNING);
+    }
+  }, [send, showMessage]);
+
+  const acceptDraw = useCallback(() => {
+    const s = stateRef.current;
+    if (s.gameOver) return;
+    if (!s.drawOfferFrom || s.drawOfferFrom === s.myColor) return;
+    if (!send(buildOfferDrawPayload())) {
+      showMessage('Нет соединения. Дождитесь переподключения…', MSG_WARNING);
+    }
+  }, [send, showMessage]);
 
   const declineDraw = useCallback(() => {
     const s = stateRef.current;
@@ -209,7 +223,8 @@ export default function Game() {
         modeAi={modeAi}
         showInviteLink={showInviteLink}
         joiningError={state.joiningError}
-        reconnectMessage={''}
+        reconnectMessage={wsReconnecting ? 'Переподключение…' : ''}
+        onCopyFeedback={(type, text) => showMessage(text, type === 'success' ? 'info' : MSG_ERROR)}
       />
     );
   }
@@ -220,7 +235,9 @@ export default function Game() {
   if (win === true) bannerVariant = 'win';
   if (win === false) bannerVariant = 'loss';
 
-  const resultText = state.gameOver ? formatGameOverMessage(state.winner) : 'Ничья';
+  const resultText = state.gameOver
+    ? formatGameOverMessage(state.winner, state.gameOverReason)
+    : 'Ничья';
 
   return (
     <div className="game-page">
@@ -255,6 +272,12 @@ export default function Game() {
         </div>
 
         <aside className="room-right">
+          <GameClock
+            timer={state.timer}
+            moversColor={state.moversColor}
+            myColor={state.myColor}
+            timeControl={state.timeControl}
+          />
           <PieceCounts countsByType={state.countsByType} />
 
           <MoveHistory
@@ -275,10 +298,19 @@ export default function Game() {
                 <button type="button" className="game-result-btn game-result-btn--primary" onClick={goToLobby}>
                   В лобби
                 </button>
-                <button type="button" className="game-result-btn game-result-btn--secondary" onClick={playAgain}>
+                <button
+                  type="button"
+                  className="game-result-btn game-result-btn--secondary"
+                  onClick={playAgain}
+                  title="Создать новую комнату в зале ожидания"
+                >
                   Снова
                 </button>
                 {!modeAi && (
+                  <>
+                  <p className="game-result-hint">
+                    Реванш — та же комната, цвета меняются. Снова — новая игра.
+                  </p>
                   <button
                     type="button"
                     className={[
@@ -303,6 +335,12 @@ export default function Game() {
                   >
                     Реванш
                   </button>
+                  {state.rematchUnavailable && (
+                    <p className="game-result-hint game-result-hint--warn">
+                      Соперник вышел — нажмите «Снова» для новой игры.
+                    </p>
+                  )}
+                  </>
                 )}
               </div>
             </div>
@@ -313,10 +351,12 @@ export default function Game() {
               canPass={state.canPass}
               onPass={skipTurn}
               onOfferDraw={offerDraw}
+              onAcceptDraw={acceptDraw}
               onDeclineDraw={declineDraw}
               onResign={resign}
               drawPending={drawPending}
               drawIncoming={drawIncoming}
+              hideDraw={modeAi}
             />
           )}
 

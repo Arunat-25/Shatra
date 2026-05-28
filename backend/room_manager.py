@@ -57,4 +57,9 @@ async def join_room(room_id: str) -> dict:
     if not room_data:
         logger.warning("Room not found: %s", room_id)
         raise HTTPException(status_code=404, detail="Комната не найдена")
+    if room_data.get("game_started"):
+        raise HTTPException(status_code=409, detail="Игра в этой комнате уже началась")
+    players = room_data.get("players") or {}
+    if len(players) >= 2:
+        raise HTTPException(status_code=409, detail="Комната уже заполнена")
     return {"room_id": room_id}
