@@ -1,46 +1,46 @@
-/* ===== Design tokens — Шатра ===== */
+/* ===== Design tokens — Шатра (Алтай светлая тема) ===== */
 :root {
-  /* Surfaces */
-  --bg-deep: #0c0f14;
-  --bg-base: #12161f;
-  --bg-elevated: #1a2030;
-  --bg-surface: #222a3c;
-  --bg-surface-hover: #2a3448;
-  --bg-inset: rgba(0, 0, 0, 0.25);
+  /* Surfaces — yurt felt, mountain parchment, warm stone */
+  --bg-deep: #E8DCCA;
+  --bg-base: #F0E8D3;
+  --bg-elevated: #FAF5E8;
+  --bg-surface: #F3EAD7;
+  --bg-surface-hover: #EAE0C8;
+  --bg-inset: rgba(61, 40, 23, 0.07);
 
-  /* Text */
-  --text-primary: #f2ebe0;
-  --text-secondary: rgba(242, 235, 224, 0.72);
-  --text-muted: rgba(242, 235, 224, 0.45);
-  --text-faint: rgba(242, 235, 224, 0.28);
+  /* Text — mountain ash, deep earth */
+  --text-primary: #271200;
+  --text-secondary: rgba(39, 18, 0, 0.72);
+  --text-muted: rgba(39, 18, 0, 0.50);
+  --text-faint: rgba(39, 18, 0, 0.30);
 
   /* Accents */
-  --gold: #d4af37;
-  --gold-bright: #e8c547;
-  --gold-dim: rgba(212, 175, 55, 0.15);
-  --turquoise: #2dd4bf;
-  --turquoise-dim: rgba(45, 212, 191, 0.12);
-  --amber: #f59e0b;
-  --violet: #a78bfa;
-  --violet-dim: rgba(167, 139, 250, 0.12);
+  --gold: #9A6600;
+  --gold-bright: #BE8800;
+  --gold-dim: rgba(154, 102, 0, 0.12);
+  --turquoise: #106E68;        /* Катунь / Телецкое */
+  --turquoise-dim: rgba(16, 110, 104, 0.10);
+  --amber: #C0490C;            /* Очаг */
+  --violet: #5E3E96;
+  --violet-dim: rgba(94, 62, 150, 0.10);
 
   /* Semantic */
-  --success: #4ade80;
-  --danger: #f87171;
-  --warning: #fbbf24;
-  --info: #38bdf8;
+  --success: #286B35;
+  --danger: #AA2B10;
+  --warning: #9A6600;
+  --info: #106E68;
 
   /* Borders & shadows */
-  --border-subtle: rgba(212, 175, 55, 0.12);
-  --border-medium: rgba(212, 175, 55, 0.22);
-  --border-strong: rgba(212, 175, 55, 0.35);
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.25);
-  --shadow-md: 0 8px 32px rgba(0, 0, 0, 0.35);
-  --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.45);
-  --shadow-glow-gold: 0 0 40px rgba(212, 175, 55, 0.08);
-  --shadow-glow-turquoise: 0 0 30px rgba(45, 212, 191, 0.1);
+  --border-subtle: rgba(154, 102, 0, 0.14);
+  --border-medium: rgba(154, 102, 0, 0.26);
+  --border-strong: rgba(154, 102, 0, 0.44);
+  --shadow-sm: 0 2px 8px rgba(39, 18, 0, 0.08);
+  --shadow-md: 0 8px 32px rgba(39, 18, 0, 0.11);
+  --shadow-lg: 0 20px 60px rgba(39, 18, 0, 0.15);
+  --shadow-glow-gold: 0 0 40px rgba(154, 102, 0, 0.10);
+  --shadow-glow-turquoise: 0 0 30px rgba(16, 110, 104, 0.10);
 
-  /* Board (game cells stay warm/light for readability) */
+  /* Board cells (warm/terra for game readability) */
   --cell-light: #f5f0e8;
   --cell-dark: #9a3412;
   --cell-dark-deep: #7c2d12;

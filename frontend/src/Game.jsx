@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef, useState } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import useWebSocket from './hooks/useWebSocket';
 import useGameReducer, { GAME_ACTIONS } from './hooks/useGameReducer';
@@ -9,12 +9,12 @@ import BoardGrid from './BoardGrid';
 import GameHeader from './components/GameHeader';
 import GameInfo from './components/GameInfo';
 import WaitingScreen from './components/WaitingScreen';
-import GameOverScreen from './components/GameOverScreen';
 import DisconnectOverlay from './components/DisconnectOverlay';
 import MoveHistory from './components/MoveHistory';
-import { MSG_ERROR, MSG_SUCCESS, MSG_WARNING } from './constants';
+import { MSG_ERROR, MSG_WARNING } from './constants';
 import { getClientId } from './api';
 import { buildPassPayload } from './utils/wsPayloads';
+import { isWinner } from './utils';
 
 const ROOM_ERROR_TYPES = new Set(['room_full', 'already_in_game', 'room_not_found']);
 
@@ -26,7 +26,6 @@ export default function Game() {
 
   const { state, dispatch, handleServerMessage, deselectPiece } = useGameReducer(modeAi);
   const { message, messageType, showMessage } = useMessage();
-  const [connectionStatus, setConnectionStatus] = useState({ type: 'idle', message: '' });
   const myColorRef = useRef(null);
   const stateRef = useRef(state);
   const handleServerMessageRef = useRef(handleServerMessage);
@@ -61,19 +60,12 @@ export default function Game() {
   }, []);
 
   const handleWsStatus = useCallback((statusInfo) => {
-    if (!statusInfo) {
-      setConnectionStatus({ type: 'idle', message: '' });
-      return;
-    }
-
+    if (!statusInfo) return;
     if (statusInfo.type === 'reconnecting') {
-      setConnectionStatus({ type: 'reconnecting', message: statusInfo.message });
       showMessage(statusInfo.message, MSG_WARNING);
       return;
     }
-
     if (statusInfo.type === 'connected') {
-      setConnectionStatus({ type: 'idle', message: '' });
       showMessage('Соединение восстановлено');
     }
   }, [showMessage]);
@@ -83,9 +75,7 @@ export default function Game() {
       ? { type: 'unknown', recoverable: false, message: errorInfo }
       : errorInfo;
 
-    if (!error?.message) {
-      return;
-    }
+    if (!error?.message) return;
 
     if (error.recoverable) {
       showMessage(error.message, MSG_WARNING);
@@ -137,22 +127,28 @@ export default function Game() {
     dispatch({ type: GAME_ACTIONS.CLEAR_CAN_PASS });
   }, [send, dispatch]);
 
-  const gameOverSessionKey = state.gameOver
-    ? `${roomId}-${state.movesHistory.length}-${state.winner}`
-    : null;
-  const [dismissedGameOverKey, setDismissedGameOverKey] = useState(null);
-  const showGameOverScreen = gameOverSessionKey && dismissedGameOverKey !== gameOverSessionKey;
-
   if (state.waiting) {
     return (
       <WaitingScreen
         roomId={roomId}
         modeAi={modeAi}
         joiningError={state.joiningError}
-        reconnectMessage={connectionStatus.type === 'reconnecting' ? connectionStatus.message : ''}
+        reconnectMessage={''}
       />
     );
   }
+
+  const win = state.gameOver ? isWinner(state.winner, state.myColor) : null;
+  const isDisconnectWin = state.gameOverReason === 'opponent_disconnected';
+
+  let bannerVariant = 'draw';
+  if (win === true) bannerVariant = 'win';
+  if (win === false) bannerVariant = 'loss';
+
+  let bannerText = 'Ничья';
+  if (isDisconnectWin) bannerText = 'Соперник покинул игру — ваша победа!';
+  else if (win === true) bannerText = 'Победа!';
+  else if (win === false) bannerText = state.winner ? `Победили ${state.winner}` : 'Поражение';
 
   return (
     <div className="game-page">
@@ -198,13 +194,38 @@ export default function Game() {
         <GameInfo
           whiteCount={state.whiteCount}
           blackCount={state.blackCount}
-          roomId={roomId}
           modeAi={modeAi}
           canPass={state.canPass}
           gameOver={state.gameOver}
           onSkipTurn={skipTurn}
-          onCopyLink={() => showMessage('Ссылка скопирована!', MSG_SUCCESS)}
         />
+
+        {state.gameOver && (
+          <div className={`game-over-banner game-over-banner--${bannerVariant}`}>
+            <div className="game-over-banner-content">
+              <span className="game-over-banner-icon">
+                {win === true ? '🏆' : win === false ? '⚔️' : '🤝'}
+              </span>
+              <span className="game-over-banner-text">{bannerText}</span>
+            </div>
+            <div className="game-over-banner-actions">
+              <button
+                className="game-over-banner-btn game-over-banner-btn--primary"
+                onClick={() => navigate('/', { replace: true })}
+              >
+                В лобби
+              </button>
+              {modeAi && (
+                <button
+                  className="game-over-banner-btn game-over-banner-btn--secondary"
+                  onClick={() => navigate(0)}
+                >
+                  Снова
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       <MoveHistory
@@ -213,17 +234,6 @@ export default function Game() {
         onViewMove={(idx) => dispatch({ type: GAME_ACTIONS.VIEW_HISTORY_MOVE, payload: idx })}
         onExitHistory={() => dispatch({ type: GAME_ACTIONS.EXIT_HISTORY })}
       />
-
-      {showGameOverScreen && (
-        <GameOverScreen
-          winner={state.winner}
-          myColor={state.myColor}
-          modeAi={modeAi}
-          reason={state.gameOverReason}
-          onGoToLobby={() => navigate('/', { replace: true })}
-          onViewHistory={() => setDismissedGameOverKey(gameOverSessionKey)}
-        />
-      )}
     </div>
   );
 }

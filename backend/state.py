@@ -2,6 +2,7 @@ import json
 import time
 from typing import Optional
 import redis.asyncio as aioredis
+import os
 
 # Redis клиент
 redis_client: Optional[aioredis.Redis] = None
@@ -64,6 +65,21 @@ DISCONNECT_TIMEOUT = 30
 
 # === GAME STATE ===
 
+def _redis_ttl_seconds() -> int:
+    """
+    TTL для ключей room:* и game:* (секунды).
+    По умолчанию 4 часа, можно переопределить через env REDIS_TTL_SECONDS.
+    """
+    raw = os.getenv("REDIS_TTL_SECONDS", "").strip()
+    if not raw:
+        return 4 * 60 * 60
+    try:
+        ttl = int(raw)
+        return ttl if ttl > 0 else 4 * 60 * 60
+    except Exception:
+        return 4 * 60 * 60
+
+
 @ensure_redis
 async def get_game(room_id: str) -> Optional[dict]:
     """Загружает состояние игры из Redis."""
@@ -76,7 +92,11 @@ async def get_game(room_id: str) -> Optional[dict]:
 @ensure_redis
 async def set_game(room_id: str, data: dict):
     """Сохраняет состояние игры в Redis."""
-    await redis_client.set(f"game:{room_id}", json.dumps(data, default=str))
+    await redis_client.set(
+        f"game:{room_id}",
+        json.dumps(data, default=str),
+        ex=_redis_ttl_seconds(),
+    )
 
 
 @ensure_redis
@@ -99,7 +119,11 @@ async def get_room(room_id: str) -> Optional[dict]:
 @ensure_redis
 async def set_room(room_id: str, data: dict):
     """Сохраняет комнату в Redis."""
-    await redis_client.set(f"room:{room_id}", json.dumps(data, default=str))
+    await redis_client.set(
+        f"room:{room_id}",
+        json.dumps(data, default=str),
+        ex=_redis_ttl_seconds(),
+    )
 
 
 @ensure_redis

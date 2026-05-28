@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <meta name="theme-color" content="#12161f" />
+    <meta name="theme-color" content="#F0E8D3" />
     <meta name="description" content="Шатра — Алтайская народная настольная игра. Играйте онлайн с друзьями или против ИИ." />
     <meta name="keywords" content="шатра, алтайская игра, настольная игра, онлайн, алтай" />
     <meta property="og:title" content="Шатра — Алтайская народная игра" />
@@ -22,7 +22,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: #0c0f14;
+        background: #F0E8D3;
         z-index: 9999;
       }
       .splash-screen::before {
@@ -30,16 +30,16 @@
         position: absolute;
         inset: 0;
         background:
-          radial-gradient(ellipse 80% 60% at 50% 0%, rgba(212, 175, 55, 0.08) 0%, transparent 55%),
-          radial-gradient(ellipse 60% 40% at 80% 100%, rgba(45, 212, 191, 0.05) 0%, transparent 50%);
+          radial-gradient(ellipse 80% 60% at 50% 0%, rgba(154, 102, 0, 0.10) 0%, transparent 55%),
+          radial-gradient(ellipse 60% 40% at 80% 100%, rgba(16, 110, 104, 0.06) 0%, transparent 50%);
         pointer-events: none;
       }
       .splash-content { text-align: center; position: relative; z-index: 1; }
       .splash-emblem { margin: 0 auto 20px; animation: splash-float 3s ease-in-out infinite; }
       .splash-spinner {
         width: 32px; height: 32px; margin: 0 auto 16px;
-        border: 2px solid rgba(212, 175, 55, 0.15);
-        border-top-color: #d4af37;
+        border: 2px solid rgba(154, 102, 0, 0.18);
+        border-top-color: #9A6600;
         border-radius: 50%;
         animation: splash-spin 0.7s linear infinite;
       }
@@ -47,9 +47,9 @@
         font-family: 'Unbounded', system-ui, sans-serif;
         font-size: 1.25rem;
         font-weight: 600;
-        color: #f2ebe0;
+        color: #271200;
         letter-spacing: 0.12em;
-        opacity: 0.9;
+        opacity: 0.85;
       }
       @keyframes splash-float {
         0%, 100% { transform: translateY(0); }
@@ -64,9 +64,9 @@
         <div class="splash-content">
           <div class="splash-emblem">
             <svg viewBox="0 0 60 60" width="56" height="56" aria-hidden="true">
-              <circle cx="30" cy="30" r="28" fill="none" stroke="#d4af37" stroke-width="1.5" opacity="0.35"/>
-              <path d="M30 8 L34 18 L44 18 L36 24 L38 34 L30 28 L22 34 L24 24 L16 18 L26 18Z" fill="none" stroke="#2dd4bf" stroke-width="1.2" opacity="0.7"/>
-              <circle cx="30" cy="28" r="3" fill="none" stroke="#d4af37" stroke-width="1" opacity="0.5"/>
+              <circle cx="30" cy="30" r="28" fill="none" stroke="#9A6600" stroke-width="1.5" opacity="0.40"/>
+              <path d="M30 8 L34 18 L44 18 L36 24 L38 34 L30 28 L22 34 L24 24 L16 18 L26 18Z" fill="none" stroke="#106E68" stroke-width="1.2" opacity="0.75"/>
+              <circle cx="30" cy="28" r="3" fill="none" stroke="#9A6600" stroke-width="1" opacity="0.55"/>
             </svg>
           </div>
           <div class="splash-spinner"></div>

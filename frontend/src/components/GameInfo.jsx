@@ -1,11 +1,6 @@
 import PropTypes from 'prop-types';
 
-export default function GameInfo({ whiteCount, blackCount, roomId, modeAi, canPass, gameOver, onSkipTurn, onCopyLink }) {
-  const handleCopyLink = () => {
-    const link = `${window.location.origin}/${roomId}`;
-    navigator.clipboard.writeText(link).then(onCopyLink).catch(() => {});
-  };
-
+export default function GameInfo({ whiteCount, blackCount, modeAi, canPass, gameOver, onSkipTurn }) {
   return (
     <>
       {canPass && !gameOver && (
@@ -16,9 +11,6 @@ export default function GameInfo({ whiteCount, blackCount, roomId, modeAi, canPa
         <span className="piece-count">
           <span className="piece-count-item">⚪ {whiteCount}</span>
           <span className="piece-count-item">⚫ {blackCount}</span>
-        </span>
-        <span>
-          Комната: <span className="room-link" onClick={handleCopyLink}>{roomId}</span>
         </span>
         {modeAi && <span className="game-info-ai">🤖 AI</span>}
       </div>
@@ -32,10 +24,8 @@ export default function GameInfo({ whiteCount, blackCount, roomId, modeAi, canPa
 GameInfo.propTypes = {
   whiteCount: PropTypes.number.isRequired,
   blackCount: PropTypes.number.isRequired,
-  roomId: PropTypes.string,
   modeAi: PropTypes.bool,
   canPass: PropTypes.bool,
   gameOver: PropTypes.bool,
   onSkipTurn: PropTypes.func.isRequired,
-  onCopyLink: PropTypes.func.isRequired,
 };
