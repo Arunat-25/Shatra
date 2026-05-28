@@ -3,14 +3,19 @@ export const COLOR_WHITE = 'белый';
 export const COLOR_BLACK = 'черный';
 export const COLOR_WHITE_INCL = 'бел';
 
+// ===== Предпочтение цвета при создании комнаты =====
+export const COLOR_PREF_WHITE = 'белый';
+export const COLOR_PREF_BLACK = 'черный';
+export const COLOR_PREF_RANDOM = 'random';
+
 // ===== Типы фигур =====
 export const PIECE_BIY = 'бий';
 export const PIECE_BATYR = 'батыр';
 export const PIECE_SHATRA = 'шатра';
 
 // ===== Типы комнат =====
-export const ROOM_QUICK = 'quick';
-export const ROOM_FRIEND = 'friend';
+export const ROOM_PUBLIC = 'public';
+export const ROOM_PRIVATE = 'private';
 export const ROOM_AI = 'ai';
 
 // ===== Типы сообщений =====
@@ -23,14 +28,6 @@ export const MSG_SUCCESS = 'success';
 // ===== Построение конфигурации доски =====
 // Для белых: чёрная крепость сверху, белая снизу
 // Для чёрных: белая крепость сверху, чёрная снизу (перевёрнуто)
-
-function _reverseCells(arr) {
-  return [...arr].reverse();
-}
-
-function _reverseRowCells(row) {
-  return row.map(cell => ({ ...cell })).reverse();
-}
 
 function _buildSectionsForWhite() {
   return [

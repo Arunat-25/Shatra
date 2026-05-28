@@ -1,6 +1,9 @@
+import { formatTimeControlLabel } from '../utils';
+
 export default function RoomCard({ room, isJoining, onJoin }) {
-  const { room_id, type, created_at } = room;
+  const { room_id, type, time_control, increment } = room;
   const roomInfo = getRoomInfo(type);
+  const timeLabel = formatTimeControlLabel(time_control, increment);
 
   return (
     <div
@@ -22,12 +25,10 @@ export default function RoomCard({ room, isJoining, onJoin }) {
           </span>
           {roomInfo.label}
         </span>
-        <span className="room-card-id">{room_id}</span>
       </div>
+      <span className="room-card-time">{timeLabel}</span>
       <div className="room-card-right">
-        <span className="room-card-time">
-          {new Date(created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-        </span>
+        <span className="room-card-id">{room_id}</span>
         <button
           type="button"
           className="btn-join"
@@ -42,18 +43,18 @@ export default function RoomCard({ room, isJoining, onJoin }) {
 }
 
 const ROOM_LABELS = {
-  quick: {
-    label: 'Быстрая игра',
-    badge: 'quick',
+  public: {
+    label: 'аноним',
+    badge: 'public',
     icon: (
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>
         <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
       </svg>
     ),
   },
-  friend: {
-    label: 'Вызов другу',
-    badge: 'friend',
+  private: {
+    label: 'Приватная комната',
+    badge: 'private',
     icon: (
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>
         <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
@@ -72,7 +73,7 @@ const ROOM_LABELS = {
     ),
   },
 };
-const DEFAULT_ROOM = ROOM_LABELS.quick;
+const DEFAULT_ROOM = ROOM_LABELS.public;
 
 function getRoomInfo(type) {
   return ROOM_LABELS[type] || DEFAULT_ROOM;

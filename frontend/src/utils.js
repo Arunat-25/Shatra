@@ -25,6 +25,26 @@ export function countPieces(boardData) {
 }
 
 /**
+ * Подсчёт фигур по типам для белых/чёрных.
+ * Возвращает количество только для батыр/шатра/бий.
+ */
+export function countPiecesByType(boardData) {
+  const acc = {
+    white: { batyr: 0, shatra: 0, biy: 0 },
+    black: { batyr: 0, shatra: 0, biy: 0 },
+  };
+  for (const piece of Object.values(boardData)) {
+    if (!piece) continue;
+    const colorKey = piece.includes(COLOR_WHITE_INCL) ? 'white' : 'black';
+    const type = getPieceType(piece);
+    if (type === PIECE_BATYR) acc[colorKey].batyr += 1;
+    else if (type === PIECE_BIY) acc[colorKey].biy += 1;
+    else acc[colorKey].shatra += 1;
+  }
+  return acc;
+}
+
+/**
  * Определяет тип фигуры по строке с сервера.
  */
 export function getPieceType(pieceStr) {
@@ -41,8 +61,57 @@ export function getPieceColor(pieceStr) {
 }
 
 /**
+ * Извлекает цвет победителя из строки winner (белый/чёрный).
+ */
+export function winnerColor(winner) {
+  if (!winner) return null;
+  const w = winner.toLowerCase();
+  if (w.includes('бел')) return 'белый';
+  if (w.includes('чер') || w.includes('чёр')) return 'чёрный';
+  return null;
+}
+
+/**
+ * Текст окончания игры для UI (две строки).
+ * Пример: "Игра окончена!\nПобедил чёрный Бий!"
+ */
+export function formatGameOverMessage(winner) {
+  if (!winner) return 'Игра окончена!\nНичья';
+
+  const w = winner.toLowerCase();
+  if (w.includes('ничья')) {
+    const line = winner.trim().replace(/!+$/, '');
+    return `Игра окончена!\n${line}!`;
+  }
+
+  const color = winnerColor(winner);
+  if (!color) return `Игра окончена!\n${winner}`;
+
+  return `Игра окончена!\nПобедил ${color} Бий!`;
+}
+
+/**
  * Определяет, является ли победитель текущим игроком.
  */
 export function isWinner(winner, myColor) {
-  return !!(winner && winner === myColor);
+  const wColor = winnerColor(winner);
+  if (!wColor || !myColor) return false;
+  const mine = myColor.toLowerCase();
+  return (mine.includes('бел') && wColor === 'белый') || (mine.includes('чер') && wColor === 'чёрный');
+}
+
+/** Краткая подпись длительности: 15с, 1м, 3м */
+export function formatDurationShort(seconds) {
+  const s = Math.round(seconds);
+  if (s >= 60 && s % 60 === 0) return `${s / 60}м`;
+  return `${s}с`;
+}
+
+/** Подпись контроля времени для зала ожидания: «15с + 1с», «1м + 15с», «без таймера» */
+export function formatTimeControlLabel(timeControl, increment = 0) {
+  if (timeControl == null) return 'без таймера';
+  const base = formatDurationShort(timeControl);
+  const inc = increment || 0;
+  if (inc > 0) return `${base} + ${inc}с`;
+  return base;
 }

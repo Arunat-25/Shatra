@@ -9,6 +9,33 @@ from backend.game_helpers import build_game_started_response
 
 logger = logging.getLogger(__name__)
 
+_EMPTY_ROOM_GRACE_SECONDS = 2.0
+
+
+async def _delete_room_after_grace(room_id: str, delay_seconds: float):
+    """
+    Удаляет комнату/игру после небольшой задержки, если за это время никто не переподключился.
+    Нужна для предотвращения ложных удалений при быстрых реконнектах (например, dev StrictMode).
+    """
+    try:
+        await asyncio.sleep(delay_seconds)
+        # Если кто-то уже переподключился — не трогаем.
+        if manager.connections.get(room_id):
+            return
+        room_data = await get_room(room_id)
+        if not room_data:
+            return
+        # Если игра уже началась — эту ветку не используем.
+        if room_data.get("game_started"):
+            return
+        await delete_game(room_id)
+        await delete_room(room_id)
+        logger.info("Room %s deleted after grace timeout", room_id)
+    except asyncio.CancelledError:
+        pass
+    except Exception as e:
+        logger.warning("Failed to delete room %s after grace: %s", room_id, e)
+
 
 class ConnectionManager:
     def __init__(self):
@@ -54,12 +81,9 @@ class ConnectionManager:
             await websocket.close(code=1008, reason="Комната уже заполнена")
             return False
 
-        if len(players) == 0:
-            players[client_id] = "белый"
-            # Первый игрок становится creator'ом
-            room_data["creator_client_id"] = client_id
-        elif len(players) == 1:
-            players[client_id] = "черный"
+        from backend.game_helpers import assign_player_color
+
+        players[client_id] = assign_player_color(room_data, client_id, players)
 
         self.connections[room_id][client_id] = websocket
         await set_room(room_id, room_data)
@@ -96,22 +120,20 @@ class ConnectionManager:
                 break
 
         room_data = await get_room(room_id)
-        is_creator = (
-            room_data
-            and client_id
-            and room_data.get("creator_client_id") == client_id
-        )
-
-        if is_creator:
-            await self._destroy_room(room_id, room_conns)
-            return
+        # Не удаляем комнату мгновенно, если отключился creator:
+        # при быстрых реконнектах (и в dev StrictMode) это приводит к "Комната не найдена".
 
         if not room_conns:
             self.connections.pop(room_id, None)
             if room_data and room_data.get("type") != "ai":
-                asyncio.create_task(delete_room(room_id))
-                asyncio.create_task(delete_game(room_id))
-                logger.info("Room %s deleted (no players left)", room_id)
+                # Даём небольшой grace-период на переподключение.
+                task = disconnect_timers.pop(room_id, None)
+                if task and not task.done():
+                    task.cancel()
+                disconnect_timers[room_id] = asyncio.create_task(
+                    _delete_room_after_grace(room_id, _EMPTY_ROOM_GRACE_SECONDS)
+                )
+                logger.info("Room %s scheduled for deletion (no players left)", room_id)
             elif room_data and room_data.get("type") == "ai":
                 logger.info("AI room %s: no connections left, keeping data", room_id)
         elif room_data:

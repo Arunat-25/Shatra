@@ -1,5 +1,10 @@
-import { COLOR_BLACK } from '../constants';
 import { GAME_ACTIONS } from './actions';
+
+function isAiThinking(modeAi, moversColor, myColor, payload) {
+  if (!modeAi || !myColor || payload.game_over) return false;
+  if (payload.position_for_mandatory_capture) return false;
+  return moversColor !== myColor;
+}
 
 export const messageHandlers = [
   {
@@ -13,17 +18,14 @@ export const messageHandlers = [
     check: (d) => d.game_over,
     handle: (d, dispatch) => {
       dispatch({ type: GAME_ACTIONS.GAME_OVER, payload: d });
-      return { text: `Игра окончена! Победил ${d.winner || 'ничья'}`, type: 'victory' };
+      return null;
     },
   },
   {
     check: (d) => d.message && d.desk,
-    handle: (d, dispatch, modeAi) => {
-      // aiThinking: only when playing vs AI AND next mover is AI color
-      // additionally, don't mark AI as thinking if server indicates
-      // there's a mandatory capture for the (human) player — that means
-      // the human must act next.
-      const aiThinking = modeAi && d.movers_color === COLOR_BLACK && !d.game_over && !d.position_for_mandatory_capture;
+    handle: (d, dispatch, modeAi, getMyColor) => {
+      const myColor = getMyColor?.() || null;
+      const aiThinking = isAiThinking(modeAi, d.movers_color, myColor, d);
       if (d.move_history) {
         dispatch({ type: GAME_ACTIONS.SET_MOVE_HISTORY, payload: d.move_history });
       }
@@ -46,12 +48,52 @@ export const messageHandlers = [
   },
   {
     check: (d) => d.status === 'game_started' && d.desk,
-    handle: (d, dispatch) => {
+    handle: (d, dispatch, modeAi, getMyColor) => {
+      const myColor = getMyColor?.() || d.your_color || null;
+      const aiThinking = isAiThinking(modeAi, d.movers_color, myColor, d);
       if (d.move_history) {
         dispatch({ type: GAME_ACTIONS.SET_MOVE_HISTORY, payload: d.move_history });
       }
-      dispatch({ type: GAME_ACTIONS.GAME_STARTED, payload: d });
+      dispatch({ type: GAME_ACTIONS.GAME_STARTED, payload: { ...d, aiThinking } });
       return { text: 'Игра началась!', type: 'info' };
+    },
+  },
+  {
+    check: (d) => d.status === 'draw_offered',
+    handle: (d, dispatch) => {
+      dispatch({ type: GAME_ACTIONS.SET_DRAW_OFFER, payload: d.by || null });
+      return { text: d.message || 'Предложение ничьей', type: 'info' };
+    },
+  },
+  {
+    check: (d) => d.status === 'draw_declined',
+    handle: (d, dispatch) => {
+      dispatch({ type: GAME_ACTIONS.SET_DRAW_OFFER, payload: null });
+      return { text: d.message || 'Предложение ничьей отклонено.', type: 'warning' };
+    },
+  },
+  {
+    check: (d) => d.status === 'rematch_status',
+    handle: (d, dispatch) => {
+      dispatch({
+        type: GAME_ACTIONS.SET_REMATCH_STATUS,
+        payload: { self_ready: d.self_ready, opponent_ready: d.opponent_ready },
+      });
+      if (d.self_ready && d.opponent_ready) return null;
+      if (d.self_ready) {
+        return { text: 'Ожидание согласия соперника на реванш…', type: 'info' };
+      }
+      if (d.opponent_ready) {
+        return { text: 'Соперник готов к реваншу. Нажмите «Реванш».', type: 'info' };
+      }
+      return null;
+    },
+  },
+  {
+    check: (d) => d.status === 'rematch_cancelled',
+    handle: (d, dispatch) => {
+      dispatch({ type: GAME_ACTIONS.SET_REMATCH_UNAVAILABLE });
+      return { text: d.message || 'Реванш отменён.', type: 'warning' };
     },
   },
   {
@@ -77,10 +119,10 @@ export const messageHandlers = [
   },
 ];
 
-export function dispatchServerMessage(data, dispatch, modeAi) {
+export function dispatchServerMessage(data, dispatch, modeAi, getMyColor) {
   for (const { check, handle } of messageHandlers) {
     if (check(data)) {
-      return handle(data, dispatch, modeAi);
+      return handle(data, dispatch, modeAi, getMyColor);
     }
   }
   return null;

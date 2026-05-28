@@ -6,15 +6,21 @@ import useMessage from './hooks/useMessage';
 import useEscapeKey from './hooks/useEscapeKey';
 import useCellClick from './hooks/useCellClick';
 import BoardGrid from './BoardGrid';
-import GameHeader from './components/GameHeader';
-import GameInfo from './components/GameInfo';
 import WaitingScreen from './components/WaitingScreen';
 import DisconnectOverlay from './components/DisconnectOverlay';
 import MoveHistory from './components/MoveHistory';
-import { MSG_ERROR, MSG_WARNING } from './constants';
-import { getClientId } from './api';
-import { buildPassPayload } from './utils/wsPayloads';
-import { isWinner } from './utils';
+import PieceCounts from './components/PieceCounts';
+import { MSG_ERROR, MSG_WARNING, ROOM_AI, ROOM_PUBLIC } from './constants';
+import { createRoom } from './api';
+import {
+  buildDeclineDrawPayload,
+  buildOfferDrawPayload,
+  buildPassPayload,
+  buildRequestRematchPayload,
+  buildResignPayload,
+} from './utils/wsPayloads';
+import GameControls from './components/GameControls';
+import { formatGameOverMessage, isWinner } from './utils';
 
 const ROOM_ERROR_TYPES = new Set(['room_full', 'already_in_game', 'room_not_found']);
 
@@ -23,10 +29,14 @@ export default function Game() {
   const { roomId } = useParams();
   const [searchParams] = useSearchParams();
   const modeAi = searchParams.get('mode') === 'ai';
+  const showInviteLink = searchParams.get('mode') === 'private';
 
-  const { state, dispatch, handleServerMessage, deselectPiece } = useGameReducer(modeAi);
-  const { message, messageType, showMessage } = useMessage();
   const myColorRef = useRef(null);
+  const { state, dispatch, handleServerMessage, deselectPiece } = useGameReducer(
+    modeAi,
+    () => myColorRef.current,
+  );
+  const { message, messageType, showMessage } = useMessage();
   const stateRef = useRef(state);
   const handleServerMessageRef = useRef(handleServerMessage);
   const showMessageRef = useRef(showMessage);
@@ -39,6 +49,24 @@ export default function Game() {
     dispatchRef.current = dispatch;
   });
 
+  // Disable page scrolling on the game screen (keep inner panel scrolling).
+  useEffect(() => {
+    document.body.classList.add('in-game');
+    const root = document.getElementById('root');
+    root?.classList.add('in-game');
+    return () => {
+      document.body.classList.remove('in-game');
+      root?.classList.remove('in-game');
+    };
+  }, []);
+
+  // When navigating to a different room (e.g. "Play Again"), the component stays mounted.
+  // Reset local game state so flags like aiThinking/opponentDisconnected don't leak to the next room.
+  useEffect(() => {
+    myColorRef.current = null;
+    dispatch({ type: GAME_ACTIONS.RESET_GAME });
+  }, [roomId, modeAi, dispatch]);
+
   useEffect(() => {
     if (!state.opponentDisconnected || state.disconnectCountdown <= 0) return;
     const timer = setInterval(() => {
@@ -48,7 +76,7 @@ export default function Game() {
   }, [state.opponentDisconnected, state.disconnectCountdown, dispatch]);
 
   const handleWsMessage = useCallback((data) => {
-    if (data.your_color && !myColorRef.current) {
+    if (data.your_color) {
       myColorRef.current = data.your_color;
       dispatchRef.current({
         type: GAME_ACTIONS.SET_MY_COLOR,
@@ -127,11 +155,59 @@ export default function Game() {
     dispatch({ type: GAME_ACTIONS.CLEAR_CAN_PASS });
   }, [send, dispatch]);
 
+  const resign = useCallback(() => {
+    if (stateRef.current.gameOver) return;
+    send(buildResignPayload());
+  }, [send]);
+
+  const offerDraw = useCallback(() => {
+    const s = stateRef.current;
+    if (s.gameOver) return;
+    if (s.drawOfferFrom === s.myColor) return;
+    send(buildOfferDrawPayload());
+  }, [send]);
+
+  const declineDraw = useCallback(() => {
+    const s = stateRef.current;
+    if (s.gameOver) return;
+    if (!s.drawOfferFrom || s.drawOfferFrom === s.myColor) return;
+    send(buildDeclineDrawPayload());
+  }, [send]);
+
+  const drawPending = state.drawOfferFrom != null && state.drawOfferFrom === state.myColor;
+  const drawIncoming = state.drawOfferFrom != null && state.drawOfferFrom !== state.myColor;
+
+  const playAgain = useCallback(async () => {
+    try {
+      if (modeAi) {
+        const data = await createRoom(ROOM_AI, null, null);
+        navigate(`/${data.room_id}?mode=ai`, { replace: true });
+        return;
+      }
+      const data = await createRoom(
+        ROOM_PUBLIC,
+        stateRef.current.timeControl,
+        stateRef.current.increment,
+      );
+      navigate(`/${data.room_id}`, { replace: true });
+    } catch (e) {
+      showMessage(e?.message || 'Не удалось создать новую игру', MSG_ERROR);
+    }
+  }, [modeAi, navigate, showMessage]);
+
+  const requestRematch = useCallback(() => {
+    const s = stateRef.current;
+    if (s.gameOver && !modeAi && !s.rematchReady && !s.rematchUnavailable) {
+      send(buildRequestRematchPayload());
+    }
+  }, [modeAi, send]);
+
   if (state.waiting) {
     return (
       <WaitingScreen
         roomId={roomId}
         modeAi={modeAi}
+        showInviteLink={showInviteLink}
         joiningError={state.joiningError}
         reconnectMessage={''}
       />
@@ -139,101 +215,117 @@ export default function Game() {
   }
 
   const win = state.gameOver ? isWinner(state.winner, state.myColor) : null;
-  const isDisconnectWin = state.gameOverReason === 'opponent_disconnected';
 
   let bannerVariant = 'draw';
   if (win === true) bannerVariant = 'win';
   if (win === false) bannerVariant = 'loss';
 
-  let bannerText = 'Ничья';
-  if (isDisconnectWin) bannerText = 'Соперник покинул игру — ваша победа!';
-  else if (win === true) bannerText = 'Победа!';
-  else if (win === false) bannerText = state.winner ? `Победили ${state.winner}` : 'Поражение';
+  const resultText = state.gameOver ? formatGameOverMessage(state.winner) : 'Ничья';
 
   return (
     <div className="game-page">
-      <div className="game-screen">
-        <GameHeader
-          myColor={state.myColor}
-          moversColor={state.moversColor}
-          aiThinking={state.aiThinking}
-          modeAi={modeAi}
-          onGoToLobby={goToLobby}
-          timer={state.timer}
-          timeControl={state.timeControl}
-          playerId={getClientId()}
-        />
-
-        <div
-          className={[
-            'board',
-            isBoardBlocked ? 'disabled' : '',
-            state.aiThinking ? 'board-ai-thinking' : '',
-          ].filter(Boolean).join(' ')}
-        >
-          {state.opponentDisconnected && (
-            <DisconnectOverlay disconnectCountdown={state.disconnectCountdown} />
-          )}
-          <BoardGrid
-            board={state.board}
-            onCellClick={handleCellClickWrapped}
-            moveFrom={state.moveFrom}
-            highlightedEssential={state.highlightedEssential}
-            highlightedCaptured={state.highlightedCaptured}
-            lastMove={state.lastMove}
-            historyFrom={state.historyFrom}
-            historyTo={state.historyTo}
-            myColor={state.myColor}
-          />
+      <button type="button" className="hud-title" onClick={goToLobby} title="В лобби">
+        Шатра
+      </button>
+      <div className="room-layout">
+        <div className="room-board">
+          <div
+            className={[
+              'board',
+              isBoardBlocked ? 'disabled' : '',
+              (state.aiThinking || state.opponentDisconnected) ? 'board-dimmed' : '',
+              state.aiThinking ? 'board-ai-thinking' : '',
+            ].filter(Boolean).join(' ')}
+          >
+            {state.opponentDisconnected && (
+              <DisconnectOverlay disconnectCountdown={state.disconnectCountdown} />
+            )}
+            <BoardGrid
+              board={state.board}
+              onCellClick={handleCellClickWrapped}
+              moveFrom={state.moveFrom}
+              highlightedEssential={state.highlightedEssential}
+              highlightedCaptured={state.highlightedCaptured}
+              lastMove={state.lastMove}
+              historyFrom={state.historyFrom}
+              historyTo={state.historyTo}
+              myColor={state.myColor}
+            />
+          </div>
         </div>
 
-        {message && (
-          <div className={`message message-${messageType}`}>{message}</div>
-        )}
+        <aside className="room-right">
+          <PieceCounts countsByType={state.countsByType} />
 
-        <GameInfo
-          whiteCount={state.whiteCount}
-          blackCount={state.blackCount}
-          modeAi={modeAi}
-          canPass={state.canPass}
-          gameOver={state.gameOver}
-          onSkipTurn={skipTurn}
-        />
+          <MoveHistory
+            movesHistory={state.movesHistory}
+            viewingHistoryIndex={state.viewingHistoryIndex}
+            onViewMove={(idx) => dispatch({ type: GAME_ACTIONS.VIEW_HISTORY_MOVE, payload: idx })}
+            onExitHistory={() => dispatch({ type: GAME_ACTIONS.EXIT_HISTORY })}
+            onStepBack={() => dispatch({ type: GAME_ACTIONS.HISTORY_STEP_BACK })}
+            onStepForward={() => dispatch({ type: GAME_ACTIONS.HISTORY_STEP_FORWARD })}
+            canStepBack={state.movesHistory.length > 0 && (state.viewingHistoryIndex === null ? state.movesHistory.length - 1 > 0 : state.viewingHistoryIndex > 0)}
+            canStepForward={state.movesHistory.length > 0 && state.viewingHistoryIndex !== null}
+          />
 
-        {state.gameOver && (
-          <div className={`game-over-banner game-over-banner--${bannerVariant}`}>
-            <div className="game-over-banner-content">
-              <span className="game-over-banner-icon">
-                {win === true ? '🏆' : win === false ? '⚔️' : '🤝'}
-              </span>
-              <span className="game-over-banner-text">{bannerText}</span>
-            </div>
-            <div className="game-over-banner-actions">
-              <button
-                className="game-over-banner-btn game-over-banner-btn--primary"
-                onClick={() => navigate('/', { replace: true })}
-              >
-                В лобби
-              </button>
-              {modeAi && (
-                <button
-                  className="game-over-banner-btn game-over-banner-btn--secondary"
-                  onClick={() => navigate(0)}
-                >
+          {state.gameOver && (
+            <div className={`game-result-panel game-result-panel--${bannerVariant}`}>
+              <div className="game-result-text">{resultText}</div>
+              <div className={`game-result-actions ${!modeAi ? 'game-result-actions--stacked' : ''}`}>
+                <button type="button" className="game-result-btn game-result-btn--primary" onClick={goToLobby}>
+                  В лобби
+                </button>
+                <button type="button" className="game-result-btn game-result-btn--secondary" onClick={playAgain}>
                   Снова
                 </button>
-              )}
+                {!modeAi && (
+                  <button
+                    type="button"
+                    className={[
+                      'game-result-btn',
+                      'game-result-btn--rematch',
+                      !state.rematchUnavailable && (state.rematchReady || state.rematchOpponentReady)
+                        ? 'game-result-btn--rematch-pulse'
+                        : '',
+                      state.rematchUnavailable ? 'game-result-btn--rematch-unavailable' : '',
+                    ].filter(Boolean).join(' ')}
+                    onClick={requestRematch}
+                    disabled={state.rematchReady || state.rematchUnavailable}
+                    title={
+                      state.rematchUnavailable
+                        ? 'Соперник вышел'
+                        : state.rematchReady
+                          ? 'Ожидание соперника'
+                          : state.rematchOpponentReady
+                            ? 'Соперник ждёт реванша'
+                            : 'Реванш'
+                    }
+                  >
+                    Реванш
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
 
-      <MoveHistory
-        movesHistory={state.movesHistory}
-        viewingHistoryIndex={state.viewingHistoryIndex}
-        onViewMove={(idx) => dispatch({ type: GAME_ACTIONS.VIEW_HISTORY_MOVE, payload: idx })}
-        onExitHistory={() => dispatch({ type: GAME_ACTIONS.EXIT_HISTORY })}
-      />
+          {!state.gameOver && (
+            <GameControls
+              canPass={state.canPass}
+              onPass={skipTurn}
+              onOfferDraw={offerDraw}
+              onDeclineDraw={declineDraw}
+              onResign={resign}
+              drawPending={drawPending}
+              drawIncoming={drawIncoming}
+            />
+          )}
+
+          {message && (
+            <div className={`message message-${messageType}`}>{message}</div>
+          )}
+
+        </aside>
+      </div>
     </div>
   );
 }

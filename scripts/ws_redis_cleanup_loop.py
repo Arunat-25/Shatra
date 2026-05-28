@@ -36,7 +36,7 @@ def _client_id() -> str:
 
 
 async def _create_room(client: httpx.AsyncClient) -> str:
-    r = await client.post("/rooms", json={"type": "friend"})
+    r = await client.post("/rooms", json={"type": "private"})
     r.raise_for_status()
     return r.json()["room_id"]
 
@@ -71,7 +71,7 @@ async def _one_iteration(base_url: str, ws_base: str, room_type: str) -> str:
         await asyncio.sleep(0.05)
         return room_id
 
-    # friend/quick: 2 players; first gets waiting, then both get game_started
+    # private/public: 2 players; first gets waiting, then both get game_started
     p2 = _client_id()
     async with websockets.connect(ws_url.format(cid=p1)) as ws1:
         await ws1.recv()  # waiting
@@ -86,7 +86,7 @@ async def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--n", type=int, default=50)
     ap.add_argument("--sleep", type=float, default=0.05)
-    ap.add_argument("--type", dest="room_type", choices=["friend", "ai", "quick"], default="friend")
+    ap.add_argument("--type", dest="room_type", choices=["private", "ai", "public"], default="private")
     args = ap.parse_args()
 
     base_url = os.getenv("BASE_URL", "http://127.0.0.1:8000").rstrip("/")

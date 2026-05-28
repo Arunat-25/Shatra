@@ -4,7 +4,7 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel
 
-RoomType = Literal["quick", "friend", "ai"]
+RoomType = Literal["public", "private", "ai"]
 
 
 class Room(BaseModel):
@@ -19,6 +19,7 @@ class Room(BaseModel):
     last_tick: Optional[float] = None  # timestamp последнего тика таймера
     players: dict[str, str] = {}  # client_id → "белый"/"черный"
     creator_client_id: Optional[str] = None  # кто создал комнату
+    creator_color_preference: str = "random"  # "белый" | "черный" | "random"
 
     def correct_timers_after_restart(self):
         """Корректирует таймеры после рестарта сервера (Redis уцелел, in-memory тикеры умерли)."""
@@ -30,10 +31,15 @@ class Room(BaseModel):
                 self.timer_black = max(0, self.timer_black - elapsed)
 
 
+ColorPreference = Literal["белый", "черный", "random"]
+
+
 class CreateRoomRequest(BaseModel):
-    type: RoomType = "quick"
+    type: RoomType = "public"
     time_control: Optional[int] = None  # секунд на игрока
     increment: Optional[int] = None  # добавка времени за ход (сек)
+    color_preference: ColorPreference = "random"
+    creator_client_id: Optional[str] = None
 
 
 class CreateRoomResponse(BaseModel):
@@ -45,6 +51,8 @@ class RoomInfo(BaseModel):
     room_id: str
     type: RoomType
     created_at: datetime
+    time_control: Optional[int] = None
+    increment: int = 0
 
 
 class RoomListResponse(BaseModel):

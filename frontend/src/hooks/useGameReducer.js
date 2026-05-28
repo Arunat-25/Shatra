@@ -5,12 +5,12 @@ import { dispatchServerMessage } from '../game/messageHandlers';
 
 export { GAME_ACTIONS } from '../game/actions';
 
-export default function useGameReducer(modeAi) {
+export default function useGameReducer(modeAi, getMyColor) {
   const [state, dispatch] = useReducer(gameReducer, initialGameState);
 
   const handleServerMessage = useCallback(
-    (data) => dispatchServerMessage(data, dispatch, modeAi),
-    [modeAi],
+    (data) => dispatchServerMessage(data, dispatch, modeAi, getMyColor),
+    [modeAi, getMyColor],
   );
 
   const deselectPiece = useCallback(() => {

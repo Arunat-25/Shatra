@@ -1,23 +1,26 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 const COLOR_LABELS = { 'белый': 'Белые', 'черный': 'Чёрные' };
-const PAGE_SIZE = 5;
 
 export default function MoveHistory({
   movesHistory,
   viewingHistoryIndex,
   onViewMove,
   onExitHistory,
+  onStepBack,
+  onStepForward,
+  canStepBack,
+  canStepForward,
 }) {
-  const totalPages = Math.max(1, Math.ceil(movesHistory.length / PAGE_SIZE));
-  const [page, setPage] = useState(0);
+  const listRef = useRef(null);
 
+  // Прокрутка вниз только при новом ходе в live-режиме (не мешает листать вверх).
   useEffect(() => {
-    setPage(Math.max(0, Math.ceil(movesHistory.length / PAGE_SIZE) - 1));
-  }, [movesHistory.length]);
-
-  const start = page * PAGE_SIZE;
-  const visibleMoves = movesHistory.slice(start, start + PAGE_SIZE);
+    if (viewingHistoryIndex !== null) return;
+    const el = listRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  }, [movesHistory.length, viewingHistoryIndex]);
 
   return (
     <div className="move-history-panel">
@@ -28,12 +31,11 @@ export default function MoveHistory({
         )}
       </div>
 
-      <div className="move-history-list">
+      <div className="move-history-list" ref={listRef}>
         {movesHistory.length === 0 ? (
           <div className="move-history-empty">Ходов пока нет</div>
         ) : (
-          visibleMoves.map((entry, i) => {
-            const idx = start + i;
+          movesHistory.map((entry, idx) => {
             const isActive = idx === viewingHistoryIndex;
             const isLatest = idx === movesHistory.length - 1 && viewingHistoryIndex === null;
             return (
@@ -58,22 +60,24 @@ export default function MoveHistory({
       <div className="move-history-nav">
         <button
           className="move-history-nav-btn"
-          onClick={() => setPage(p => Math.max(0, p - 1))}
-          disabled={page === 0}
-          aria-label="Предыдущие ходы"
-          title="Предыдущие ходы"
+          onClick={onStepBack}
+          disabled={!canStepBack}
+          aria-label="Ход назад"
+          title="Ход назад"
         >
           ←
         </button>
-        <span className="move-history-page">
-          {page + 1} / {totalPages}
+        <span className="move-history-page" title="Позиция в истории">
+          {movesHistory.length === 0
+            ? '0/0'
+            : (viewingHistoryIndex === null ? `${movesHistory.length}/${movesHistory.length}` : `${viewingHistoryIndex + 1}/${movesHistory.length}`)}
         </span>
         <button
           className="move-history-nav-btn"
-          onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
-          disabled={page >= totalPages - 1}
-          aria-label="Следующие ходы"
-          title="Следующие ходы"
+          onClick={onStepForward}
+          disabled={!canStepForward}
+          aria-label="Ход вперёд"
+          title="Ход вперёд"
         >
           →
         </button>

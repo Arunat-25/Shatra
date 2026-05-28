@@ -4,12 +4,12 @@ import { createRoom, listRooms, joinRoom } from './api';
 import useRoomPolling from './hooks/useRoomPolling';
 import RoomCard from './components/RoomCard';
 import GameEmblem from './components/GameEmblem';
-import TimerPicker from './components/TimerPicker';
-import { ROOM_QUICK, ROOM_FRIEND, ROOM_AI, POLL_INTERVAL } from './constants';
+import GameSetupPicker from './components/GameSetupPicker';
+import { ROOM_PUBLIC, ROOM_PRIVATE, ROOM_AI, POLL_INTERVAL } from './constants';
 
 const LOBBY_ACTIONS = [
   {
-    id: 'quick',
+    id: 'public',
     className: 'action-card--play',
     label: 'Создать игру',
     desc: 'Открытая комната в зале ожидания',
@@ -34,8 +34,8 @@ const LOBBY_ACTIONS = [
     ),
   },
   {
-    id: 'friend',
-    className: 'action-card--friend',
+    id: 'private',
+    className: 'action-card--private',
     label: 'Вызов другу',
     desc: 'Приватная ссылка для соперника',
     icon: (
@@ -51,30 +51,21 @@ export default function Lobby() {
   const navigate = useNavigate();
   const { rooms, error, refreshing, dismissError, setExternalError, fetchRooms } = useRoomPolling(listRooms, POLL_INTERVAL);
   const [joinerRoomId, setJoinerRoomId] = useState(null);
-  const [showTimerPicker, setShowTimerPicker] = useState(false);
+  const [showSetup, setShowSetup] = useState(false);
   const [pickerMode, setPickerMode] = useState(null);
 
-  const handleTimerPicker = (mode) => {
+  const startSetup = (mode) => {
     setPickerMode(mode);
-    setShowTimerPicker(true);
+    setShowSetup(true);
   };
 
-  const handleAI = async () => {
+  const finishCreate = async (timeValue, incrementValue, colorPref) => {
     dismissError();
     try {
-      const data = await createRoom(ROOM_AI, null, null);
-      navigate(`/${data.room_id}?mode=ai`);
-    } catch (e) {
-      setExternalError(e.message);
-    }
-  };
-
-  const finishCreate = async (timeValue, incrementValue) => {
-    dismissError();
-    try {
-      const type = pickerMode === 'friend' ? ROOM_FRIEND : ROOM_QUICK;
-      const mode = pickerMode === 'friend' ? 'friend' : '';
-      const data = await createRoom(type, timeValue, incrementValue);
+      const type =
+        pickerMode === 'private' ? ROOM_PRIVATE : pickerMode === 'ai' ? ROOM_AI : ROOM_PUBLIC;
+      const mode = pickerMode === 'private' ? 'private' : pickerMode === 'ai' ? 'ai' : '';
+      const data = await createRoom(type, timeValue, incrementValue, colorPref);
       const modeParam = mode ? `?mode=${mode}` : '';
       navigate(`/${data.room_id}${modeParam}`);
     } catch (e) {
@@ -82,8 +73,8 @@ export default function Lobby() {
     }
   };
 
-  const handleCancelTimer = () => {
-    setShowTimerPicker(false);
+  const handleCancelSetup = () => {
+    setShowSetup(false);
     setPickerMode(null);
   };
 
@@ -100,8 +91,8 @@ export default function Lobby() {
   };
 
   const handleAction = (id) => {
-    if (id === 'ai') handleAI();
-    else handleTimerPicker(id === 'friend' ? 'friend' : 'quick');
+    if (id === 'ai') startSetup('ai');
+    else startSetup(id === 'private' ? 'private' : 'public');
   };
 
   const showLoading = refreshing && rooms.length === 0;
@@ -116,8 +107,12 @@ export default function Lobby() {
           <h1>Шатра</h1>
           <p className="lobby-subtitle">Алтайская народная игра</p>
 
-          {showTimerPicker ? (
-            <TimerPicker onFinish={finishCreate} onCancel={handleCancelTimer} />
+          {showSetup ? (
+            <GameSetupPicker
+              aiOnly={pickerMode === 'ai'}
+              onFinish={finishCreate}
+              onCancel={handleCancelSetup}
+            />
           ) : (
             <div className="lobby-buttons">
               {LOBBY_ACTIONS.map((action) => (

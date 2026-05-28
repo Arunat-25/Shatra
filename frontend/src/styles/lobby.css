@@ -128,7 +128,7 @@
   background: var(--violet-dim);
   color: var(--violet);
 }
-.action-card--friend .action-card__icon {
+.action-card--private .action-card__icon {
   background: var(--gold-dim);
   color: var(--gold);
 }
@@ -258,8 +258,8 @@
 
 /* ===== ROOM CARDS ===== */
 .room-card {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
   padding: 12px 14px;
   background: var(--bg-surface);
@@ -290,7 +290,13 @@
   background: var(--turquoise-dim) !important;
 }
 
-.room-card-left { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.room-card-left {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  justify-self: start;
+}
 
 .room-card-type {
   font-weight: 600;
@@ -311,8 +317,8 @@
   font-size: 0.7rem;
   flex-shrink: 0;
 }
-.room-card-type-badge.quick { background: var(--turquoise-dim); color: var(--turquoise); }
-.room-card-type-badge.friend { background: var(--gold-dim); color: var(--gold); }
+.room-card-type-badge.public { background: var(--turquoise-dim); color: var(--turquoise); }
+.room-card-type-badge.private { background: var(--gold-dim); color: var(--gold); }
 .room-card-type-badge.ai { background: var(--violet-dim); color: var(--violet); }
 
 .room-card-id {
@@ -327,13 +333,17 @@
   align-items: center;
   gap: 10px;
   flex-shrink: 0;
+  justify-self: end;
 }
 
 .room-card-time {
-  font-size: 0.72rem;
+  justify-self: center;
+  font-size: 0.78rem;
+  font-weight: 500;
   color: var(--text-muted);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+  text-align: center;
 }
 
 .btn-join {
@@ -473,6 +483,80 @@
   font-size: 0.8rem;
   color: var(--text-faint);
   font-style: italic;
+}
+
+.waiting-content--invite {
+  max-width: min(560px, 100%);
+  padding: 40px 32px 36px;
+}
+
+.waiting-invite-heading {
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 5vw, 2.25rem);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin: 0 0 28px;
+  line-height: 1.15;
+}
+
+.waiting-link-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.waiting-link-url {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 0.88rem;
+  font-family: ui-monospace, monospace;
+  line-height: 1.45;
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+
+.btn-copy-icon {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(154, 102, 0, 0.35);
+  border-radius: var(--radius-sm);
+  background: var(--gold-dim);
+  color: var(--gold);
+  cursor: pointer;
+  transition: filter var(--duration-fast), background var(--duration-fast);
+}
+
+.btn-copy-icon:hover {
+  filter: brightness(1.06);
+  background: rgba(154, 102, 0, 0.18);
+}
+
+.waiting-copy-icon {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+.waiting-invite-note {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
 }
 
 .waiting-error-icon { font-size: 2rem; margin-bottom: 12px; }

@@ -3,7 +3,6 @@ import { getWsUrl } from '../api';
 
 const RECONNECT_BASE_DELAY_MS = 500;
 const RECONNECT_MAX_DELAY_MS = 5000;
-const RECONNECT_WARNING_SHOWN = true;
 
 const FATAL_CLOSE_REASONS = ['комната уже заполнена', 'комната не найдена', 'вы уже в игре'];
 
@@ -40,6 +39,7 @@ export default function useWebSocket(roomId, onMessage, onError, onStatus) {
   const reconnectTimerRef = useRef(null);
   const reconnectAttemptsRef = useRef(0);
   const reconnectWarningShownRef = useRef(false);
+  const connectRef = useRef(null);
   const onMessageRef = useRef(onMessage);
   const onErrorRef = useRef(onError);
   const onStatusRef = useRef(onStatus);
@@ -108,7 +108,7 @@ export default function useWebSocket(roomId, onMessage, onError, onStatus) {
       const nextDelay = getReconnectDelay(reconnectAttemptsRef.current);
       clearReconnectTimer();
       reconnectTimerRef.current = setTimeout(() => {
-        connect();
+        connectRef.current?.();
       }, nextDelay);
     };
 
@@ -118,6 +118,7 @@ export default function useWebSocket(roomId, onMessage, onError, onStatus) {
   }, [clearReconnectTimer, roomId]);
 
   useEffect(() => {
+    connectRef.current = connect;
     connect();
 
     return () => {

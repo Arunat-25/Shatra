@@ -56,7 +56,7 @@ def _client_id() -> str:
     return secrets.token_hex(8)
 
 
-async def _create_room(base_url: str, room_type: str = "friend") -> str:
+async def _create_room(base_url: str, room_type: str = "private") -> str:
     async with httpx.AsyncClient(base_url=base_url, timeout=10) as client:
         r = await client.post("/rooms", json={"type": room_type})
         r.raise_for_status()
@@ -83,7 +83,7 @@ async def main() -> int:
     except Exception as e:
         raise SystemExit(f"Redis ping failed: {e}") from e
 
-    room_id = await _create_room(cfg.base_url, room_type="friend")
+    room_id = await _create_room(cfg.base_url, room_type="private")
     p1 = _client_id()
     p2 = _client_id()
 

@@ -24,3 +24,19 @@ export function buildMovePayload(gameState, from, to) {
 export function buildPassPayload(gameState) {
   return buildMovePayload(gameState, 0, 0);
 }
+
+export function buildResignPayload() {
+  return { type: 'resign' };
+}
+
+export function buildOfferDrawPayload() {
+  return { type: 'offer_draw' };
+}
+
+export function buildDeclineDrawPayload() {
+  return { type: 'decline_draw' };
+}
+
+export function buildRequestRematchPayload() {
+  return { type: 'request_rematch' };
+}

@@ -1,8 +1,43 @@
 """Сборка WS-ответов и обновление состояния игры после хода."""
 
+import hashlib
+
 from game_engine.models import GameEvent
 from backend.state import get_room, set_room, set_game
 from backend.board_utils import keys_int_to_str, keys_str_to_int, change_position_name_from_frontend
+
+
+def opposite_color(color: str) -> str:
+    return "черный" if color == "белый" else "белый"
+
+
+def resolve_creator_color(preference: str, room_id: str) -> str:
+    """Цвет создателя комнаты: фиксированный или псевдослучайный по room_id."""
+    if preference == "белый":
+        return "белый"
+    if preference == "черный":
+        return "черный"
+    h = int(hashlib.md5(room_id.encode()).hexdigest(), 16)
+    return "белый" if h % 2 == 0 else "черный"
+
+
+def assign_player_color(room_data: dict, client_id: str, players: dict) -> str:
+    """Назначает цвет новому игроку с учётом предпочтения создателя."""
+    creator_id = room_data.get("creator_client_id")
+    pref = room_data.get("creator_color_preference", "random")
+    room_id = room_data["room_id"]
+    creator_col = resolve_creator_color(pref, room_id)
+
+    if client_id == creator_id:
+        for oid in players:
+            if oid != client_id:
+                players[oid] = opposite_color(creator_col)
+        return creator_col
+
+    if creator_id and creator_id in players:
+        return opposite_color(players[creator_id])
+
+    return opposite_color(creator_col)
 
 
 def _timer_fields(room_data: dict) -> dict:
@@ -24,6 +59,13 @@ def build_game_started_response(game: dict, room_data: dict, my_color: str) -> d
         "movers_color": game["mover"],
         "desk": keys_int_to_str(game["board"]),
         "your_color": my_color,
+        "move_history": game.get("move_history", []),
+        # If the game already ended (e.g. resign) and client reloads, ensure
+        # frontend sees terminal state and doesn't allow continuing.
+        "game_over": bool(game.get("game_over", False)),
+        "winner": game.get("winner") or "",
+        "reason": game.get("reason") or "",
+        "draw_offer_from": game.get("draw_offer_from"),
         **_timer_fields(room_data),
     }
     return response
@@ -36,6 +78,20 @@ def build_move_response(
     move_from: int | None = None,
     move_to: int | None = None,
 ) -> dict:
+    # Defensive: filter out any non-real history entries and renumber sequentially.
+    filtered_history = []
+    last_desk = None
+    for entry in game.get("move_history", []) or []:
+        desk = entry.get("desk")
+        if not entry.get("from_pos") or not entry.get("to_pos") or not desk:
+            continue
+        if last_desk is not None and desk == last_desk:
+            continue
+        filtered_history.append({**entry})
+        last_desk = desk
+    for i, e in enumerate(filtered_history, start=1):
+        e["move_number"] = i
+
     response = {
         "message": result.message,
         "movers_color": result.movers_color,
@@ -49,7 +105,7 @@ def build_move_response(
         "captured_positions": result.captured_positions,
         "from_pos": move_from,
         "to_pos": move_to,
-        "move_history": game.get("move_history", []),
+        "move_history": filtered_history,
     }
     if result.movers_color and result.movers_color != prev_mover:
         response["position_for_mandatory_capture"] = None
@@ -105,6 +161,17 @@ async def apply_move_result(
     to_cell: int | None = None,
 ) -> dict:
     """Применяет результат хода к game в Redis и возвращает WS-ответ."""
+    def _norm_board(b: dict) -> dict:
+        # normalize key types (int/str) to avoid false "changed" comparisons
+        out = {}
+        for k, v in (b or {}).items():
+            try:
+                out[int(k)] = v
+            except Exception:
+                out[k] = v
+        return out
+
+    prev_board = _norm_board(game.get("board", {}))
     if result.updated_positions:
         game["board"] = result.updated_positions
 
@@ -117,7 +184,22 @@ async def apply_move_result(
     if result.movers_color:
         game["mover"] = result.movers_color
 
-    if from_cell is not None and to_cell is not None:
+    if result.game_over:
+        game["game_over"] = True
+        if result.winner:
+            game["winner"] = result.winner
+        room_data = await get_room(room_id)
+        if room_data and room_data.get("type") != "ai":
+            room_data["rematch_ready"] = []
+            await set_room(room_id, room_data)
+
+    # Пишем в историю только реальные ходы, которые изменили позиции.
+    if (
+        from_cell is not None
+        and to_cell is not None
+        and result.updated_positions
+        and _norm_board(result.updated_positions) != prev_board
+    ):
         save_move_to_history(
             game,
             prev_mover,
@@ -158,3 +240,12 @@ def parse_client_event(data: dict) -> tuple[GameEvent, int | None, int | None]:
 
 def get_player_color(room_data: dict, client_id: str) -> str | None:
     return room_data.get("players", {}).get(client_id)
+
+
+def get_ai_color(room_data: dict) -> str:
+    """Цвет бота в AI-комнате (противоположен цвету человека)."""
+    players = room_data.get("players") or {}
+    if not players:
+        return "черный"
+    human_color = next(iter(players.values()))
+    return opposite_color(human_color)

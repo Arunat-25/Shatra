@@ -57,11 +57,22 @@ export function getWsUrl(roomId) {
 
 // ===== REST API =====
 
-export function createRoom(type = 'quick', timeControl = null, increment = null) {
+export function createRoom(
+  type = 'public',
+  timeControl = null,
+  increment = null,
+  colorPreference = 'random',
+) {
   return request(`${API_BASE}/rooms`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ type, time_control: timeControl, increment }),
+    body: JSON.stringify({
+      type,
+      time_control: timeControl,
+      increment,
+      color_preference: colorPreference,
+      creator_client_id: getClientId(),
+    }),
   });
 }
 

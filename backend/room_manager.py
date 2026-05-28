@@ -20,6 +20,8 @@ async def create_room(request: CreateRoomRequest) -> dict:
         created_at=now,
         time_control=request.time_control,
         increment=request.increment,
+        creator_client_id=request.creator_client_id,
+        creator_color_preference=request.color_preference,
     )
     if request.time_control:
         room.timer_white = float(request.time_control)
@@ -39,11 +41,13 @@ async def list_rooms() -> dict:
         raw = await get_raw(key)
         if raw:
             r = json.loads(raw)
-            if not r.get("game_started") and r.get("type") in ("quick", "friend"):
+            if not r.get("game_started") and r.get("type") == "public":
                 rooms_data.append({
                     "room_id": r["room_id"],
                     "type": r["type"],
                     "created_at": r.get("created_at", ""),
+                    "time_control": r.get("time_control"),
+                    "increment": r.get("increment") or 0,
                 })
     return {"rooms": rooms_data}
 
