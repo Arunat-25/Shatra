@@ -21,7 +21,7 @@ function cellClass(id, className, board, moveFrom, hE, hC, lastMove, hF, hT) {
 const Cell = memo(function Cell(props) {
   const { id, className, board, moveFrom, highlightedEssential = [], highlightedCaptured = [],
           lastMove = null, historyFrom = null, historyTo = null, onCellClick,
-          onCellPointerDown, onCellPointerUp, shouldIgnoreClick, isDragOrigin } = props;
+          onCellPointerDown, shouldIgnoreClick, isDragOrigin } = props;
   const piece = board[id];
 
   return (
@@ -38,13 +38,8 @@ const Cell = memo(function Cell(props) {
       }}
       onPointerDown={(e) => {
         if (!piece) return;
-        // Only left click / primary touch
         if (e.button != null && e.button !== 0) return;
-        onCellPointerDown?.(id);
-      }}
-      onPointerUp={(e) => {
-        if (e.button != null && e.button !== 0) return;
-        onCellPointerUp?.(id);
+        onCellPointerDown?.(id, e);
       }}
     >
       <span className="cell-number">{id}</span>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 
 const RESIGN_ARM_MS = 4000;
 
@@ -23,11 +24,14 @@ export default function GameControls({
   onOfferDraw,
   onAcceptDraw,
   onDeclineDraw,
+  onCancelGame,
   onResign,
   drawPending = false,
   drawIncoming = false,
+  canCancelGame = false,
   hideDraw = false,
 }) {
+  const { t } = useTranslation();
   const [resignArmed, setResignArmed] = useState(false);
 
   useEffect(() => {
@@ -49,7 +53,7 @@ export default function GameControls({
     <div className="room-actions-block">
       {canPass && (
         <button type="button" className="btn-sidebar" onClick={onPass}>
-          Передать
+          {t('controls.pass')}
         </button>
       )}
       <div className="room-icon-actions">
@@ -60,34 +64,47 @@ export default function GameControls({
                 type="button"
                 className="btn-draw-text btn-draw-text--accept room-icon-btn--draw-active"
                 onClick={onAcceptDraw}
-                title="Принять ничью"
+                title={t('controls.acceptDraw')}
               >
-                Принять ничью
+                {t('controls.acceptDraw')}
               </button>
               <button
                 type="button"
                 className="room-icon-btn room-icon-btn--draw-active room-icon-btn--draw-decline"
                 onClick={onDeclineDraw}
-                title="Отклонить ничью"
-                aria-label="Отклонить ничью"
+                title={t('controls.declineDraw')}
+                aria-label={t('controls.declineDraw')}
               >
                 <span className="room-icon-decline">✕</span>
               </button>
             </>
           ) : (
-            <button
-              type="button"
-              className={[
-                'room-icon-btn',
-                drawPending ? 'room-icon-btn--draw-active' : '',
-              ].filter(Boolean).join(' ')}
-              onClick={onOfferDraw}
-              disabled={drawPending}
-              title={drawPending ? 'Ожидание ответа соперника' : 'Предложить ничью'}
-              aria-label={drawPending ? 'Ожидание ответа соперника' : 'Предложить ничью'}
-            >
-              <span className="room-icon-half">½</span>
-            </button>
+            <>
+              <button
+                type="button"
+                className={[
+                  'room-icon-btn',
+                  drawPending ? 'room-icon-btn--draw-active' : '',
+                ].filter(Boolean).join(' ')}
+                onClick={onOfferDraw}
+                disabled={drawPending}
+                title={drawPending ? t('controls.drawPending') : t('controls.offerDraw')}
+                aria-label={drawPending ? t('controls.drawPending') : t('controls.offerDraw')}
+              >
+                <span className="room-icon-half">½</span>
+              </button>
+              {canCancelGame && (
+                <button
+                  type="button"
+                  className="room-icon-btn room-icon-btn--cancel"
+                  onClick={onCancelGame}
+                  title={t('controls.cancelGame')}
+                  aria-label={t('controls.cancelGame')}
+                >
+                  <span className="room-icon-decline">✕</span>
+                </button>
+              )}
+            </>
           )
         )}
         <button
@@ -98,8 +115,8 @@ export default function GameControls({
             resignArmed ? 'room-icon-btn--resign-armed' : '',
           ].filter(Boolean).join(' ')}
           onClick={handleResignClick}
-          title={resignArmed ? 'Нажмите ещё раз, чтобы сдаться' : 'Сдаться'}
-          aria-label={resignArmed ? 'Подтвердите сдачу' : 'Сдаться'}
+          title={resignArmed ? t('controls.resignConfirm') : t('controls.resign')}
+          aria-label={resignArmed ? t('controls.resignConfirmAria') : t('controls.resign')}
         >
           <FlagIcon />
         </button>

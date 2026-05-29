@@ -10,6 +10,10 @@ export default defineConfig({
   },
   server: {
     proxy: {
+      '/api': {
+        target: `http://${API_HOST}`,
+        changeOrigin: true,
+      },
       '/rooms': {
         target: `http://${API_HOST}`,
         changeOrigin: true,

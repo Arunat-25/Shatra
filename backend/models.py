@@ -18,12 +18,24 @@ class Room(BaseModel):
     increment: Optional[int] = None  # добавка времени за ход (сек)
     last_tick: Optional[float] = None  # timestamp последнего тика таймера
     players: dict[str, str] = {}  # client_id → "белый"/"черный"
+    player_meta: dict[str, dict] = {}  # client_id → { user_id?, username?, is_anonymous }
     creator_client_id: Optional[str] = None  # кто создал комнату
+    creator_user_id: Optional[str] = None
+    creator_username: Optional[str] = None
     creator_color_preference: str = "random"  # "белый" | "черный" | "random"
+    chat_messages: list[dict] = []
 
-    def correct_timers_after_restart(self, mover: Optional[str] = None):
+    def correct_timers_after_restart(
+        self,
+        mover: Optional[str] = None,
+        game: Optional[dict] = None,
+    ):
         """Корректирует таймеры после рестарта: вычитает паузу только у стороны на ходе."""
         if self.last_tick is not None and self.game_started and mover:
+            from backend.game_helpers import color_has_moved
+
+            if game and not color_has_moved(game, mover):
+                return
             elapsed = time.time() - self.last_tick
             if mover == "белый" and self.timer_white is not None:
                 self.timer_white = max(0, self.timer_white - elapsed)
@@ -53,6 +65,7 @@ class RoomInfo(BaseModel):
     created_at: datetime
     time_control: Optional[int] = None
     increment: int = 0
+    creator_username: Optional[str] = None
 
 
 class RoomListResponse(BaseModel):

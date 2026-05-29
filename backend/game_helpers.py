@@ -3,12 +3,20 @@
 import hashlib
 
 from game_engine.models import GameEvent
+from backend.player_identity import build_players_info
 from backend.state import get_room, set_room, set_game
 from backend.board_utils import keys_int_to_str, keys_str_to_int, change_position_name_from_frontend
 
 
 def opposite_color(color: str) -> str:
     return "черный" if color == "белый" else "белый"
+
+
+def color_has_moved(game: dict | None, color: str) -> bool:
+    """True, если сторона уже сделала хотя бы один записанный ход."""
+    if not game or not color:
+        return False
+    return any(e.get("mover") == color for e in (game.get("move_history") or []))
 
 
 def resolve_creator_color(preference: str, room_id: str) -> str:
@@ -59,6 +67,7 @@ def build_game_started_response(game: dict, room_data: dict, my_color: str) -> d
         "movers_color": game["mover"],
         "desk": keys_int_to_str(game["board"]),
         "your_color": my_color,
+        "players_info": build_players_info(room_data),
         "move_history": game.get("move_history", []),
         # If the game already ended (e.g. resign) and client reloads, ensure
         # frontend sees terminal state and doesn't allow continuing.
@@ -211,6 +220,7 @@ KNOWN_CONTROL_MESSAGE_TYPES = frozenset({
     "decline_draw",
     "offer_draw",
     "resign",
+    "cancel_game",
 })
 
 

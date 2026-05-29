@@ -1,20 +1,37 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
-  <!-- Stone piece base -->
   <defs>
-    <linearGradient id="stone-grad" x1="0" y1="0" x2="48" y2="48">
-      <stop offset="0%" stop-color="#D4AF37"/>
-      <stop offset="100%" stop-color="#B8860B"/>
+    <linearGradient id="fire" x1="24" y1="38" x2="24" y2="12" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#8B2500"/>
+      <stop offset="30%" stop-color="#C0490C"/>
+      <stop offset="60%" stop-color="#E07A1A"/>
+      <stop offset="100%" stop-color="#FFF0A8"/>
     </linearGradient>
+    <linearGradient id="fire-hot" x1="24" y1="37" x2="24" y2="19" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FF6B1A"/>
+      <stop offset="100%" stop-color="#FFF8D0"/>
+    </linearGradient>
+    <linearGradient id="metal" x1="16" y1="11" x2="32" y2="42" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#7A6550"/>
+      <stop offset="100%" stop-color="#3D2E22"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="24" cy="37" r="13" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FF8C1A" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#FF8C1A" stop-opacity="0"/>
+    </radialGradient>
   </defs>
-  <!-- Background circle -->
-  <circle cx="24" cy="24" r="22" fill="#4A3728" opacity="0.9"/>
-  <!-- Stone piece shape -->
-  <path d="M14 8 C18 5, 30 5, 34 8 C38 11, 40 16, 39 22 C38 28, 35 32, 32 34 C29 36, 26 37, 24 37 C22 37, 19 36, 16 34 C13 32, 10 28, 9 22 C8 16, 10 11, 14 8Z"
-        fill="url(#stone-grad)" stroke="#FFFDD0" stroke-width="0.8"/>
-  <!-- Altai rune symbol -->
-  <circle cx="24" cy="20" r="3" fill="none" stroke="#F5EBE0" stroke-width="0.8" opacity="0.7"/>
-  <path d="M24 17 Q26 14 24 11 Q22 14 24 17Z" fill="none" stroke="#F5EBE0" stroke-width="0.7" opacity="0.5"/>
-  <path d="M27 20 Q30 18 31 20 Q30 22 27 20Z" fill="none" stroke="#F5EBE0" stroke-width="0.7" opacity="0.5"/>
-  <path d="M24 23 Q22 26 24 29 Q26 26 24 23Z" fill="none" stroke="#F5EBE0" stroke-width="0.7" opacity="0.5"/>
-  <path d="M21 20 Q18 18 17 20 Q18 22 21 20Z" fill="none" stroke="#F5EBE0" stroke-width="0.7" opacity="0.5"/>
+  <rect width="48" height="48" rx="10" fill="#4A3728"/>
+  <ellipse cx="24" cy="40" rx="18" ry="2.5" fill="#2A1810" opacity="0.25"/>
+  <path d="M24 11.2 C24 22 23.5 30 24 39.5" stroke="url(#metal)" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.85"/>
+  <ellipse cx="24" cy="37" rx="11" ry="6" fill="url(#glow)"/>
+  <path d="M14 39.5 L34 39.5" stroke="#2A1810" stroke-width="1.6" stroke-linecap="round"/>
+  <path d="M16 40 L32 38.5" stroke="#3D2817" stroke-width="1.2" stroke-linecap="round"/>
+  <path d="M14 39.5 C12 37 11 33 12 28 C13 23 15 19 16 17 C17 20 16 25 15 30 C14 35 14 38 14 39.5 Z" fill="url(#fire)" opacity="0.92"/>
+  <path d="M20 40 C17 36 16 30 17 24 C18 18 20 14 21 12 C22 16 21 21 20 27 C19 33 20 38 20 40 Z" fill="url(#fire)"/>
+  <path d="M28 40 C25 36 24 30 25 24 C26 18 28 14 29 12 C30 16 29 21 28 27 C27 33 28 38 28 40 Z" fill="url(#fire)" opacity="0.93"/>
+  <path d="M34 39.5 C36 37 37 33 36 28 C35 23 33 19 32 17 C31 20 32 25 33 30 C34 35 34 38 34 39.5 Z" fill="url(#fire)" opacity="0.9"/>
+  <path d="M18 39 C17 36 17 32 19 28 C21 24 23 22 24 21 C25 22 27 24 29 28 C31 32 31 36 29 39 C27 40 19 40 18 39 Z" fill="url(#fire-hot)" opacity="0.88"/>
+  <path d="M15.5 13.5 C11 22 9 30 11 39.5" stroke="url(#metal)" stroke-width="2" stroke-linecap="round" fill="none"/>
+  <path d="M32.5 13.5 C37 22 39 30 37 39.5" stroke="url(#metal)" stroke-width="2" stroke-linecap="round" fill="none"/>
+  <ellipse cx="24" cy="13.5" rx="8.5" ry="2.5" fill="none" stroke="url(#metal)" stroke-width="1.8"/>
+  <ellipse cx="24" cy="13.5" rx="8.5" ry="2.5" fill="none" stroke="#9A6600" stroke-width="0.5" opacity="0.5"/>
 </svg>

@@ -3,12 +3,15 @@ import logging
 import time
 from fastapi import WebSocket
 from backend.state import (get_room, set_room, get_game, set_game,
-                            game_timers, disconnect_timers, DISCONNECT_TIMEOUT)
+                            game_timers, disconnect_timers, DISCONNECT_TIMEOUT,
+                            get_room_lock)
+from backend.config import settings
 from backend.ws_manager import manager
 from backend.board_utils import keys_int_to_str
+from backend.game_helpers import color_has_moved
 
 logger = logging.getLogger(__name__)
-TICK_INTERVAL_SECONDS = 1.0
+TICK_INTERVAL_SECONDS = settings.tick_interval_seconds
 
 
 def _opposite_color(color: str) -> str:
@@ -20,46 +23,58 @@ async def game_ticker(room_id: str):
     """Тикает каждую секунду, уменьшая таймеры обоих игроков."""
     try:
         while True:
-            room_data = await get_room(room_id)
-            if not room_data:
-                logger.info("game_ticker: room %s not found, stopping", room_id)
-                stop_game_timer(room_id)
-                return
-
-            if not room_data.get("time_control"):
-                stop_game_timer(room_id)
-                return
-
-            mover = None
-            game = await get_game(room_id)
-            if game:
-                mover = game.get("mover")
-
-            if mover == "белый" and room_data.get("timer_white") is not None:
-                room_data["timer_white"] -= TICK_INTERVAL_SECONDS
-                if room_data["timer_white"] <= 0:
-                    room_data["timer_white"] = 0
-                    await set_room(room_id, room_data)
-                    await handle_timeout(room_id, "белый")
-                    return
-            elif mover == "черный" and room_data.get("timer_black") is not None:
-                room_data["timer_black"] -= TICK_INTERVAL_SECONDS
-                if room_data["timer_black"] <= 0:
-                    room_data["timer_black"] = 0
-                    await set_room(room_id, room_data)
-                    await handle_timeout(room_id, "черный")
+            # Сериализуем тик с обработкой ходов через лок комнаты,
+            # чтобы не потерять начисление инкремента / обновление таймеров.
+            async with get_room_lock(room_id):
+                room_data = await get_room(room_id)
+                if not room_data:
+                    logger.info("game_ticker: room %s not found, stopping", room_id)
+                    stop_game_timer(room_id)
                     return
 
-            room_data["last_tick"] = time.time()
-            await set_room(room_id, room_data)
+                if not room_data.get("time_control"):
+                    stop_game_timer(room_id)
+                    return
 
-            await manager.send_to_room(room_id, {
-                "type": "timer_tick",
-                "time": {
-                    "белый": room_data["timer_white"],
-                    "черный": room_data["timer_black"],
-                }
-            })
+                mover = None
+                game = await get_game(room_id)
+                if game:
+                    mover = game.get("mover")
+
+                # Первый ход стороны не тратит время на раздумье.
+                if (
+                    mover == "белый"
+                    and room_data.get("timer_white") is not None
+                    and color_has_moved(game, "белый")
+                ):
+                    room_data["timer_white"] -= TICK_INTERVAL_SECONDS
+                    if room_data["timer_white"] <= 0:
+                        room_data["timer_white"] = 0
+                        await set_room(room_id, room_data)
+                        await handle_timeout(room_id, "белый")
+                        return
+                elif (
+                    mover == "черный"
+                    and room_data.get("timer_black") is not None
+                    and color_has_moved(game, "черный")
+                ):
+                    room_data["timer_black"] -= TICK_INTERVAL_SECONDS
+                    if room_data["timer_black"] <= 0:
+                        room_data["timer_black"] = 0
+                        await set_room(room_id, room_data)
+                        await handle_timeout(room_id, "черный")
+                        return
+
+                room_data["last_tick"] = time.time()
+                await set_room(room_id, room_data)
+
+                await manager.send_to_room(room_id, {
+                    "type": "timer_tick",
+                    "time": {
+                        "белый": room_data["timer_white"],
+                        "черный": room_data["timer_black"],
+                    }
+                })
 
             await asyncio.sleep(TICK_INTERVAL_SECONDS)
     except asyncio.CancelledError:

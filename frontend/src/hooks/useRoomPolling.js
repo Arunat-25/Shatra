@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import i18n from '../i18n';
 
 /**
  * Хук для polling списка комнат.
@@ -18,7 +19,7 @@ export default function useRoomPolling(fetchFn, interval) {
       setRooms(data.rooms);
       setError('');
     } catch (e) {
-      if (e.message !== 'Ошибка подключения') {
+      if (e.message !== i18n.t('errors.serverUnavailable')) {
         setError(e.message);
       }
     } finally {

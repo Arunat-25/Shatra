@@ -1,47 +1,107 @@
 import PropTypes from 'prop-types';
+import { useTranslation } from 'react-i18next';
 import { COLOR_WHITE, COLOR_BLACK } from '../constants';
-import { formatClockTime } from '../utils';
+import { formatClockTime, getBoardSideOrder, readTimerSeconds } from '../utils';
+import { PieceCountRow } from './PieceCounts';
 
-function ClockItem({ label, seconds, isActive, lowThreshold = 10 }) {
-  const low = seconds != null && seconds <= lowThreshold;
+function nicknameForColor(playersInfo, color, t) {
+  const player = playersInfo?.find((p) => p.color === color);
+  if (!player) {
+    return color === COLOR_WHITE ? t('colors.whitePl') : t('colors.blackPl');
+  }
+  if (player.display_name) return player.display_name;
+  if (!player.is_anonymous && player.username) return player.username;
+  return t('lobby.anonymous');
+}
+
+function TimerRow({ nickname, seconds, isActive, isSelf, showTime, countsByType, color, t }) {
+  const low = showTime && seconds != null && seconds <= 10;
   return (
-    <span
+    <div
       className={[
-        'timer-item',
-        isActive ? 'timer-active' : '',
-        low ? 'timer-low' : '',
+        'timer-row',
+        !showTime ? 'timer-row--names-only' : '',
+        isActive && showTime ? 'timer-row--active' : '',
+        isSelf ? 'timer-row--self' : '',
       ].filter(Boolean).join(' ')}
-      title={label}
     >
-      {formatClockTime(seconds)}
-    </span>
+      <div className="timer-row__left">
+        <span className="timer-row__nick" title={nickname}>
+          {nickname}
+        </span>
+        {countsByType && color && (
+          <div className="timer-row__counts" aria-label={t('game.pieces')}>
+            <PieceCountRow color={color} countsByType={countsByType} />
+          </div>
+        )}
+      </div>
+
+      {showTime && (
+        <span
+          className={[
+            'timer-row__time',
+            isActive ? 'timer-row__time--active' : '',
+            low ? 'timer-row__time--low' : '',
+          ].filter(Boolean).join(' ')}
+        >
+          {formatClockTime(seconds)}
+        </span>
+      )}
+    </div>
   );
 }
 
-export default function GameClock({ timer, moversColor, myColor, timeControl }) {
-  if (!timeControl || !timer) return null;
+export default function GameClock({
+  timer,
+  moversColor,
+  myColor,
+  timeControl,
+  playersInfo,
+  countsByType,
+  middleSlot,
+}) {
+  const { t } = useTranslation();
+  const hasTimer = Boolean(timeControl && timer);
+  if (!myColor && !playersInfo?.length) return null;
 
-  const whiteSec = timer[COLOR_WHITE] ?? timer.white;
-  const blackSec = timer[COLOR_BLACK] ?? timer.black;
+  const { top, bottom } = getBoardSideOrder(myColor);
+  const topSec = hasTimer ? readTimerSeconds(timer, top) : null;
+  const bottomSec = hasTimer ? readTimerSeconds(timer, bottom) : null;
 
   return (
-    <div className="timer-display" aria-label="Часы">
-      <ClockItem
-        label="Белые"
-        seconds={whiteSec}
-        isActive={moversColor === COLOR_WHITE}
+    <div
+      className={[
+        'timer-display',
+        'timer-display--game',
+        hasTimer ? '' : 'timer-display--names-only',
+      ].filter(Boolean).join(' ')}
+      aria-label={hasTimer ? t('game.clocks') : t('game.players')}
+    >
+      <TimerRow
+        nickname={nicknameForColor(playersInfo, top, t)}
+        seconds={topSec}
+        isActive={hasTimer && moversColor === top}
+        isSelf={myColor === top}
+        showTime={hasTimer}
+        countsByType={countsByType}
+        color={top}
+        t={t}
       />
-      <span className="timer-separator">|</span>
-      <ClockItem
-        label="Чёрные"
-        seconds={blackSec}
-        isActive={moversColor === COLOR_BLACK}
-      />
-      {myColor && (
-        <span className="timer-you" title="Ваш цвет">
-          {myColor === COLOR_WHITE ? '⚪' : '⚫'}
-        </span>
+      {middleSlot && (
+        <div className="timer-display__middle">
+          {middleSlot}
+        </div>
       )}
+      <TimerRow
+        nickname={nicknameForColor(playersInfo, bottom, t)}
+        seconds={bottomSec}
+        isActive={hasTimer && moversColor === bottom}
+        isSelf={myColor === bottom}
+        showTime={hasTimer}
+        countsByType={countsByType}
+        color={bottom}
+        t={t}
+      />
     </div>
   );
 }
@@ -51,4 +111,7 @@ GameClock.propTypes = {
   moversColor: PropTypes.string,
   myColor: PropTypes.string,
   timeControl: PropTypes.number,
+  playersInfo: PropTypes.arrayOf(PropTypes.object),
+  countsByType: PropTypes.object,
+  middleSlot: PropTypes.node,
 };

@@ -1,5 +1,6 @@
 import { useEffect, useCallback, useRef, useState } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import useWebSocket from './hooks/useWebSocket';
 import useGameReducer, { GAME_ACTIONS } from './hooks/useGameReducer';
 import useMessage from './hooks/useMessage';
@@ -9,7 +10,6 @@ import BoardGrid from './BoardGrid';
 import WaitingScreen from './components/WaitingScreen';
 import DisconnectOverlay from './components/DisconnectOverlay';
 import MoveHistory from './components/MoveHistory';
-import PieceCounts from './components/PieceCounts';
 import { MSG_ERROR, MSG_WARNING, ROOM_AI, ROOM_PUBLIC } from './constants';
 import { createRoom } from './api';
 import {
@@ -18,10 +18,16 @@ import {
   buildPassPayload,
   buildRequestRematchPayload,
   buildResignPayload,
+  buildCancelGamePayload,
 } from './utils/wsPayloads';
 import GameControls from './components/GameControls';
+import GameResultActions from './components/GameResultActions';
 import GameClock from './components/GameClock';
-import { formatGameOverMessage, isWinner } from './utils';
+import GameChat from './components/GameChat';
+import PlayerBar from './components/PlayerBar';
+import { getClientId } from './api';
+import { formatGameOverMessage, getBoardSideOrder } from './utils';
+import { translateWsErrorMessage } from './i18n/translateServerMessage';
 
 const ROOM_ERROR_TYPES = new Set([
   'room_full',
@@ -31,6 +37,7 @@ const ROOM_ERROR_TYPES = new Set([
 ]);
 
 export default function Game() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { roomId } = useParams();
   const [searchParams] = useSearchParams();
@@ -90,14 +97,14 @@ export default function Game() {
     if (!statusInfo) return;
     if (statusInfo.type === 'reconnecting') {
       setWsReconnecting(true);
-      showMessage(statusInfo.message, MSG_WARNING);
+      showMessage(translateWsErrorMessage(statusInfo.message), MSG_WARNING);
       return;
     }
     if (statusInfo.type === 'connected') {
       setWsReconnecting(false);
-      showMessage('Соединение восстановлено');
+      showMessage(t('game.connectionRestored'));
     }
-  }, [showMessage]);
+  }, [showMessage, t]);
 
   const handleWsError = useCallback((errorInfo) => {
     const error = typeof errorInfo === 'string'
@@ -105,26 +112,27 @@ export default function Game() {
       : errorInfo;
 
     if (!error?.message) return;
+    const message = translateWsErrorMessage(error.message);
 
     if (error.recoverable) {
-      showMessage(error.message, MSG_WARNING);
+      showMessage(message, MSG_WARNING);
       return;
     }
 
     if (ROOM_ERROR_TYPES.has(error.type)) {
       setWsReconnecting(false);
-      dispatchRef.current({ type: GAME_ACTIONS.SET_JOINING_ERROR, payload: error.message });
+      dispatchRef.current({ type: GAME_ACTIONS.SET_JOINING_ERROR, payload: message });
       const delay = error.type === 'reconnect_failed' ? 4000 : 2000;
       setTimeout(() => navigate('/'), delay);
       return;
     }
 
     if (stateRef.current.waiting) {
-      dispatchRef.current({ type: GAME_ACTIONS.SET_JOINING_ERROR, payload: error.message });
+      dispatchRef.current({ type: GAME_ACTIONS.SET_JOINING_ERROR, payload: message });
       return;
     }
 
-    showMessage(error.message, MSG_ERROR);
+    showMessage(message, MSG_ERROR);
   }, [navigate, showMessage]);
 
   const { send } = useWebSocket(roomId, handleWsMessage, handleWsError, handleWsStatus);
@@ -168,18 +176,18 @@ export default function Game() {
     if (s.gameOver) return;
     if (s.drawOfferFrom === s.myColor) return;
     if (!send(buildOfferDrawPayload())) {
-      showMessage('Нет соединения. Дождитесь переподключения…', MSG_WARNING);
+      showMessage(t('game.connectionLost'), MSG_WARNING);
     }
-  }, [send, showMessage]);
+  }, [send, showMessage, t]);
 
   const acceptDraw = useCallback(() => {
     const s = stateRef.current;
     if (s.gameOver) return;
     if (!s.drawOfferFrom || s.drawOfferFrom === s.myColor) return;
     if (!send(buildOfferDrawPayload())) {
-      showMessage('Нет соединения. Дождитесь переподключения…', MSG_WARNING);
+      showMessage(t('game.connectionLost'), MSG_WARNING);
     }
-  }, [send, showMessage]);
+  }, [send, showMessage, t]);
 
   const declineDraw = useCallback(() => {
     const s = stateRef.current;
@@ -188,8 +196,26 @@ export default function Game() {
     send(buildDeclineDrawPayload());
   }, [send]);
 
+  const cancelGame = useCallback(() => {
+    const s = stateRef.current;
+    if (s.gameOver || modeAi) return;
+    if (s.movesHistory.some((m) => m.mover === s.myColor)) return;
+    dispatch({
+      type: GAME_ACTIONS.GAME_CANCELLED,
+      payload: { message: t('server.cancelYou') },
+    });
+    if (!send(buildCancelGamePayload())) {
+      showMessage(t('game.connectionLost'), MSG_WARNING);
+    }
+  }, [modeAi, send, showMessage, dispatch, t]);
+
   const drawPending = state.drawOfferFrom != null && state.drawOfferFrom === state.myColor;
   const drawIncoming = state.drawOfferFrom != null && state.drawOfferFrom !== state.myColor;
+  const canCancelGame = !modeAi
+    && !state.gameOver
+    && !!state.myColor
+    && !drawIncoming
+    && !state.movesHistory.some((m) => m.mover === state.myColor);
 
   const playAgain = useCallback(async () => {
     try {
@@ -205,9 +231,13 @@ export default function Game() {
       );
       navigate(`/${data.room_id}`, { replace: true });
     } catch (e) {
-      showMessage(e?.message || 'Не удалось создать новую игру', MSG_ERROR);
+      showMessage(e?.message || t('game.createNewFailed'), MSG_ERROR);
     }
-  }, [modeAi, navigate, showMessage]);
+  }, [modeAi, navigate, showMessage, t]);
+
+  const sendChat = useCallback((text) => {
+    send({ type: 'chat', text });
+  }, [send]);
 
   const requestRematch = useCallback(() => {
     const s = stateRef.current;
@@ -216,6 +246,13 @@ export default function Game() {
     }
   }, [modeAi, send]);
 
+  const opponentLabel = (() => {
+    const myId = getClientId();
+    const opp = state.playersInfo?.find((p) => p.client_id !== myId);
+    if (!opp) return null;
+    return opp.is_anonymous ? t('lobby.anonymous') : `@${opp.username}`;
+  })();
+
   if (state.waiting) {
     return (
       <WaitingScreen
@@ -223,147 +260,172 @@ export default function Game() {
         modeAi={modeAi}
         showInviteLink={showInviteLink}
         joiningError={state.joiningError}
-        reconnectMessage={wsReconnecting ? 'Переподключение…' : ''}
+        reconnectMessage={wsReconnecting ? t('game.reconnecting') : ''}
+        opponentLabel={opponentLabel}
         onCopyFeedback={(type, text) => showMessage(text, type === 'success' ? 'info' : MSG_ERROR)}
       />
     );
   }
 
-  const win = state.gameOver ? isWinner(state.winner, state.myColor) : null;
-
-  let bannerVariant = 'draw';
-  if (win === true) bannerVariant = 'win';
-  if (win === false) bannerVariant = 'loss';
-
   const resultText = state.gameOver
     ? formatGameOverMessage(state.winner, state.gameOverReason)
-    : 'Ничья';
+    : t('game.draw');
+
+  const { top: boardTop, bottom: boardBottom } = getBoardSideOrder(state.myColor);
+
+  const moveHistoryProps = {
+    movesHistory: state.movesHistory,
+    viewingHistoryIndex: state.viewingHistoryIndex,
+    onViewMove: (idx) => dispatch({ type: GAME_ACTIONS.VIEW_HISTORY_MOVE, payload: idx }),
+    onExitHistory: () => dispatch({ type: GAME_ACTIONS.EXIT_HISTORY }),
+    onStepBack: () => dispatch({ type: GAME_ACTIONS.HISTORY_STEP_BACK }),
+    onStepForward: () => dispatch({ type: GAME_ACTIONS.HISTORY_STEP_FORWARD }),
+    canStepBack:
+      state.movesHistory.length > 0
+      && (state.viewingHistoryIndex === null
+        ? state.movesHistory.length - 1 > 0
+        : state.viewingHistoryIndex > 0),
+    canStepForward: state.movesHistory.length > 0 && state.viewingHistoryIndex !== null,
+  };
+
+  const actionsBarClass = [
+    'game-actions-bar',
+    state.gameOver ? 'game-actions-bar--game-over' : '',
+  ].filter(Boolean).join(' ');
+
+  const renderActionsBar = (slot) => (
+    <div className={`${actionsBarClass} game-actions-bar--${slot}`}>
+      {state.gameOver ? (
+        <>
+          <p className="game-result-text game-result-text--bar">{resultText}</p>
+          <GameResultActions
+            modeAi={modeAi}
+            onLobby={goToLobby}
+            onPlayAgain={playAgain}
+            onRematch={requestRematch}
+            rematchReady={state.rematchReady}
+            rematchOpponentReady={state.rematchOpponentReady}
+            rematchUnavailable={state.rematchUnavailable}
+          />
+          {!modeAi && state.rematchUnavailable && (
+            <p className="game-result-hint game-result-hint--warn game-result-hint--bar">
+              {t('result.rematchHint')}
+            </p>
+          )}
+        </>
+      ) : (
+        <GameControls
+          canPass={state.canPass}
+          onPass={skipTurn}
+          onOfferDraw={offerDraw}
+          onAcceptDraw={acceptDraw}
+          onDeclineDraw={declineDraw}
+          onCancelGame={cancelGame}
+          onResign={resign}
+          drawPending={drawPending}
+          drawIncoming={drawIncoming}
+          canCancelGame={canCancelGame}
+          hideDraw={modeAi}
+        />
+      )}
+    </div>
+  );
 
   return (
     <div className="game-page">
-      <button type="button" className="hud-title" onClick={goToLobby} title="В лобби">
-        Шатра
+      <button type="button" className="hud-title" onClick={goToLobby} title={t('game.toLobby')}>
+        {t('game.hudTitle')}
       </button>
       <div className="room-layout">
-        <div className="room-board">
-          <div
-            className={[
-              'board',
-              isBoardBlocked ? 'disabled' : '',
-              (state.aiThinking || state.opponentDisconnected) ? 'board-dimmed' : '',
-              state.aiThinking ? 'board-ai-thinking' : '',
-            ].filter(Boolean).join(' ')}
-          >
-            {state.opponentDisconnected && (
-              <DisconnectOverlay disconnectCountdown={state.disconnectCountdown} />
-            )}
-            <BoardGrid
-              board={state.board}
-              onCellClick={handleCellClickWrapped}
-              moveFrom={state.moveFrom}
-              highlightedEssential={state.highlightedEssential}
-              highlightedCaptured={state.highlightedCaptured}
-              lastMove={state.lastMove}
-              historyFrom={state.historyFrom}
-              historyTo={state.historyTo}
-              myColor={state.myColor}
-            />
-          </div>
-        </div>
-
-        <aside className="room-right">
-          <GameClock
+        <section className="game-viewport-first" aria-label={t('game.boardAria')}>
+        <div className="game-screen-fit">
+          <PlayerBar
+            position="top"
+            color={boardTop}
+            playersInfo={state.playersInfo}
             timer={state.timer}
             moversColor={state.moversColor}
             myColor={state.myColor}
             timeControl={state.timeControl}
+            countsByType={state.countsByType}
           />
-          <PieceCounts countsByType={state.countsByType} />
-
-          <MoveHistory
-            movesHistory={state.movesHistory}
-            viewingHistoryIndex={state.viewingHistoryIndex}
-            onViewMove={(idx) => dispatch({ type: GAME_ACTIONS.VIEW_HISTORY_MOVE, payload: idx })}
-            onExitHistory={() => dispatch({ type: GAME_ACTIONS.EXIT_HISTORY })}
-            onStepBack={() => dispatch({ type: GAME_ACTIONS.HISTORY_STEP_BACK })}
-            onStepForward={() => dispatch({ type: GAME_ACTIONS.HISTORY_STEP_FORWARD })}
-            canStepBack={state.movesHistory.length > 0 && (state.viewingHistoryIndex === null ? state.movesHistory.length - 1 > 0 : state.viewingHistoryIndex > 0)}
-            canStepForward={state.movesHistory.length > 0 && state.viewingHistoryIndex !== null}
-          />
-
-          {state.gameOver && (
-            <div className={`game-result-panel game-result-panel--${bannerVariant}`}>
-              <div className="game-result-text">{resultText}</div>
-              <div className={`game-result-actions ${!modeAi ? 'game-result-actions--stacked' : ''}`}>
-                <button type="button" className="game-result-btn game-result-btn--primary" onClick={goToLobby}>
-                  В лобби
-                </button>
-                <button
-                  type="button"
-                  className="game-result-btn game-result-btn--secondary"
-                  onClick={playAgain}
-                  title="Создать новую комнату в зале ожидания"
-                >
-                  Новая игра
-                </button>
-                {!modeAi && (
-                  <>
-                  <p className="game-result-hint">
-                    Реванш — та же комната, цвета меняются. «Новая игра» — новая комната в зале.
-                  </p>
-                  <button
-                    type="button"
-                    className={[
-                      'game-result-btn',
-                      'game-result-btn--rematch',
-                      !state.rematchUnavailable && (state.rematchReady || state.rematchOpponentReady)
-                        ? 'game-result-btn--rematch-pulse'
-                        : '',
-                      state.rematchUnavailable ? 'game-result-btn--rematch-unavailable' : '',
-                    ].filter(Boolean).join(' ')}
-                    onClick={requestRematch}
-                    disabled={state.rematchReady || state.rematchUnavailable}
-                    title={
-                      state.rematchUnavailable
-                        ? 'Соперник вышел'
-                        : state.rematchReady
-                          ? 'Ожидание соперника'
-                          : state.rematchOpponentReady
-                            ? 'Соперник ждёт реванша'
-                            : 'Реванш'
-                    }
-                  >
-                    Реванш
-                  </button>
-                  {state.rematchUnavailable && (
-                    <p className="game-result-hint game-result-hint--warn">
-                      Соперник вышел — нажмите «Новая игра».
-                    </p>
-                  )}
-                  </>
-                )}
-              </div>
+          <div className="room-board">
+            <div
+              className={[
+                'board',
+                isBoardBlocked ? 'disabled' : '',
+                (state.aiThinking || state.opponentDisconnected) ? 'board-dimmed' : '',
+                state.aiThinking ? 'board-ai-thinking' : '',
+              ].filter(Boolean).join(' ')}
+            >
+              {state.opponentDisconnected && (
+                <DisconnectOverlay disconnectCountdown={state.disconnectCountdown} />
+              )}
+              <BoardGrid
+                board={state.board}
+                onCellClick={handleCellClickWrapped}
+                moveFrom={state.moveFrom}
+                highlightedEssential={state.highlightedEssential}
+                highlightedCaptured={state.highlightedCaptured}
+                lastMove={state.lastMove}
+                historyFrom={state.historyFrom}
+                historyTo={state.historyTo}
+                myColor={state.myColor}
+              />
             </div>
-          )}
+          </div>
 
-          {!state.gameOver && (
-            <GameControls
-              canPass={state.canPass}
-              onPass={skipTurn}
-              onOfferDraw={offerDraw}
-              onAcceptDraw={acceptDraw}
-              onDeclineDraw={declineDraw}
-              onResign={resign}
-              drawPending={drawPending}
-              drawIncoming={drawIncoming}
-              hideDraw={modeAi}
+          <PlayerBar
+            position="bottom"
+            color={boardBottom}
+            playersInfo={state.playersInfo}
+            timer={state.timer}
+            moversColor={state.moversColor}
+            myColor={state.myColor}
+            timeControl={state.timeControl}
+            countsByType={state.countsByType}
+          />
+        </div>
+
+        {renderActionsBar('viewport')}
+
+        <div className="move-history-slot move-history-slot--viewport">
+          <MoveHistory {...moveHistoryProps} />
+        </div>
+        </section>
+
+        <aside className="room-right">
+          <div className="room-side-panel">
+            <GameClock
+              timer={state.timer}
+              moversColor={state.moversColor}
+              myColor={state.myColor}
+              timeControl={state.timeControl}
+              playersInfo={state.playersInfo}
+              countsByType={state.countsByType}
+              middleSlot={renderActionsBar('sidebar')}
             />
-          )}
 
-          {message && (
-            <div className={`message message-${messageType}`}>{message}</div>
-          )}
+            <div className="move-history-slot move-history-slot--sidebar">
+              <MoveHistory {...moveHistoryProps} />
+            </div>
 
+            <div className="room-sidebar-extra">
+              {message && (
+                <div className={`message message-${messageType}`}>{message}</div>
+              )}
+            </div>
+          </div>
+
+          {!modeAi && (
+            <aside className="room-left" aria-label={t('game.chatAria')}>
+              <GameChat
+                messages={state.chatMessages}
+                onSend={sendChat}
+                disabled={wsReconnecting || state.opponentDisconnected}
+              />
+            </aside>
+          )}
         </aside>
       </div>
     </div>

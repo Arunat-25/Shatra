@@ -1,4 +1,5 @@
 from typing import List, Tuple, Optional, Dict
+from game_engine.domain import parse_piece_name, Color, PieceType
 from game_engine.pieces.base import Piece
 from game_engine.pieces.shatra import Shatra
 from game_engine.pieces.biy import Biy
@@ -21,16 +22,18 @@ class Board:
         if not piece_name:
             self._piece_cache[cell] = None
             return None
-        color = "белый" if "бел" in piece_name else "черный"
-        if "шатра" in piece_name:
-            piece = Shatra(color)
-        elif "бий" in piece_name:
-            piece = Biy(color)
-        elif "батыр" in piece_name:
-            piece = Batyr(color)
-        else:
+        try:
+            color, piece_type = parse_piece_name(piece_name)
+        except ValueError:
             self._piece_cache[cell] = None
             return None
+        color_str = color.value
+        if piece_type is PieceType.SHATRA:
+            piece = Shatra(color_str)
+        elif piece_type is PieceType.BIY:
+            piece = Biy(color_str)
+        else:
+            piece = Batyr(color_str)
         self._piece_cache[cell] = piece
         return piece
 

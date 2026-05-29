@@ -1,6 +1,7 @@
 import { Component } from 'react';
+import { withTranslation } from 'react-i18next';
 
-export default class ErrorBoundary extends Component {
+class ErrorBoundary extends Component {
   constructor(props) {
     super(props);
     this.state = { hasError: false, error: null };
@@ -11,31 +12,31 @@ export default class ErrorBoundary extends Component {
   }
 
   componentDidMount() {
-    // Убираем splash, если он ещё виден (например, при ошибке до монтирования App)
     const splash = document.getElementById('splash-screen');
     if (splash) splash.remove();
   }
 
   render() {
+    const { t, children } = this.props;
     if (this.state.hasError) {
       return (
         <div className="error-boundary">
           <div className="error-boundary-content">
             <div className="error-boundary-icon">⚠️</div>
-            <h2 className="error-boundary-title">Что-то пошло не так</h2>
+            <h2 className="error-boundary-title">{t('errorBoundary.title')}</h2>
             <p className="error-boundary-text">
-              Произошла непредвиденная ошибка. Пожалуйста, обновите страницу.
+              {t('errorBoundary.text')}
             </p>
             <button
               className="btn-lobby btn-battle"
               onClick={() => window.location.reload()}
               style={{ maxWidth: 280, fontSize: '1rem', padding: '14px 36px' }}
             >
-              Обновить страницу
+              {t('errorBoundary.reload')}
             </button>
             {this.state.error && (
               <details className="error-boundary-details">
-                <summary>Технические детали</summary>
+                <summary>{t('errorBoundary.details')}</summary>
                 <pre>{this.state.error.message}</pre>
               </details>
             )}
@@ -43,6 +44,8 @@ export default class ErrorBoundary extends Component {
         </div>
       );
     }
-    return this.props.children;
+    return children;
   }
 }
+
+export default withTranslation()(ErrorBoundary);

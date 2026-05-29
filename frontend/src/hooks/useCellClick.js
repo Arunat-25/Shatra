@@ -3,6 +3,7 @@ import { GAME_ACTIONS } from '../game/actions';
 import { MSG_WARNING } from '../constants';
 import { getPieceColor } from '../utils';
 import { buildHintPayload, buildMovePayload } from '../utils/wsPayloads';
+import i18n from '../i18n';
 
 export default function useCellClick({
   stateRef,
@@ -15,7 +16,7 @@ export default function useCellClick({
   const selectPiece = useCallback((positionNum, s) => {
     dispatch({ type: GAME_ACTIONS.SET_MOVE_FROM, payload: positionNum });
     if (!send(buildHintPayload(s, positionNum))) {
-      showMessage('Нет соединения. Дождитесь переподключения…', MSG_WARNING);
+      showMessage(i18n.t('game.connectionLost'), MSG_WARNING);
     }
   }, [dispatch, send, showMessage]);
 
@@ -24,7 +25,7 @@ export default function useCellClick({
     const s = stateRef.current;
 
     if (s.moversColor !== s.myColor) {
-      showMessage('Не ваш ход!', MSG_WARNING);
+      showMessage(i18n.t('game.notYourTurn'), MSG_WARNING);
       return;
     }
 
@@ -47,7 +48,7 @@ export default function useCellClick({
     }
 
     if (!send(buildMovePayload(s, s.moveFrom, positionNum))) {
-      showMessage('Нет соединения. Дождитесь переподключения…', MSG_WARNING);
+      showMessage(i18n.t('game.connectionLost'), MSG_WARNING);
       return;
     }
     deselectPiece();

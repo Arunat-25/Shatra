@@ -1,4 +1,14 @@
 import { GAME_ACTIONS } from './actions';
+import i18n from '../i18n';
+import { translateServerMessage } from '../i18n/translateServerMessage';
+
+function t(key, opts) {
+  return i18n.t(key, opts);
+}
+
+function msg(text, type) {
+  return { text: translateServerMessage(text), type };
+}
 
 function isAiThinking(modeAi, moversColor, myColor, payload) {
   if (!modeAi || !myColor || payload.game_over) return false;
@@ -9,12 +19,39 @@ function isAiThinking(modeAi, moversColor, myColor, payload) {
 export const messageHandlers = [
   {
     check: (d) => d.status === 'error',
-    handle: (d) => ({ text: d.message || 'Ошибка сервера', type: 'error' }),
+    handle: (d) => ({ text: translateServerMessage(d.message) || t('server.error'), type: 'error' }),
   },
   {
     check: (d) => d.status === 'waiting',
-    handle: (_d, dispatch) => {
+    handle: (d, dispatch) => {
       dispatch({ type: GAME_ACTIONS.SET_WAITING });
+      if (d.players_info) {
+        dispatch({ type: GAME_ACTIONS.SET_PLAYERS_INFO, payload: d.players_info });
+      }
+      return null;
+    },
+  },
+  {
+    check: (d) => d.type === 'chat_history',
+    handle: (d, dispatch) => {
+      dispatch({ type: GAME_ACTIONS.CHAT_HISTORY, payload: d.messages || [] });
+      return null;
+    },
+  },
+  {
+    check: (d) => d.type === 'chat',
+    handle: (d, dispatch) => {
+      dispatch({
+        type: GAME_ACTIONS.CHAT_MESSAGE,
+        payload: {
+          client_id: d.from_client_id,
+          username: d.username,
+          text: d.text,
+          ts: d.ts,
+          is_anonymous: d.is_anonymous,
+          display_name: d.display_name,
+        },
+      });
       return null;
     },
   },
@@ -34,7 +71,8 @@ export const messageHandlers = [
         dispatch({ type: GAME_ACTIONS.SET_MOVE_HISTORY, payload: d.move_history });
       }
       dispatch({ type: GAME_ACTIONS.MOVE_MADE, payload: { ...d, aiThinking } });
-      return { text: d.message, type: 'info' };
+      if (d.game_over) return null;
+      return msg(d.message, 'info');
     },
   },
   {
@@ -53,27 +91,40 @@ export const messageHandlers = [
   {
     check: (d) => d.status === 'game_started' && d.desk,
     handle: (d, dispatch, modeAi, getMyColor) => {
+      if (d.players_info) {
+        dispatch({ type: GAME_ACTIONS.SET_PLAYERS_INFO, payload: d.players_info });
+      }
       const myColor = getMyColor?.() || d.your_color || null;
       const aiThinking = isAiThinking(modeAi, d.movers_color, myColor, d);
       if (d.move_history) {
         dispatch({ type: GAME_ACTIONS.SET_MOVE_HISTORY, payload: d.move_history });
       }
       dispatch({ type: GAME_ACTIONS.GAME_STARTED, payload: { ...d, aiThinking } });
-      return { text: 'Игра началась!', type: 'info' };
+      return { text: t('game.gameStarted'), type: 'info' };
     },
   },
   {
     check: (d) => d.status === 'draw_offered',
     handle: (d, dispatch) => {
       dispatch({ type: GAME_ACTIONS.SET_DRAW_OFFER, payload: d.by || null });
-      return { text: d.message || 'Предложение ничьей', type: 'info' };
+      return msg(d.message || t('server.drawOffer'), 'info');
     },
   },
   {
     check: (d) => d.status === 'draw_declined',
     handle: (d, dispatch) => {
       dispatch({ type: GAME_ACTIONS.SET_DRAW_OFFER, payload: null });
-      return { text: d.message || 'Предложение ничьей отклонено.', type: 'warning' };
+      return msg(d.message || t('server.drawDeclined'), 'warning');
+    },
+  },
+  {
+    check: (d) => d.status === 'game_cancelled',
+    handle: (d, dispatch) => {
+      dispatch({
+        type: GAME_ACTIONS.GAME_CANCELLED,
+        payload: { message: translateServerMessage(d.message) || t('result.cancelledDefault') },
+      });
+      return null;
     },
   },
   {
@@ -84,12 +135,8 @@ export const messageHandlers = [
         payload: { self_ready: d.self_ready, opponent_ready: d.opponent_ready },
       });
       if (d.self_ready && d.opponent_ready) return null;
-      if (d.self_ready) {
-        return { text: 'Ожидание согласия соперника на реванш…', type: 'info' };
-      }
-      if (d.opponent_ready) {
-        return { text: 'Соперник готов к реваншу. Нажмите «Реванш».', type: 'info' };
-      }
+      if (d.self_ready) return { text: t('server.rematchWaitSelf'), type: 'info' };
+      if (d.opponent_ready) return { text: t('server.rematchWaitOpponent'), type: 'info' };
       return null;
     },
   },
@@ -97,21 +144,21 @@ export const messageHandlers = [
     check: (d) => d.status === 'rematch_cancelled',
     handle: (d, dispatch) => {
       dispatch({ type: GAME_ACTIONS.SET_REMATCH_UNAVAILABLE });
-      return { text: d.message || 'Реванш отменён.', type: 'warning' };
+      return msg(d.message || t('server.rematchCancelled'), 'warning');
     },
   },
   {
     check: (d) => d.status === 'opponent_disconnected',
     handle: (d, dispatch) => {
       dispatch({ type: GAME_ACTIONS.OPPONENT_DISCONNECTED, payload: d });
-      return { text: 'Соперник отключился. Ожидание переподключения...', type: 'warning' };
+      return { text: t('disconnect.waiting'), type: 'warning' };
     },
   },
   {
     check: (d) => d.status === 'opponent_reconnected',
     handle: (_d, dispatch) => {
       dispatch({ type: GAME_ACTIONS.OPPONENT_RECONNECTED });
-      return { text: 'Соперник вернулся! Игра продолжается.', type: 'info' };
+      return { text: t('disconnect.reconnected'), type: 'info' };
     },
   },
   {

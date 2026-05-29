@@ -5,7 +5,6 @@ import copy
 import math
 import time
 import random
-import json
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
@@ -18,27 +17,9 @@ from game_engine.validation import find_captured_enemy, get_all_mandatory_captur
 
 Move = Tuple[int, int]
 
-# region agent log
-_DEBUG_LOG_PATH = "/home/arunat/coding/Shatra/.cursor/debug-55e98f.log"
-_DBG_COUNTS: dict[str, int] = {}
-def _dbg(hypothesis_id: str, location: str, message: str, data: dict):
-    try:
-        _DBG_COUNTS[hypothesis_id] = _DBG_COUNTS.get(hypothesis_id, 0) + 1
-        if _DBG_COUNTS[hypothesis_id] > 40:
-            return
-        with open(_DEBUG_LOG_PATH, "a", encoding="utf-8") as f:
-            f.write(json.dumps({
-                "sessionId": "55e98f",
-                "runId": "pre-fix",
-                "hypothesisId": hypothesis_id,
-                "location": location,
-                "message": message,
-                "data": data,
-                "timestamp": int(time.time() * 1000),
-            }, ensure_ascii=False) + "\n")
-    except Exception:
-        pass
-# endregion
+def _dbg(*_args, **_kwargs):
+    """No-op. Оставлен, чтобы не трогать места вызова; отладочный лог удалён."""
+    return None
 
 # ═══════════════════════════════════════════════════════════
 # 🎯 КОНСТАНТЫ (СБАЛАНСИРОВАННЫЕ)

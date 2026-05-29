@@ -1,3 +1,6 @@
+import { getAccessToken } from './api/auth';
+import i18n from './i18n';
+
 const API_BASE = '';
 const REQUEST_TIMEOUT = 10000;
 const MAX_RETRIES = 2;
@@ -10,23 +13,41 @@ class ApiError extends Error {
   }
 }
 
+function authHeaders(extra = {}) {
+  const headers = { ...extra };
+  const token = getAccessToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+  return headers;
+}
+
 async function request(resource, options = {}) {
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+    const headers = authHeaders(options.headers);
+    if (options.body && !headers['Content-Type']) {
+      headers['Content-Type'] = 'application/json';
+    }
     try {
-      const response = await fetch(resource, { ...options, signal: controller.signal });
+      const response = await fetch(resource, {
+        ...options,
+        headers,
+        signal: controller.signal,
+      });
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
-        throw new ApiError(err.detail || `Ошибка ${response.status}`, response.status);
+        throw new ApiError(
+          err.detail || i18n.t('errors.genericHttp', { status: response.status }),
+          response.status,
+        );
       }
       return response.json();
     } catch (error) {
       clearTimeout(timeoutId);
       if (attempt === MAX_RETRIES) {
         if (error instanceof ApiError) throw error;
-        if (error.name === 'AbortError') throw new ApiError('Сервер не отвечает. Проверьте подключение к интернету.');
-        throw new ApiError('Сервер недоступен. Попробуйте позже.');
+        if (error.name === 'AbortError') throw new ApiError(i18n.t('errors.serverNoResponse'));
+        throw new ApiError(i18n.t('errors.serverUnavailable'));
       }
       if (error.name !== 'AbortError') {
         await new Promise(resolve => setTimeout(resolve, 500 * Math.pow(2, attempt)));
@@ -65,7 +86,6 @@ export function createRoom(
 ) {
   return request(`${API_BASE}/rooms`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       type,
       time_control: timeControl,

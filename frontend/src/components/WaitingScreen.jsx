@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 function CopyIcon() {
   return (
@@ -40,8 +41,10 @@ export default function WaitingScreen({
   showInviteLink = false,
   joiningError,
   reconnectMessage,
+  opponentLabel,
   onCopyFeedback,
 }) {
+  const { t } = useTranslation();
   const [copyStatus, setCopyStatus] = useState('');
 
   const inviteUrl = useMemo(
@@ -52,22 +55,22 @@ export default function WaitingScreen({
   const copyLink = useCallback(async () => {
     if (!inviteUrl) return;
     const ok = await copyTextToClipboard(inviteUrl);
-    const message = ok ? 'Ссылка скопирована' : 'Не удалось скопировать ссылку';
+    const message = ok ? t('game.linkCopied') : t('game.linkCopyFailed');
     setCopyStatus(message);
     onCopyFeedback?.(ok ? 'success' : 'error', message);
     if (ok) {
       setTimeout(() => setCopyStatus(''), 2500);
     }
-  }, [inviteUrl, onCopyFeedback]);
+  }, [inviteUrl, onCopyFeedback, t]);
 
   if (modeAi) {
     return (
       <div className="waiting-screen">
         <div className="waiting-content">
           <div className="waiting-spinner" />
-          <h2 className="waiting-title">Сражение с ботом</h2>
-          <p className="waiting-subtitle">Подключение к игре…</p>
-          <p className="waiting-hint">Скоро откроется доска</p>
+          <h2 className="waiting-title">{t('game.aiTitle')}</h2>
+          <p className="waiting-subtitle">{t('game.aiConnecting')}</p>
+          <p className="waiting-hint">{t('game.boardSoon')}</p>
           {reconnectMessage && <p className="waiting-hint">{reconnectMessage}</p>}
         </div>
       </div>
@@ -80,38 +83,41 @@ export default function WaitingScreen({
         {joiningError ? (
           <div className="waiting-error">
             <div className="waiting-error-icon">⚠️</div>
-            <h2 className="waiting-title" style={{ color: 'var(--color-accent)' }}>Ошибка</h2>
+            <h2 className="waiting-title" style={{ color: 'var(--color-accent)' }}>{t('game.error')}</h2>
             <div className="error-container">
               <p>{joiningError}</p>
             </div>
           </div>
         ) : showInviteLink ? (
           <>
-            <h1 className="waiting-invite-heading">Вызов другу</h1>
+            <h1 className="waiting-invite-heading">{t('game.inviteHeading')}</h1>
             <div className="waiting-link-row">
               <p className="waiting-link-url">{inviteUrl}</p>
               <button
                 type="button"
                 className="btn-copy-icon"
                 onClick={copyLink}
-                title="Копировать ссылку"
-                aria-label="Копировать ссылку"
+                title={t('game.copyLink')}
+                aria-label={t('game.copyLink')}
               >
                 <CopyIcon />
               </button>
             </div>
             {copyStatus && <p className="waiting-copy-status">{copyStatus}</p>}
             <p className="waiting-invite-note">
-              С вами сыграет первый, кто перейдёт по ссылке
+              {t('game.inviteNote')}
             </p>
             {reconnectMessage && <p className="waiting-hint">{reconnectMessage}</p>}
           </>
         ) : (
           <>
             <div className="waiting-spinner" />
-            <h2 className="waiting-title">Ожидание соперника</h2>
-            <p className="waiting-subtitle">Комната в зале ожидания</p>
-            <p className="waiting-hint">Игра начнётся, когда кто-то присоединится из списка</p>
+            <h2 className="waiting-title">{t('game.waitingOpponent')}</h2>
+            <p className="waiting-subtitle">{t('game.waitingLobby')}</p>
+            <p className="waiting-hint">{t('game.waitingHint')}</p>
+            {opponentLabel && (
+              <p className="waiting-hint">{t('game.opponent')}: {opponentLabel}</p>
+            )}
             {reconnectMessage && <p className="waiting-hint">{reconnectMessage}</p>}
           </>
         )}

@@ -1,37 +1,15 @@
 from typing import List, Tuple, Optional
-import json
-import time
 
-# region agent log
-_DEBUG_LOG_PATH = "/home/arunat/coding/Shatra/.cursor/debug-55e98f.log"
-_DEBUG_SESSION_ID = "55e98f"
-_DBG_COUNTS: dict[str, int] = {}
-_DBG_LIMIT_PER_HYP = 50
-
-
-def _dbg(hypothesis_id: str, location: str, message: str, data: dict):
-    try:
-        _DBG_COUNTS[hypothesis_id] = _DBG_COUNTS.get(hypothesis_id, 0) + 1
-        if _DBG_COUNTS[hypothesis_id] > _DBG_LIMIT_PER_HYP:
-            return
-        with open(_DEBUG_LOG_PATH, "a", encoding="utf-8") as f:
-            f.write(json.dumps({
-                "sessionId": _DEBUG_SESSION_ID,
-                "runId": "pre-fix",
-                "hypothesisId": hypothesis_id,
-                "location": location,
-                "message": message,
-                "data": data,
-                "timestamp": int(time.time() * 1000),
-            }, ensure_ascii=False) + "\n")
-    except Exception:
-        pass
-# endregion
 from game_engine.board import Board
 from game_engine.dictionaries import (
     shatra_and_biy_possible_captures,
     batyr_moves_and_captures,
 )
+
+
+def _dbg(*_args, **_kwargs):
+    """No-op. Оставлен, чтобы не трогать места вызова; отладочный лог удалён."""
+    return None
 
 
 def get_all_mandatory_captures(

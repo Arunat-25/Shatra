@@ -5,13 +5,15 @@ from datetime import datetime
 
 from fastapi import HTTPException
 
+from backend.db.models import User
 from backend.models import CreateRoomRequest, Room
+from backend.player_identity import meta_from_user
 from backend.state import get_room, set_room, delete_room, scan_keys, get_raw
 
 logger = logging.getLogger(__name__)
 
 
-async def create_room(request: CreateRoomRequest) -> dict:
+async def create_room(request: CreateRoomRequest, user: User | None = None) -> dict:
     room_id = str(uuid.uuid4())[:8]
     now = datetime.utcnow()
     room = Room(
@@ -23,6 +25,11 @@ async def create_room(request: CreateRoomRequest) -> dict:
         creator_client_id=request.creator_client_id,
         creator_color_preference=request.color_preference,
     )
+    if user:
+        room.creator_user_id = str(user.id)
+        room.creator_username = user.username
+    if request.creator_client_id:
+        room.player_meta[request.creator_client_id] = meta_from_user(user)
     if request.time_control:
         room.timer_white = float(request.time_control)
         room.timer_black = float(request.time_control)
@@ -48,6 +55,7 @@ async def list_rooms() -> dict:
                     "created_at": r.get("created_at", ""),
                     "time_control": r.get("time_control"),
                     "increment": r.get("increment") or 0,
+                    "creator_username": r.get("creator_username"),
                 })
     return {"rooms": rooms_data}
 

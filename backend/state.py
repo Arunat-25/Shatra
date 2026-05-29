@@ -1,8 +1,9 @@
+import asyncio
 import json
-import time
 from typing import Optional
 import redis.asyncio as aioredis
-import os
+
+from backend.config import settings
 
 # Redis клиент
 redis_client: Optional[aioredis.Redis] = None
@@ -11,7 +12,15 @@ redis_client: Optional[aioredis.Redis] = None
 async def init_redis():
     """Инициализация Redis-клиента (вызывается при старте приложения)."""
     global redis_client
-    redis_client = aioredis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+    if settings.redis_url:
+        redis_client = aioredis.from_url(settings.redis_url, decode_responses=True)
+    else:
+        redis_client = aioredis.Redis(
+            host=settings.redis_host,
+            port=settings.redis_port,
+            db=settings.redis_db,
+            decode_responses=True,
+        )
     await redis_client.ping()
 
 
@@ -59,25 +68,35 @@ async def get_raw(key: str) -> Optional[str]:
 game_timers: dict[str, object] = {}
 disconnect_timers: dict[str, object] = {}
 
-# Константы
-DISCONNECT_TIMEOUT = 30
+# In-memory: локи на комнату для сериализации read-modify-write над game/room.
+# Защищают от потери обновлений при гонке тика часов и обработки хода.
+_room_locks: dict[str, asyncio.Lock] = {}
+
+# Константы (значения берутся из конфигурации, env-переопределяемы)
+DISCONNECT_TIMEOUT = settings.disconnect_timeout
+
+
+def get_room_lock(room_id: str) -> asyncio.Lock:
+    """Возвращает (создавая при необходимости) лок для комнаты."""
+    lock = _room_locks.get(room_id)
+    if lock is None:
+        lock = asyncio.Lock()
+        _room_locks[room_id] = lock
+    return lock
+
+
+def drop_room_lock(room_id: str) -> None:
+    """Убирает лок комнаты, если он свободен (вызывать после удаления комнаты)."""
+    lock = _room_locks.get(room_id)
+    if lock is not None and not lock.locked():
+        _room_locks.pop(room_id, None)
 
 
 # === GAME STATE ===
 
 def _redis_ttl_seconds() -> int:
-    """
-    TTL для ключей room:* и game:* (секунды).
-    По умолчанию 4 часа, можно переопределить через env REDIS_TTL_SECONDS.
-    """
-    raw = os.getenv("REDIS_TTL_SECONDS", "").strip()
-    if not raw:
-        return 4 * 60 * 60
-    try:
-        ttl = int(raw)
-        return ttl if ttl > 0 else 4 * 60 * 60
-    except Exception:
-        return 4 * 60 * 60
+    """TTL для ключей room:* и game:* (секунды)."""
+    return settings.redis_ttl_seconds
 
 
 @ensure_redis

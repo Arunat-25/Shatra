@@ -121,4 +121,5 @@ class TestControlMessageTypes:
             "decline_draw",
             "offer_draw",
             "resign",
+            "cancel_game",
         })

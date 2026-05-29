@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { PIECE_BIY, PIECE_BATYR, COLOR_WHITE } from './constants';
 
 const WHITE_STROKE = '#D2B48C';
@@ -7,6 +8,8 @@ const FIRE_RED = '#B22222';
 const TURQUOISE = '#40E0D0';
 
 export default function ShatraPiece({ type, color, isSelected, isTarget, positionNum }) {
+  const uid = useId();
+  const idBase = `${uid}-${positionNum ?? type}`;
   const strokeColor = color === COLOR_WHITE ? WHITE_STROKE : BLACK_STROKE;
   const runeColor = color === COLOR_WHITE ? FIRE_RED : TURQUOISE;
   const glowColor = isSelected ? TURQUOISE : isTarget ? FIRE_RED : 'none';
@@ -22,14 +25,13 @@ export default function ShatraPiece({ type, color, isSelected, isTarget, positio
   return (
     <svg
       viewBox={viewBox}
-      className="w-full h-full"
       style={{
         filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))',
         display: 'block',
       }}
     >
       <defs>
-        <filter id={`glow-select-${positionNum || type}`}>
+        <filter id={`glow-select-${idBase}`}>
           <feGaussianBlur stdDeviation="3" result="blur" />
           <feMerge>
             <feMergeNode in="blur" />
@@ -37,7 +39,7 @@ export default function ShatraPiece({ type, color, isSelected, isTarget, positio
           </feMerge>
         </filter>
 
-        <filter id={`glow-target-${positionNum || type}`}>
+        <filter id={`glow-target-${idBase}`}>
           <feGaussianBlur stdDeviation="3.5" result="blur" />
           <feMerge>
             <feMergeNode in="blur" />
@@ -45,11 +47,11 @@ export default function ShatraPiece({ type, color, isSelected, isTarget, positio
           </feMerge>
         </filter>
 
-        <pattern id="antler" x="0" y="0" width="50" height="44" patternUnits="userSpaceOnUse">
+        <pattern id={`antler-${idBase}`} x="0" y="0" width="50" height="44" patternUnits="userSpaceOnUse">
           {goldenAntlerPath()}
         </pattern>
 
-        <linearGradient id={`stone-grad-${color}-${positionNum || 'default'}`} x1="0%" y1="0%" x2="100%" y2="100%">
+        <linearGradient id={`stone-grad-${color}-${idBase}`} x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor={color === COLOR_WHITE ? '#FFFDD0' : '#2A2A2A'} />
           <stop offset="100%" stopColor={color === COLOR_WHITE ? '#E8DCC8' : '#0A0A0A'} />
         </linearGradient>
@@ -69,10 +71,10 @@ export default function ShatraPiece({ type, color, isSelected, isTarget, positio
 
       <path
         d={stonePath}
-        fill={`url(#stone-grad-${color}-${positionNum || 'default'})`}
+        fill={`url(#stone-grad-${color}-${idBase})`}
         stroke={isBiy ? GOLD_COLOR : strokeColor}
         strokeWidth={isBiy ? 1.5 : 1}
-        filter={glowColor !== 'none' ? `url(#glow-${isTarget ? 'target' : 'select'}-${positionNum || type})` : 'none'}
+        filter={glowColor !== 'none' ? `url(#glow-${isTarget ? 'target' : 'select'}-${idBase})` : 'none'}
         style={{
           transition: 'filter 0.2s ease, stroke 0.2s ease',
           ...(isTarget ? { animation: 'pieceCapture 0.6s ease-out forwards' } : {}),

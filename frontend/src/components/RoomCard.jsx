@@ -1,9 +1,19 @@
+import { useTranslation } from 'react-i18next';
 import { formatTimeControlLabel } from '../utils';
 
+function formatCreatorDisplay(creatorUsername, t) {
+  if (creatorUsername) return creatorUsername;
+  return t('lobby.anonymous');
+}
+
 export default function RoomCard({ room, isJoining, onJoin }) {
-  const { room_id, type, time_control, increment } = room;
-  const roomInfo = getRoomInfo(type);
+  const { t } = useTranslation();
+  const { room_id, type, time_control, increment, creator_username } = room;
+  const roomInfo = getRoomInfo(type, t);
   const timeLabel = formatTimeControlLabel(time_control, increment);
+  const primaryLabel = type === 'public'
+    ? formatCreatorDisplay(creator_username, t)
+    : roomInfo.label;
 
   return (
     <div
@@ -20,13 +30,24 @@ export default function RoomCard({ room, isJoining, onJoin }) {
     >
       <div className="room-card-left">
         <span className="room-card-type">
-          <span className={`room-card-type-badge ${roomInfo.badge}`} title={roomInfo.label}>
+          <span
+            className={`room-card-type-badge ${roomInfo.badge}`}
+            title={type === 'public' ? t('lobby.publicRoom') : roomInfo.label}
+          >
             {roomInfo.icon}
           </span>
-          {roomInfo.label}
+          <span className="room-card-label" title={type === 'public' ? t('lobby.creator') : undefined}>
+            {primaryLabel}
+          </span>
         </span>
       </div>
-      <span className="room-card-time">{timeLabel}</span>
+      <span
+        className={`room-card-time${time_control == null ? ' room-card-time--unlimited' : ''}`}
+        title={time_control == null ? t('lobby.noTimer') : undefined}
+        aria-label={time_control == null ? t('lobby.noTimer') : undefined}
+      >
+        {timeLabel}
+      </span>
       <div className="room-card-right">
         <span className="room-card-id">{room_id}</span>
         <button
@@ -35,7 +56,7 @@ export default function RoomCard({ room, isJoining, onJoin }) {
           disabled={isJoining}
           onClick={(e) => { e.stopPropagation(); if (!isJoining) onJoin(room_id); }}
         >
-          {isJoining ? '…' : 'Войти'}
+          {isJoining ? '…' : t('lobby.join')}
         </button>
       </div>
     </div>
@@ -44,7 +65,7 @@ export default function RoomCard({ room, isJoining, onJoin }) {
 
 const ROOM_LABELS = {
   public: {
-    label: 'аноним',
+    labelKey: 'lobby.publicRoom',
     badge: 'public',
     icon: (
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>
@@ -53,7 +74,7 @@ const ROOM_LABELS = {
     ),
   },
   private: {
-    label: 'Приватная комната',
+    labelKey: 'lobby.privateRoom',
     badge: 'private',
     icon: (
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>
@@ -63,7 +84,7 @@ const ROOM_LABELS = {
     ),
   },
   ai: {
-    label: 'Игра с ботом',
+    labelKey: 'lobby.aiRoom',
     badge: 'ai',
     icon: (
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>
@@ -75,6 +96,8 @@ const ROOM_LABELS = {
 };
 const DEFAULT_ROOM = ROOM_LABELS.public;
 
-function getRoomInfo(type) {
-  return ROOM_LABELS[type] || DEFAULT_ROOM;
+function getRoomInfo(type, t) {
+  const info = ROOM_LABELS[type] || DEFAULT_ROOM;
+  const label = t(info.labelKey);
+  return { ...info, label };
 }

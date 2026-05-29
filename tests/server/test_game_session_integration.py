@@ -78,12 +78,15 @@ class PvpState:
             "p-white": self.ws,
             "p-black": AsyncMock(send_json=AsyncMock()),
         }
-        self._patches = [
-            patch("backend.game_session.get_game", side_effect=get_game_side_effect),
-            patch("backend.game_session.get_room", side_effect=get_room_side_effect),
-            patch("backend.game_session.set_game", side_effect=set_game_side_effect),
-            patch("backend.game_session.set_room", side_effect=set_room_side_effect),
-        ]
+        state_targets = ("backend.game_session", "backend.ws_control_handlers")
+        self._patches = []
+        for mod in state_targets:
+            self._patches.extend([
+                patch(f"{mod}.get_game", side_effect=get_game_side_effect),
+                patch(f"{mod}.get_room", side_effect=get_room_side_effect),
+                patch(f"{mod}.set_game", side_effect=set_game_side_effect),
+                patch(f"{mod}.set_room", side_effect=set_room_side_effect),
+            ])
         for p in self._patches:
             p.start()
         return self
@@ -106,7 +109,7 @@ class TestProcessClientMessageDraw:
             st.game["draw_offer_from"] = "белый"
             st.room["rematch_ready"] = ["x"]
 
-            with patch("backend.game_session.manager.send_to_room", new_callable=AsyncMock) as broadcast:
+            with patch("backend.ws_control_handlers.manager.send_to_room", new_callable=AsyncMock) as broadcast:
                 ok = await process_client_message(
                     "room1", "p-black", {"type": "offer_draw"}, ws, is_ai_room=False
                 )
@@ -123,7 +126,7 @@ class TestProcessClientMessageDraw:
         with pvp_state as st:
             st.game["draw_offer_from"] = "белый"
 
-            with patch("backend.game_session.manager.send_to_player", new_callable=AsyncMock) as send:
+            with patch("backend.ws_control_handlers.manager.send_to_player", new_callable=AsyncMock) as send:
                 await process_client_message(
                     "room1", "p-white", {"type": "offer_draw"}, ws, is_ai_room=False
                 )
@@ -135,12 +138,88 @@ class TestProcessClientMessageDraw:
         with pvp_state as st:
             st.game["game_over"] = True
 
-            with patch("backend.game_session.manager.send_to_room", new_callable=AsyncMock) as broadcast:
+            with patch("backend.ws_control_handlers.manager.send_to_room", new_callable=AsyncMock) as broadcast:
                 await process_client_message(
                     "room1", "p-white", {"type": "resign"}, ws, is_ai_room=False
                 )
 
             broadcast.assert_not_called()
+
+
+@pytest.mark.asyncio
+class TestProcessClientMessageCancelGame:
+    async def test_cancel_before_first_move_notifies_both_players(self, pvp_state, ws):
+        with pvp_state as st:
+            white_ws = st.ws
+            black_ws = manager.connections["room1"]["p-black"]
+
+            sent = []
+
+            async def capture_send(payload):
+                sent.append(payload)
+
+            white_ws.send_json = AsyncMock(side_effect=capture_send)
+            black_ws.send_json = AsyncMock(side_effect=capture_send)
+
+            ok = await process_client_message(
+                "room1", "p-white", {"type": "cancel_game"}, ws, is_ai_room=False
+            )
+
+            assert ok is True
+            assert st.game["game_over"] is True
+            assert st.game["reason"] == "cancelled"
+            assert len(sent) == 2
+            assert all(m.get("game_over") is True for m in sent)
+            assert all(m.get("reason") == "cancelled" for m in sent)
+            messages = {m["winner"] for m in sent}
+            assert "Вы отменили игру." in messages
+            assert "Соперник отменил игру." in messages
+
+    async def test_cancel_after_own_move_is_rejected(self, pvp_state, ws):
+        with pvp_state as st:
+            st.game["move_history"] = [{"mover": "белый", "from_pos": 53, "to_pos": 46}]
+
+            with patch("backend.ws_control_handlers.manager.send_to_player", new_callable=AsyncMock) as send:
+                ok = await process_client_message(
+                    "room1", "p-white", {"type": "cancel_game"}, ws, is_ai_room=False
+                )
+
+            assert ok is True
+            assert st.game.get("game_over") is not True
+            send.assert_called_once()
+            assert send.call_args[0][1]["status"] == "error"
+            assert "отменить нельзя" in send.call_args[0][1]["message"].lower()
+
+    async def test_cancel_allowed_when_opponent_moved_but_self_has_not(self, pvp_state, ws):
+        with pvp_state as st:
+            st.game["move_history"] = [{"mover": "белый", "from_pos": 53, "to_pos": 46}]
+            st.game["mover"] = "черный"
+            black_ws = manager.connections["room1"]["p-black"]
+            black_ws.send_json = AsyncMock()
+
+            ok = await process_client_message(
+                "room1", "p-black", {"type": "cancel_game"}, black_ws, is_ai_room=False
+            )
+
+            assert ok is True
+            assert st.game["game_over"] is True
+            assert st.game["reason"] == "cancelled"
+            black_ws.send_json.assert_called_once()
+            payload = black_ws.send_json.call_args[0][0]
+            assert payload["game_over"] is True
+            assert payload["reason"] == "cancelled"
+            assert payload["winner"] == "Вы отменили игру."
+
+    async def test_cancel_after_game_over_is_noop(self, pvp_state, ws):
+        with pvp_state as st:
+            st.game["game_over"] = True
+
+            with patch("backend.ws_control_handlers.manager.send_to_player", new_callable=AsyncMock) as send:
+                await process_client_message(
+                    "room1", "p-white", {"type": "cancel_game"}, ws, is_ai_room=False
+                )
+
+            send.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -219,7 +298,7 @@ class TestProcessClientMessageAi:
             }
             manager.connections["room1"] = {"human": ws}
 
-            with patch("backend.game_session.manager.send_to_player", new_callable=AsyncMock) as send:
+            with patch("backend.ws_control_handlers.manager.send_to_player", new_callable=AsyncMock) as send:
                 await process_client_message(
                     "room1", "human", {"type": "offer_draw"}, ws, is_ai_room=True
                 )

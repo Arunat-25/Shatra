@@ -11,32 +11,37 @@ function winnerColor(winner) {
   return null;
 }
 
+function stripGameOverLabel(text) {
+  if (!text) return '';
+  return String(text).replace(/^Игра окончена!?\s*:?\s*/i, '').trim();
+}
+
 function formatGameOverMessage(winner, reason) {
-  const color = winnerColor(winner);
+  const cleanedWinner = stripGameOverLabel(winner);
+  const color = winnerColor(cleanedWinner || winner);
   const colorLabel = color === 'белый' ? 'белых' : color === 'чёрный' ? 'чёрных' : null;
 
   if (reason === 'timeout' && colorLabel) {
-    return `Игра окончена!\nВремя вышло у ${colorLabel}`;
+    return `Время вышло у ${colorLabel}`;
   }
   if (reason === 'resign' && color) {
     const winnerLabel = color === 'белый' ? 'белые' : 'чёрные';
-    return `Игра окончена!\n${winnerLabel} победили (сдача)`;
+    return `${winnerLabel} победили (сдача)`;
   }
   if (reason === 'draw_agreed') {
-    return 'Игра окончена!\nНичья по согласию';
+    return 'Ничья по согласию';
+  }
+  if (reason === 'cancelled') {
+    return winner || 'Игра отменена.';
   }
   if (reason === 'opponent_disconnected' && color) {
     const winnerLabel = color === 'белый' ? 'белые' : 'чёрные';
-    return `Игра окончена!\n${winnerLabel} победили (соперник отключился)`;
+    return `${winnerLabel} победили (соперник отключился)`;
   }
-  if (!winner) return 'Игра окончена!\nНичья';
-  const w = winner.toLowerCase();
-  if (w.includes('ничья')) {
-    const line = winner.trim().replace(/!+$/, '');
-    return `Игра окончена!\n${line}!`;
-  }
-  if (!color) return `Игра окончена!\n${winner}`;
-  return `Игра окончена!\nПобедил ${color} Бий!`;
+  if (!cleanedWinner && !winner) return 'Ничья';
+  if (cleanedWinner) return cleanedWinner;
+  if (color) return `Победил ${color} Бий!`;
+  return stripGameOverLabel(winner) || 'Ничья';
 }
 
 function formatClockTime(seconds) {
@@ -57,8 +62,14 @@ function assert(cond, msg) {
 assert(formatGameOverMessage('белый', 'timeout').includes('Время вышло'), 'timeout');
 assert(formatGameOverMessage('черный', 'resign').includes('сдача'), 'resign');
 assert(formatGameOverMessage('x', 'draw_agreed').includes('согласию'), 'draw');
+assert(formatGameOverMessage('Соперник отменил игру.', 'cancelled').includes('отменил'), 'cancelled');
 assert(formatGameOverMessage('белый', 'opponent_disconnected').includes('отключился'), 'disconnect');
-assert(formatGameOverMessage('белый бий').includes('Бий'), 'biy');
+assert(formatGameOverMessage('Белый бий победил!').includes('победил'), 'biy');
+assert(!formatGameOverMessage('белый', 'timeout').includes('Игра окончена'), 'no game-over label');
+assert(
+  formatGameOverMessage('Игра окончена: Белый бий победил!').includes('победил'),
+  'strip server prefix',
+);
 assert(formatClockTime(65) === '1:05', 'clock 65');
 assert(formatClockTime(15) === '0:15', 'clock 15');
 

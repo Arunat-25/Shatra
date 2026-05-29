@@ -14,30 +14,9 @@ from game_engine.dictionaries import (
     shatra_and_biy_possible_captures,
 )
 
-import json
-import time
-
-# region agent log
-_DEBUG_LOG_PATH = "/home/arunat/coding/Shatra/.cursor/debug-55e98f.log"
-_DBG_COUNTS: dict[str, int] = {}
-def _dbg(hypothesis_id: str, location: str, message: str, data: dict):
-    try:
-        _DBG_COUNTS[hypothesis_id] = _DBG_COUNTS.get(hypothesis_id, 0) + 1
-        if _DBG_COUNTS[hypothesis_id] > 60:
-            return
-        with open(_DEBUG_LOG_PATH, "a", encoding="utf-8") as f:
-            f.write(json.dumps({
-                "sessionId": "55e98f",
-                "runId": "pre-fix",
-                "hypothesisId": hypothesis_id,
-                "location": location,
-                "message": message,
-                "data": data,
-                "timestamp": int(time.time() * 1000),
-            }, ensure_ascii=False) + "\n")
-    except Exception:
-        pass
-# endregion
+def _dbg(*_args, **_kwargs):
+    """No-op. Оставлен, чтобы не трогать места вызова; отладочный лог удалён."""
+    return None
 
 # Позиции превращения шатры в батыра
 PROMOTION_FOR_WHITE = {1, 2, 3}
@@ -117,7 +96,7 @@ def process_move(
     over, winner = is_game_over(board_obj, position_history, moves_with_two_biys)
     if over:
         return GameEventResult(
-            message=f"Игра окончена: {winner}",
+            message=winner or "Ничья",
             movers_color=None,
             updated_positions=cells,
             game_over=True,
@@ -196,7 +175,7 @@ def process_move(
     over, winner = is_game_over(next_board, position_history, moves_with_two_biys)
     if over:
         return GameEventResult(
-            message=f"Игра окончена: {winner}",
+            message=winner or "Ничья",
             movers_color=None,
             updated_positions=new_cells,
             game_over=True,
@@ -375,7 +354,7 @@ def _process_chain_shatra_biy(
     over, winner = is_game_over(board, position_history, moves_with_two_biys)
     if over:
         return GameEventResult(
-            message=f"Игра окончена: {winner}",
+            message=winner or "Ничья",
             movers_color=None,
             updated_positions=board.copy_cells(),
             game_over=True,
@@ -445,7 +424,7 @@ def _process_chain_batyr(
     over, winner = is_game_over(board, position_history, moves_with_two_biys)
     if over:
         return GameEventResult(
-            message=f"Игра окончена: {winner}",
+            message=winner or "Ничья",
             movers_color=None,
             updated_positions=new_cells,
             game_over=True,

@@ -1,5 +1,9 @@
 """Общие фикстуры для тестов Shatra."""
 
+import os
+
+os.environ.setdefault("JWT_SECRET", "test-secret")
+
 import pytest
 
 from backend.board_utils import get_starting_board

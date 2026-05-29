@@ -3,13 +3,17 @@ import logging
 from fastapi import WebSocket
 from backend.state import (get_game, set_game, delete_game,
                             get_room, set_room, delete_room,
-                            game_timers, disconnect_timers)
+                            game_timers, disconnect_timers, drop_room_lock)
+from backend.config import settings
 from backend.board_utils import get_starting_board
+from backend.db.models import User
 from backend.game_helpers import build_game_started_response
+from backend.game_state import GameState
+from backend.player_identity import meta_from_user
 
 logger = logging.getLogger(__name__)
 
-_EMPTY_ROOM_GRACE_SECONDS = 2.0
+_EMPTY_ROOM_GRACE_SECONDS = settings.empty_room_grace_seconds
 
 
 async def _delete_room_after_grace(room_id: str, delay_seconds: float):
@@ -30,6 +34,7 @@ async def _delete_room_after_grace(room_id: str, delay_seconds: float):
             return
         await delete_game(room_id)
         await delete_room(room_id)
+        drop_room_lock(room_id)
         logger.info("Room %s deleted after grace timeout", room_id)
     except asyncio.CancelledError:
         pass
@@ -42,7 +47,13 @@ class ConnectionManager:
         # room_id -> {client_id: WebSocket}
         self.connections: dict[str, dict[str, WebSocket]] = {}
 
-    async def connect(self, room_id: str, websocket: WebSocket, client_id: str) -> bool:
+    async def connect(
+        self,
+        room_id: str,
+        websocket: WebSocket,
+        client_id: str,
+        user: User | None = None,
+    ) -> bool:
         await websocket.accept()
         room_data = await get_room(room_id)
         if not room_data:
@@ -53,6 +64,8 @@ class ConnectionManager:
             self.connections[room_id] = {}
 
         players = room_data.setdefault("players", {})
+        player_meta = room_data.setdefault("player_meta", {})
+        player_meta[client_id] = meta_from_user(user)
 
         # Reconnect: client_id уже в комнате — только если нет активного WS
         if client_id in players:
@@ -108,6 +121,7 @@ class ConnectionManager:
 
         await delete_game(room_id)
         await delete_room(room_id)
+        drop_room_lock(room_id)
         logger.info("Room %s deleted", room_id)
 
     async def disconnect(self, room_id: str, websocket: WebSocket):
@@ -173,16 +187,8 @@ manager = ConnectionManager()
 
 async def init_game(room_id: str):
     """Создаёт начальное состояние игры в Redis."""
-    start_board = get_starting_board()
-    game_data = {
-        "board": start_board,
-        "mover": "белый",
-        "players": {},
-        "pending_batyr_captures": [],
-        "moves_made": 0,
-        "move_history": [],
-    }
-    await set_game(room_id, game_data)
+    game = GameState.new(get_starting_board())
+    await set_game(room_id, game.to_storage())
 
 
 async def handle_player2_join(room_id: str, room_data: dict):
@@ -199,6 +205,6 @@ async def handle_player2_join(room_id: str, room_data: dict):
     await set_room(room_id, room_data)
 
     if room_data.get("time_control"):
-        from backend.timers import game_ticker as gt
-        task = asyncio.create_task(gt(room_id))
-        game_timers[room_id] = task
+        from backend.timers import stop_game_timer, game_ticker as gt
+        stop_game_timer(room_id)
+        game_timers[room_id] = asyncio.create_task(gt(room_id))

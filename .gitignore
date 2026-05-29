@@ -22,3 +22,6 @@ frontend/dist/
 .vscode/
 *.swp
 .DS_Store
+
+# Cursor (agent logs, local debug artifacts)
+.cursor/

@@ -1,6 +1,22 @@
-version: '3.8'
-
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: shatra-postgres
+    environment:
+      POSTGRES_USER: shatra
+      POSTGRES_PASSWORD: shatra
+      POSTGRES_DB: shatra
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shatra -d shatra"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   redis:
     image: redis:7-alpine
     container_name: shatra-redis
@@ -10,5 +26,28 @@ services:
       - redis-data:/data
     restart: unless-stopped
 
+  app:
+    build:
+      context: .
+      network: host
+    image: shatra-app
+    container_name: shatra-app
+    ports:
+      - "8000:8000"
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+      DATABASE_URL: postgresql+asyncpg://shatra:shatra@postgres:5432/shatra
+      CORS_ALLOW_ORIGINS: "*"
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+
 volumes:
+  postgres-data:
   redis-data:

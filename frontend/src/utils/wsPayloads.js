@@ -37,6 +37,10 @@ export function buildDeclineDrawPayload() {
   return { type: 'decline_draw' };
 }
 
+export function buildCancelGamePayload() {
+  return { type: 'cancel_game' };
+}
+
 export function buildRequestRematchPayload() {
   return { type: 'request_rematch' };
 }

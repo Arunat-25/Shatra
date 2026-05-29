@@ -1,5 +1,8 @@
 import { COLOR_WHITE, COLOR_BLACK, COLOR_WHITE_INCL, PIECE_BIY, PIECE_BATYR } from './constants';
 
+import i18n from './i18n';
+import { translateServerMessage } from './i18n/translateServerMessage';
+
 export { buildHintPayload, buildMovePayload, buildPassPayload, positionLabel } from './utils/wsPayloads';
 
 /**
@@ -16,6 +19,27 @@ export function convertKeys(serverBoard) {
 /**
  * Подсчитывает количество белых и чёрных фигур на доске.
  */
+/** Верх/низ доски в UI: сверху крепость соперника, снизу своя. */
+export function getBoardSideOrder(myColor) {
+  if (myColor === COLOR_BLACK) {
+    return { top: COLOR_WHITE, bottom: COLOR_BLACK };
+  }
+  if (myColor === COLOR_WHITE) {
+    return { top: COLOR_BLACK, bottom: COLOR_WHITE };
+  }
+  return { top: COLOR_WHITE, bottom: COLOR_BLACK };
+}
+
+export function colorToCountsKey(color) {
+  return color === COLOR_WHITE ? 'white' : 'black';
+}
+
+export function readTimerSeconds(timer, color) {
+  if (!timer) return null;
+  if (timer[color] != null) return timer[color];
+  return timer[colorToCountsKey(color)];
+}
+
 export function countPieces(boardData) {
   const pieces = Object.values(boardData);
   return {
@@ -71,41 +95,51 @@ export function winnerColor(winner) {
   return null;
 }
 
+/** Убирает префикс «Игра окончена» из текста с сервера. */
+export function stripGameOverLabel(text) {
+  if (!text) return '';
+  return String(text).replace(/^Игра окончена!?\s*:?\s*/i, '').trim();
+}
+
 /**
- * Текст окончания игры для UI (две строки).
+ * Текст окончания игры для UI.
  * @param {string} [winner]
  * @param {string} [reason] — timeout | resign | draw_agreed | opponent_disconnected
  */
 export function formatGameOverMessage(winner, reason) {
-  const color = winnerColor(winner);
-  const colorLabel = color === 'белый' ? 'белых' : color === 'чёрный' ? 'чёрных' : null;
+  const t = i18n.t.bind(i18n);
+  const cleanedWinner = stripGameOverLabel(winner);
+  const translatedWinner = translateServerMessage(cleanedWinner || winner);
+  const color = winnerColor(cleanedWinner || winner);
 
-  if (reason === 'timeout' && colorLabel) {
-    return `Игра окончена!\nВремя вышло у ${colorLabel}`;
+  if (reason === 'timeout') {
+    if (color === 'белый') return t('result.timeoutWhite');
+    if (color === 'чёрный') return t('result.timeoutBlack');
   }
-  if (reason === 'resign' && color) {
-    const winnerLabel = color === 'белый' ? 'белые' : 'чёрные';
-    return `Игра окончена!\n${winnerLabel} победили (сдача)`;
+  if (reason === 'resign') {
+    if (color === 'белый') return t('result.resignWhite');
+    if (color === 'чёрный') return t('result.resignBlack');
   }
-  if (reason === 'draw_agreed') {
-    return 'Игра окончена!\nНичья по согласию';
+  if (reason === 'draw_agreed') return t('result.drawAgreed');
+  if (reason === 'cancelled') {
+    return translatedWinner || t('result.cancelledDefault');
   }
-  if (reason === 'opponent_disconnected' && color) {
-    const winnerLabel = color === 'белый' ? 'белые' : 'чёрные';
-    return `Игра окончена!\n${winnerLabel} победили (соперник отключился)`;
-  }
-
-  if (!winner) return 'Игра окончена!\nНичья';
-
-  const w = winner.toLowerCase();
-  if (w.includes('ничья')) {
-    const line = winner.trim().replace(/!+$/, '');
-    return `Игра окончена!\n${line}!`;
+  if (reason === 'opponent_disconnected') {
+    if (color === 'белый') return t('result.disconnectWhite');
+    if (color === 'чёрный') return t('result.disconnectBlack');
   }
 
-  if (!color) return `Игра окончена!\n${winner}`;
+  if (!cleanedWinner && !winner) return t('result.draw');
 
-  return `Игра окончена!\nПобедил ${color} Бий!`;
+  if (translatedWinner && translatedWinner !== (cleanedWinner || winner)) {
+    return translatedWinner;
+  }
+
+  if (cleanedWinner) return translateServerMessage(cleanedWinner);
+
+  if (color) return t('result.biyWins', { color: t(`colors.${color === 'белый' ? 'white' : 'black'}`) });
+
+  return translateServerMessage(winner) || t('result.draw');
 }
 
 /** Формат mm:ss для игровых часов */
@@ -130,15 +164,15 @@ export function isWinner(winner, myColor) {
 /** Краткая подпись длительности: 15с, 1м, 3м */
 export function formatDurationShort(seconds) {
   const s = Math.round(seconds);
-  if (s >= 60 && s % 60 === 0) return `${s / 60}м`;
-  return `${s}с`;
+  if (s >= 60 && s % 60 === 0) return i18n.t('time.minShort', { n: s / 60 });
+  return i18n.t('time.secShort', { n: s });
 }
 
-/** Подпись контроля времени для зала ожидания: «15с + 1с», «1м + 15с», «без таймера» */
+/** Подпись контроля времени для зала ожидания: «15с + 1с», «1м + 15с», «∞» (без таймера) */
 export function formatTimeControlLabel(timeControl, increment = 0) {
-  if (timeControl == null) return 'без таймера';
+  if (timeControl == null) return i18n.t('time.unlimited');
   const base = formatDurationShort(timeControl);
   const inc = increment || 0;
-  if (inc > 0) return `${base} + ${inc}с`;
+  if (inc > 0) return `${base} + ${i18n.t('time.secShort', { n: inc })}`;
   return base;
 }

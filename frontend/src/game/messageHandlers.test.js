@@ -52,6 +52,33 @@ describe('dispatchServerMessage', () => {
     expect(calls[0].type).toBe(GAME_ACTIONS.SET_REMATCH_UNAVAILABLE);
   });
 
+  it('game_cancelled ends game with message for result bar', () => {
+    const { calls, msg } = collectDispatches({
+      status: 'game_cancelled',
+      message: 'Соперник отменил игру.',
+      by: 'белый',
+    });
+    expect(calls[0]).toEqual({
+      type: GAME_ACTIONS.GAME_CANCELLED,
+      payload: { message: 'Соперник отменил игру.' },
+    });
+    expect(msg).toBeNull();
+  });
+
+  it('game_over with cancelled reason shows result actions for opponent', () => {
+    const { calls, msg } = collectDispatches({
+      game_over: true,
+      winner: 'Соперник отменил игру.',
+      reason: 'cancelled',
+      desk: { '10': 'белый бий' },
+    });
+    expect(calls.some((c) => c.type === GAME_ACTIONS.GAME_OVER)).toBe(true);
+    const over = calls.find((c) => c.type === GAME_ACTIONS.GAME_OVER);
+    expect(over.payload.reason).toBe('cancelled');
+    expect(over.payload.winner).toBe('Соперник отменил игру.');
+    expect(msg).toBeNull();
+  });
+
   it('move in AI mode sets aiThinking when not my turn', () => {
     const { calls } = collectDispatches(
       {
@@ -71,5 +98,54 @@ describe('dispatchServerMessage', () => {
     const { msg } = collectDispatches({ status: 'error', message: 'Нельзя' });
     expect(msg.type).toBe('error');
     expect(msg.text).toBe('Нельзя');
+  });
+
+  it('waiting sets players_info', () => {
+    const players = [
+      { client_id: 'a', display_name: 'Аноним', is_anonymous: true },
+      { client_id: 'b', display_name: '@hero', is_anonymous: false },
+    ];
+    const { calls } = collectDispatches({
+      status: 'waiting',
+      players_info: players,
+    });
+    expect(calls.some((c) => c.type === GAME_ACTIONS.SET_WAITING)).toBe(true);
+    expect(calls.some(
+      (c) => c.type === GAME_ACTIONS.SET_PLAYERS_INFO && c.payload === players,
+    )).toBe(true);
+  });
+
+  it('chat_history loads messages', () => {
+    const messages = [{ text: 'hi', ts: 1 }];
+    const { calls } = collectDispatches({ type: 'chat_history', messages });
+    expect(calls[0]).toEqual({
+      type: GAME_ACTIONS.CHAT_HISTORY,
+      payload: messages,
+    });
+  });
+
+  it('chat appends message', () => {
+    const { calls } = collectDispatches({
+      type: 'chat',
+      from_client_id: 'x',
+      text: 'gg',
+      display_name: 'player',
+    });
+    expect(calls[0].type).toBe(GAME_ACTIONS.CHAT_MESSAGE);
+    expect(calls[0].payload.text).toBe('gg');
+  });
+
+  it('game_started includes players_info dispatch', () => {
+    const info = [{ client_id: 'c1', display_name: 'u' }];
+    const { calls } = collectDispatches({
+      status: 'game_started',
+      desk: { '10': 'белый бий' },
+      movers_color: 'белый',
+      your_color: 'белый',
+      players_info: info,
+    });
+    expect(calls.some(
+      (c) => c.type === GAME_ACTIONS.SET_PLAYERS_INFO && c.payload === info,
+    )).toBe(true);
   });
 });

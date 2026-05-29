@@ -62,6 +62,9 @@ export const initialGameState = {
   rematchReady: false,
   rematchOpponentReady: false,
   rematchUnavailable: false,
+  playersInfo: [],
+  chatMessages: [],
+  chatOpen: false,
 };
 
 export function gameReducer(state, action) {
@@ -72,6 +75,17 @@ export function gameReducer(state, action) {
       return { ...state, waiting: true, joiningError: '' };
     case GAME_ACTIONS.SET_JOINING_ERROR:
       return { ...state, joiningError: action.payload };
+
+    case GAME_ACTIONS.SET_PLAYERS_INFO:
+      return { ...state, playersInfo: action.payload || [] };
+
+    case GAME_ACTIONS.CHAT_HISTORY:
+      return { ...state, chatMessages: action.payload || [] };
+
+    case GAME_ACTIONS.CHAT_MESSAGE: {
+      const next = [...state.chatMessages, action.payload];
+      return { ...state, chatMessages: next.slice(-50) };
+    }
 
     case GAME_ACTIONS.SET_MOVE_FROM:
       return {
@@ -105,6 +119,7 @@ export function gameReducer(state, action) {
         rematchOpponentReady: false,
         rematchUnavailable: false,
         aiThinking: action.payload.aiThinking ?? false,
+        playersInfo: action.payload.players_info || state.playersInfo,
       });
     }
 
@@ -133,6 +148,21 @@ export function gameReducer(state, action) {
 
     case GAME_ACTIONS.SET_DRAW_OFFER:
       return { ...state, drawOfferFrom: action.payload };
+
+    case GAME_ACTIONS.GAME_CANCELLED:
+      return {
+        ...state,
+        gameOver: true,
+        gameOverReason: 'cancelled',
+        winner: action.payload?.message || 'Игра отменена.',
+        drawOfferFrom: null,
+        rematchReady: false,
+        rematchOpponentReady: false,
+        rematchUnavailable: false,
+        moveFrom: null,
+        canPass: false,
+        aiThinking: false,
+      };
 
     case GAME_ACTIONS.MOVE_MADE: {
       const newLastMove = lastMoveFromPayload(action.payload);
