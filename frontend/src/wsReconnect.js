@@ -3,9 +3,9 @@ export const RECONNECT_MAX_DELAY_MS = 5000;
 export const MAX_RECONNECT_ATTEMPTS = 12;
 
 export const FATAL_CLOSE_RULES = [
-  { match: 'комната уже заполнена', type: 'room_full', message: 'Комната уже заполнена' },
-  { match: 'вы уже в игре', type: 'already_in_game', message: 'Игра уже открыта в другой вкладке' },
-  { match: 'комната не найдена', type: 'room_not_found', message: 'Комната не найдена' },
+  { code: 'room_full', type: 'room_full' },
+  { code: 'already_in_game', type: 'already_in_game' },
+  { code: 'room_not_found', type: 'room_not_found' },
 ];
 
 export function getReconnectDelay(attempt) {
@@ -14,18 +14,18 @@ export function getReconnectDelay(attempt) {
 }
 
 export function classifyClose(event) {
-  const reason = (event.reason || '').toLowerCase();
+  const reason = (event.reason || '').trim().toLowerCase();
 
   if (event.code === 1000) {
     return { recoverable: false, type: 'normal' };
   }
 
   for (const rule of FATAL_CLOSE_RULES) {
-    if (reason.includes(rule.match)) {
+    if (reason === rule.code) {
       return {
         recoverable: false,
         type: rule.type,
-        message: event.reason || rule.message,
+        message: event.reason || rule.code,
       };
     }
   }
@@ -33,7 +33,7 @@ export function classifyClose(event) {
   return {
     recoverable: true,
     type: 'transient',
-    message: event.reason || 'Потеряно соединение. Пытаюсь восстановить...',
+    message: event.reason || 'connection_lost',
   };
 }
 
@@ -46,7 +46,7 @@ export function parseWsMessage(raw) {
         error: {
           type: 'malformed',
           recoverable: true,
-          message: 'Получено некорректное сообщение от сервера',
+          message: 'ws.expected_object',
         },
       };
     }
@@ -57,7 +57,7 @@ export function parseWsMessage(raw) {
       error: {
         type: 'malformed',
         recoverable: true,
-        message: 'Не удалось разобрать ответ сервера',
+        message: 'ws.invalid_json',
       },
     };
   }

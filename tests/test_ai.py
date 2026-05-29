@@ -96,7 +96,7 @@ def test_get_best_move_returns_legal_move_after_reproduced_sequence():
 
     board = _play_moves(moves)
 
-    game_over, _ = is_game_over(Board(board))
+    game_over, _, _ = is_game_over(Board(board))
 
     assert game_over is False
 

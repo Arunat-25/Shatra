@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { ApiError } from '../api/auth';
-import { translateApiErrorMessage } from '../i18n/translateServerMessage';
+import { resolveApiErrorMessage } from '../i18n/resolveMessage';
 import GameEmblem from '../components/GameEmblem';
 
 export default function Login() {
@@ -27,7 +27,7 @@ export default function Login() {
     } catch (err) {
       setError(
         err instanceof ApiError
-          ? translateApiErrorMessage(err.message)
+          ? resolveApiErrorMessage(err.message)
           : t('auth.loginFailed'),
       );
     } finally {

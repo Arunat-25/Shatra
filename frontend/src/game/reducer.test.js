@@ -3,14 +3,25 @@ import { gameReducer, initialGameState } from './reducer';
 import { GAME_ACTIONS } from './actions';
 
 describe('gameReducer', () => {
-  it('GAME_OVER locks board and stores reason', () => {
+  it('GAME_OVER locks board and stores winner_color', () => {
     const next = gameReducer(initialGameState, {
       type: GAME_ACTIONS.GAME_OVER,
-      payload: { winner: 'белый', reason: 'timeout', desk: { 10: 'черный бий' } },
+      payload: { winner_color: 'белый', reason: 'timeout', desk: { 10: 'черный бий' } },
     });
     expect(next.gameOver).toBe(true);
     expect(next.gameOverReason).toBe('timeout');
-    expect(next.winner).toBe('белый');
+    expect(next.winnerColor).toBe('белый');
+  });
+
+  it('GAME_CANCELLED stores message_code', () => {
+    const next = gameReducer(initialGameState, {
+      type: GAME_ACTIONS.GAME_CANCELLED,
+      payload: { message_code: 'cancel.you' },
+    });
+    expect(next.gameOver).toBe(true);
+    expect(next.gameOverReason).toBe('cancelled');
+    expect(next.gameOverMessageCode).toBe('cancel.you');
+    expect(next.winnerColor).toBe('');
   });
 
   it('OPPONENT_DISCONNECTED sets countdown', () => {

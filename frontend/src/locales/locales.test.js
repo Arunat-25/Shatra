@@ -75,4 +75,9 @@ describe('locale files', () => {
     expect(ru.chat.send).not.toBe(en.chat.send);
     expect(ru.chat.send).not.toBe(alt.chat.send);
   });
+
+  it('alt locale has no ü/ö transliteration artifacts in Cyrillic strings', () => {
+    const text = JSON.stringify(alt);
+    expect(text).not.toMatch(/[üöÜÖ]/);
+  });
 });

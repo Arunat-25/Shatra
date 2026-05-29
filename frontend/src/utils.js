@@ -1,7 +1,7 @@
 import { COLOR_WHITE, COLOR_BLACK, COLOR_WHITE_INCL, PIECE_BIY, PIECE_BATYR } from './constants';
 
 import i18n from './i18n';
-import { translateServerMessage } from './i18n/translateServerMessage';
+import { resolveMessageCode } from './i18n/resolveMessage';
 
 export { buildHintPayload, buildMovePayload, buildPassPayload, positionLabel } from './utils/wsPayloads';
 
@@ -84,62 +84,57 @@ export function getPieceColor(pieceStr) {
   return pieceStr.includes(COLOR_WHITE_INCL) ? COLOR_WHITE : COLOR_BLACK;
 }
 
-/**
- * Извлекает цвет победителя из строки winner (белый/чёрный).
- */
-export function winnerColor(winner) {
-  if (!winner) return null;
-  const w = winner.toLowerCase();
-  if (w.includes('бел')) return 'белый';
-  if (w.includes('чер') || w.includes('чёр')) return 'чёрный';
+/** Нормализует winner_color / legacy winner text to «белый» | «чёрный». */
+export function winnerColor(raw) {
+  if (!raw) return null;
+  const w = String(raw).toLowerCase();
+  if (w.includes('бел') || w === 'white') return COLOR_WHITE;
+  if (w.includes('чер') || w.includes('чёр') || w === 'black') return COLOR_BLACK;
   return null;
-}
-
-/** Убирает префикс «Игра окончена» из текста с сервера. */
-export function stripGameOverLabel(text) {
-  if (!text) return '';
-  return String(text).replace(/^Игра окончена!?\s*:?\s*/i, '').trim();
 }
 
 /**
  * Текст окончания игры для UI.
- * @param {string} [winner]
- * @param {string} [reason] — timeout | resign | draw_agreed | opponent_disconnected
+ * @param {string} [winnerColor] — «белый» / «черный»
+ * @param {string} [reason] — timeout | resign | draw_agreed | draw_two_biys | draw_repetition | cancelled | opponent_disconnected
+ * @param {string} [messageCode] — cancel.* codes when reason is cancelled
  */
-export function formatGameOverMessage(winner, reason) {
+export function formatGameOverMessage(winnerColorRaw, reason, messageCode) {
   const t = i18n.t.bind(i18n);
-  const cleanedWinner = stripGameOverLabel(winner);
-  const translatedWinner = translateServerMessage(cleanedWinner || winner);
-  const color = winnerColor(cleanedWinner || winner);
+  const color = winnerColor(winnerColorRaw);
 
-  if (reason === 'timeout') {
-    if (color === 'белый') return t('result.timeoutWhite');
-    if (color === 'чёрный') return t('result.timeoutBlack');
-  }
-  if (reason === 'resign') {
-    if (color === 'белый') return t('result.resignWhite');
-    if (color === 'чёрный') return t('result.resignBlack');
+  if (reason === 'draw_two_biys' || reason === 'draw_repetition') {
+    return resolveMessageCode(reason) || t('result.drawAgreed');
   }
   if (reason === 'draw_agreed') return t('result.drawAgreed');
+
+  if (reason === 'timeout') {
+    if (color === COLOR_WHITE) return t('result.timeoutWhite');
+    if (color === COLOR_BLACK) return t('result.timeoutBlack');
+  }
+  if (reason === 'resign') {
+    if (color === COLOR_WHITE) return t('result.resignWhite');
+    if (color === COLOR_BLACK) return t('result.resignBlack');
+  }
   if (reason === 'cancelled') {
-    return translatedWinner || t('result.cancelledDefault');
+    return messageCode
+      ? resolveMessageCode(messageCode)
+      : t('result.cancelledDefault');
   }
   if (reason === 'opponent_disconnected') {
-    if (color === 'белый') return t('result.disconnectWhite');
-    if (color === 'чёрный') return t('result.disconnectBlack');
+    if (color === COLOR_WHITE) return t('result.disconnectWhite');
+    if (color === COLOR_BLACK) return t('result.disconnectBlack');
   }
 
-  if (!cleanedWinner && !winner) return t('result.draw');
+  if (!color && !winnerColorRaw) return t('result.draw');
 
-  if (translatedWinner && translatedWinner !== (cleanedWinner || winner)) {
-    return translatedWinner;
+  if (color) {
+    return t('result.biyWins', {
+      color: t(`colors.${color === COLOR_WHITE ? 'white' : 'black'}`),
+    });
   }
 
-  if (cleanedWinner) return translateServerMessage(cleanedWinner);
-
-  if (color) return t('result.biyWins', { color: t(`colors.${color === 'белый' ? 'white' : 'black'}`) });
-
-  return translateServerMessage(winner) || t('result.draw');
+  return t('result.draw');
 }
 
 /** Формат mm:ss для игровых часов */
@@ -154,11 +149,12 @@ export function formatClockTime(seconds) {
 /**
  * Определяет, является ли победитель текущим игроком.
  */
-export function isWinner(winner, myColor) {
-  const wColor = winnerColor(winner);
+export function isWinner(winnerColorRaw, myColor) {
+  const wColor = winnerColor(winnerColorRaw);
   if (!wColor || !myColor) return false;
   const mine = myColor.toLowerCase();
-  return (mine.includes('бел') && wColor === 'белый') || (mine.includes('чер') && wColor === 'чёрный');
+  return (mine.includes('бел') && wColor === COLOR_WHITE)
+    || (mine.includes('чер') && wColor === COLOR_BLACK);
 }
 
 /** Краткая подпись длительности: 15с, 1м, 3м */

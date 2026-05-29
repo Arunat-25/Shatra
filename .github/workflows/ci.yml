@@ -72,3 +72,77 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm test
+      - run: npm run build
+
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: shatra
+          POSTGRES_PASSWORD: shatra
+          POSTGRES_DB: shatra
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U shatra -d shatra"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements*.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install Python deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm ci
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+      - name: Install Playwright browser
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+      - name: Alembic migrate
+        run: alembic upgrade head
+        env:
+          DATABASE_URL: postgresql+asyncpg://shatra:shatra@localhost:5432/shatra
+          JWT_SECRET: test-secret-ci
+      - name: Start API server
+        run: |
+          uvicorn main:app --host 127.0.0.1 --port 8000 &
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8000/rooms && break
+            sleep 1
+          done
+        env:
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          DATABASE_URL: postgresql+asyncpg://shatra:shatra@localhost:5432/shatra
+          JWT_SECRET: test-secret-ci
+      - name: E2E smoke
+        working-directory: frontend
+        run: npm run test:e2e
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:8000

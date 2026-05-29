@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ApiError, register } from '../api/auth';
 import { useAuth } from '../context/AuthContext';
 import { DISTRICTS } from '../constants/profile';
-import { translateApiErrorMessage } from '../i18n/translateServerMessage';
+import { resolveApiErrorMessage } from '../i18n/resolveMessage';
 import GameEmblem from '../components/GameEmblem';
 
 export default function Register() {
@@ -40,7 +40,7 @@ export default function Register() {
       navigate('/');
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(translateApiErrorMessage(err.message));
+        setError(resolveApiErrorMessage(err.message));
       } else {
         setError(t('auth.registerFailed'));
       }

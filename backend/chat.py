@@ -6,6 +6,7 @@ import time
 
 from fastapi import WebSocket
 
+from backend.message_codes import ws_error
 from backend.player_identity import display_name
 from backend.state import get_room, redis_client, set_room
 from backend.ws_manager import manager
@@ -63,10 +64,7 @@ async def handle_chat_message(
     is_ai_room: bool,
 ) -> bool:
     if is_ai_room:
-        await manager.send_to_player(
-            websocket,
-            {"status": "error", "message": "Чат недоступен в игре с ботом"},
-        )
+        await manager.send_to_player(websocket, ws_error("chat.ai_unavailable"))
         return True
 
     room_data = await get_room(room_id)
@@ -75,17 +73,11 @@ async def handle_chat_message(
 
     text = sanitize_chat_text(str(data.get("text", "")))
     if not text:
-        await manager.send_to_player(
-            websocket,
-            {"status": "error", "message": "Пустое сообщение"},
-        )
+        await manager.send_to_player(websocket, ws_error("chat.empty"))
         return True
 
     if not await _check_rate_limit(room_id, client_id):
-        await manager.send_to_player(
-            websocket,
-            {"status": "error", "message": "Слишком много сообщений. Подождите."},
-        )
+        await manager.send_to_player(websocket, ws_error("chat.rate_limit"))
         return True
 
     meta = (room_data.get("player_meta") or {}).get(client_id) or {}

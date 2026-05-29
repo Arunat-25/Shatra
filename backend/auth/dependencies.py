@@ -12,6 +12,11 @@ from backend.auth.service import user_to_public
 from backend.auth.schemas import UserPublic
 from backend.db.models import User
 from backend.db.session import get_db
+from backend.message_codes import (
+    AUTH_INVALID_TOKEN,
+    AUTH_REQUIRED,
+    AUTH_USER_NOT_FOUND,
+)
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -21,16 +26,16 @@ async def get_current_user(
     db: AsyncSession = Depends(get_db),
 ) -> User:
     if credentials is None or credentials.scheme.lower() != "bearer":
-        raise HTTPException(status_code=401, detail="Требуется авторизация")
+        raise HTTPException(status_code=401, detail=AUTH_REQUIRED)
     try:
         payload = decode_token(credentials.credentials, "access")
         user_id = uuid.UUID(payload["sub"])
     except (jwt.PyJWTError, ValueError, KeyError):
-        raise HTTPException(status_code=401, detail="Недействительный токен") from None
+        raise HTTPException(status_code=401, detail=AUTH_INVALID_TOKEN) from None
 
     user = await db.get(User, user_id)
     if not user:
-        raise HTTPException(status_code=401, detail="Пользователь не найден")
+        raise HTTPException(status_code=401, detail=AUTH_USER_NOT_FOUND)
     return user
 
 

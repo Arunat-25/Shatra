@@ -239,15 +239,24 @@
   transition: background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
 }
 
-.app-auth-nav__locale {
+.locale-switcher {
   display: flex;
   align-items: center;
   gap: 4px;
-  margin-right: 8px;
   font-size: 0.75rem;
 }
 
-.app-auth-nav__locale-btn {
+.app-auth-nav .locale-switcher {
+  margin-right: 8px;
+}
+
+.locale-switcher__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.locale-switcher__btn {
   background: transparent;
   border: none;
   color: var(--text-muted);
@@ -257,11 +266,11 @@
   font-weight: 600;
 }
 
-.app-auth-nav__locale-btn.is-active {
+.locale-switcher__btn.is-active {
   color: var(--gold);
 }
 
-.app-auth-nav__locale-sep {
+.locale-switcher__sep {
   color: var(--text-faint);
   font-size: 0.7rem;
 }

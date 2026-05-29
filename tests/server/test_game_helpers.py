@@ -11,12 +11,13 @@ from backend.game_helpers import (
     build_game_started_response,
     _norm_board_keys,
 )
+from game_engine.message_codes import MOVE_WRONG_COLOR
 from game_engine.models import GameEventResult
 
 
 class TestWsErrorPayload:
     def test_shape(self):
-        assert ws_error_payload("Ошибка") == {"status": "error", "message": "Ошибка"}
+        assert ws_error_payload("room.not_found") == {"status": "error", "message_code": "room.not_found"}
 
 
 class TestIsMoveMessage:
@@ -57,11 +58,11 @@ class TestParseClientEvent:
         assert raw_from is None
 
     def test_missing_board(self):
-        with pytest.raises(ValueError, match="доски"):
+        with pytest.raises(ValueError, match="missing_board"):
             parse_client_event({"movers_color": "белый"})
 
     def test_missing_mover(self):
-        with pytest.raises(ValueError, match="ходящего"):
+        with pytest.raises(ValueError, match="missing_mover"):
             parse_client_event({"board": {}})
 
 
@@ -69,7 +70,7 @@ class TestIsRejectedMove:
     def test_rejected_illegal_move(self):
         board = {11: "черная шатра"}
         result = GameEventResult(
-            message="Не ваш ход",
+            message_code=MOVE_WRONG_COLOR,
             movers_color="черный",
             updated_positions=dict(board),
         )
@@ -77,7 +78,7 @@ class TestIsRejectedMove:
 
     def test_pass_is_not_rejected(self):
         board = {11: "черная шатра"}
-        result = GameEventResult(message="", movers_color="белый", updated_positions=dict(board))
+        result = GameEventResult(message_code="", movers_color="белый", updated_positions=dict(board))
         assert is_rejected_move(result, board, 0, 0) is False
 
     def test_hint_with_essential_not_rejected(self):

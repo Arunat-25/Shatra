@@ -2,6 +2,7 @@ from typing import List
 from game_engine.board import Board
 from game_engine.models import GameEventResult
 from game_engine.validation import validate_move
+from game_engine.message_codes import CAPTURE_CONTINUE_SAME
 from game_engine.dictionaries import (
     shatra_and_biy_possible_captures,
     batyr_moves_and_captures,
@@ -63,8 +64,11 @@ def get_hints(
     # Если есть цепочка — показываем только взятия этой фигурой
     if chain_capture_cell and chain_capture_cell != 0:
         if from_cell != chain_capture_cell:
-            return GameEventResult(essential_positions=[], captured_pieces=batyr_captured_this_turn.copy(),
-                message="Продолжайте взятие той же фигурой!")
+            return GameEventResult(
+                essential_positions=[],
+                captured_pieces=batyr_captured_this_turn.copy(),
+                message_code=CAPTURE_CONTINUE_SAME,
+            )
         return _get_chain_hints(cells, current_color, from_cell, batyr_captured_this_turn, piece)
 
     # Собираем всех кандидатов и прогоняем через validate_move

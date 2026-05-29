@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ApiError, changePassword, updateProfile } from '../api/auth';
 import { useAuth } from '../context/AuthContext';
 import { DISTRICTS } from '../constants/profile';
-import { translateApiErrorMessage } from '../i18n/translateServerMessage';
+import { resolveApiErrorMessage } from '../i18n/resolveMessage';
 import GameEmblem from '../components/GameEmblem';
 
 export default function Profile() {
@@ -60,7 +60,7 @@ export default function Profile() {
       setSuccess(t('auth.profileSaved'));
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(translateApiErrorMessage(err.message));
+        setError(resolveApiErrorMessage(err.message));
       } else {
         setError(t('auth.saveFailed'));
       }
@@ -83,7 +83,7 @@ export default function Profile() {
       window.location.href = '/login?passwordChanged=1';
     } catch (err) {
       if (err instanceof ApiError) {
-        setPasswordError(translateApiErrorMessage(err.message));
+        setPasswordError(resolveApiErrorMessage(err.message));
       } else {
         setPasswordError(t('auth.changePasswordFailed'));
       }

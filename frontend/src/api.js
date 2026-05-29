@@ -1,17 +1,12 @@
 import { getAccessToken } from './api/auth';
 import i18n from './i18n';
+import { ApiError } from './api/errors';
+
+export { ApiError };
 
 const API_BASE = '';
 const REQUEST_TIMEOUT = 10000;
 const MAX_RETRIES = 2;
-
-class ApiError extends Error {
-  constructor(message, status = null) {
-    super(message);
-    this.name = 'ApiError';
-    this.status = status;
-  }
-}
 
 function authHeaders(extra = {}) {
   const headers = { ...extra };

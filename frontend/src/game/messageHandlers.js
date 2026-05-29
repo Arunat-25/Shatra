@@ -1,13 +1,13 @@
 import { GAME_ACTIONS } from './actions';
 import i18n from '../i18n';
-import { translateServerMessage } from '../i18n/translateServerMessage';
+import { resolveMessage } from '../i18n/resolveMessage';
 
 function t(key, opts) {
   return i18n.t(key, opts);
 }
 
-function msg(text, type) {
-  return { text: translateServerMessage(text), type };
+function msg(payload, type) {
+  return { text: resolveMessage(payload) || t('server.error'), type };
 }
 
 function isAiThinking(modeAi, moversColor, myColor, payload) {
@@ -19,7 +19,7 @@ function isAiThinking(modeAi, moversColor, myColor, payload) {
 export const messageHandlers = [
   {
     check: (d) => d.status === 'error',
-    handle: (d) => ({ text: translateServerMessage(d.message) || t('server.error'), type: 'error' }),
+    handle: (d) => msg(d, 'error'),
   },
   {
     check: (d) => d.status === 'waiting',
@@ -63,7 +63,7 @@ export const messageHandlers = [
     },
   },
   {
-    check: (d) => d.message && d.desk,
+    check: (d) => d.desk && (d.message_code != null || d.message),
     handle: (d, dispatch, modeAi, getMyColor) => {
       const myColor = getMyColor?.() || null;
       const aiThinking = isAiThinking(modeAi, d.movers_color, myColor, d);
@@ -72,11 +72,11 @@ export const messageHandlers = [
       }
       dispatch({ type: GAME_ACTIONS.MOVE_MADE, payload: { ...d, aiThinking } });
       if (d.game_over) return null;
-      return msg(d.message, 'info');
+      return msg(d, 'info');
     },
   },
   {
-    check: (d) => d.essential_positions !== undefined && !d.message,
+    check: (d) => d.essential_positions !== undefined && !d.message_code && !d.message,
     handle: (d, dispatch) => {
       dispatch({
         type: GAME_ACTIONS.HIGHLIGHTS,
@@ -107,14 +107,18 @@ export const messageHandlers = [
     check: (d) => d.status === 'draw_offered',
     handle: (d, dispatch) => {
       dispatch({ type: GAME_ACTIONS.SET_DRAW_OFFER, payload: d.by || null });
-      return msg(d.message || t('server.drawOffer'), 'info');
+      return d.message_code
+        ? msg(d, 'info')
+        : { text: t('server.drawOffer'), type: 'info' };
     },
   },
   {
     check: (d) => d.status === 'draw_declined',
     handle: (d, dispatch) => {
       dispatch({ type: GAME_ACTIONS.SET_DRAW_OFFER, payload: null });
-      return msg(d.message || t('server.drawDeclined'), 'warning');
+      return d.message_code
+        ? msg(d, 'warning')
+        : { text: t('server.drawDeclined'), type: 'warning' };
     },
   },
   {
@@ -122,7 +126,10 @@ export const messageHandlers = [
     handle: (d, dispatch) => {
       dispatch({
         type: GAME_ACTIONS.GAME_CANCELLED,
-        payload: { message: translateServerMessage(d.message) || t('result.cancelledDefault') },
+        payload: {
+          message_code: d.message_code || 'cancel.opponent',
+          message_params: d.message_params,
+        },
       });
       return null;
     },
@@ -144,7 +151,9 @@ export const messageHandlers = [
     check: (d) => d.status === 'rematch_cancelled',
     handle: (d, dispatch) => {
       dispatch({ type: GAME_ACTIONS.SET_REMATCH_UNAVAILABLE });
-      return msg(d.message || t('server.rematchCancelled'), 'warning');
+      return d.message_code
+        ? msg(d, 'warning')
+        : { text: t('server.rematchCancelled'), type: 'warning' };
     },
   },
   {

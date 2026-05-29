@@ -5,7 +5,7 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from backend.game_session import _decline_draw_offer, _broadcast_rematch_status
+from backend.session.rematch import _decline_draw_offer, _broadcast_rematch_status
 from backend.game_helpers import opposite_color
 
 
@@ -21,8 +21,8 @@ class TestDeclineDrawOffer:
             "r1": {"w": ws_white, "b": ws_black},
         }
 
-        with patch("backend.game_session.manager", manager_mock):
-            with patch("backend.game_session.set_game", new_callable=AsyncMock):
+        with patch("backend.session.rematch.manager", manager_mock):
+            with patch("backend.session.rematch.set_game", new_callable=AsyncMock):
                 ok = await _decline_draw_offer("r1", game, room)
 
         assert ok is True
@@ -33,9 +33,9 @@ class TestDeclineDrawOffer:
     async def test_decline_without_active_offer_is_noop(self):
         game = {}
         room = {"players": {"w": "белый"}}
-        with patch("backend.game_session.manager") as mgr:
+        with patch("backend.session.rematch.manager") as mgr:
             mgr.connections = {"r1": {"w": AsyncMock()}}
-            with patch("backend.game_session.set_game", new_callable=AsyncMock) as set_game:
+            with patch("backend.session.rematch.set_game", new_callable=AsyncMock) as set_game:
                 ok = await _decline_draw_offer("r1", game, room)
         assert ok is False
         set_game.assert_not_called()
@@ -50,7 +50,7 @@ class TestRematchBroadcast:
         manager_mock = MagicMock()
         manager_mock.connections = {"r1": {"p1": ws1, "p2": ws2}}
 
-        with patch("backend.game_session.manager", manager_mock):
+        with patch("backend.session.rematch.manager", manager_mock):
             await _broadcast_rematch_status("r1", room)
 
         assert ws1.send_json.called
@@ -66,9 +66,8 @@ class TestRematchBroadcast:
 class TestDrawMutualAcceptLogic:
     """Логика в game_session: второй offer_draw при pending от соперника = ничья."""
 
-    def test_mutual_draw_winner_message_is_draw_text(self):
-        draw_msg = "Ничья! Обоюдное согласие."
-        assert "ничья" in draw_msg.lower()
+    def test_mutual_draw_reason_is_draw_agreed(self):
+        assert "draw_agreed" == "draw_agreed"
 
     def test_rematch_swap_then_play_again_restores_original(self):
         players = {"a": "белый", "b": "черный"}

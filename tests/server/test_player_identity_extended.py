@@ -177,11 +177,11 @@ class TestProcessClientMessageChatPriority:
     """Чат обрабатывается до проверки хода (можно писать не в свой ход)."""
 
     async def test_chat_does_not_require_game_state(self):
-        from backend.game_session import _process_client_message_locked
+        from backend.session.messages import _process_client_message_locked
 
         ws = AsyncMock()
         with patch(
-            "backend.game_session.handle_chat_message",
+            "backend.session.messages.handle_chat_message",
             new_callable=AsyncMock,
             return_value=True,
         ) as chat_mock:

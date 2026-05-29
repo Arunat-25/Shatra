@@ -72,7 +72,7 @@ def build_game_started_response(game: dict, room_data: dict, my_color: str) -> d
         # If the game already ended (e.g. resign) and client reloads, ensure
         # frontend sees terminal state and doesn't allow continuing.
         "game_over": bool(game.get("game_over", False)),
-        "winner": game.get("winner") or "",
+        "winner_color": game.get("winner_color") or game.get("winner") or "",
         "reason": game.get("reason") or "",
         "draw_offer_from": game.get("draw_offer_from"),
         **_timer_fields(room_data),
@@ -102,11 +102,11 @@ def build_move_response(
         e["move_number"] = i
 
     response = {
-        "message": result.message,
+        "message_code": result.message_code or None,
         "movers_color": result.movers_color,
         "desk": keys_int_to_str(game["board"]),
         "game_over": result.game_over,
-        "winner": result.winner,
+        "winner_color": result.winner_color,
         "position_for_mandatory_capture": result.position_for_mandatory_capture,
         "opportunity_pass_the_move": result.opportunity_pass_the_move,
         "essential_positions": result.essential_positions,
@@ -116,6 +116,11 @@ def build_move_response(
         "to_pos": move_to,
         "move_history": filtered_history,
     }
+    if result.message_params:
+        response["message_params"] = result.message_params
+    if result.draw_reason:
+        response["reason"] = result.draw_reason
+    response = {k: v for k, v in response.items() if v is not None}
     if result.movers_color and result.movers_color != prev_mover:
         response["position_for_mandatory_capture"] = None
     return response
@@ -185,8 +190,11 @@ async def apply_move_result(
 
     if result.game_over:
         game["game_over"] = True
-        if result.winner:
-            game["winner"] = result.winner
+        if result.winner_color:
+            game["winner_color"] = result.winner_color
+            game["winner"] = result.winner_color
+        if result.draw_reason:
+            game["reason"] = result.draw_reason
         room_data = await get_room(room_id)
         if room_data and room_data.get("type") != "ai":
             room_data["rematch_ready"] = []
@@ -211,8 +219,9 @@ async def apply_move_result(
     return build_move_response(game, result, prev_mover, from_cell, to_cell)
 
 
-def ws_error_payload(message: str) -> dict:
-    return {"status": "error", "message": message}
+def ws_error_payload(code: str, **params) -> dict:
+    from backend.message_codes import ws_error
+    return ws_error(code, **params)
 
 
 KNOWN_CONTROL_MESSAGE_TYPES = frozenset({
@@ -255,7 +264,7 @@ def is_rejected_move(
         return False
     if result.game_over or result.essential_positions:
         return False
-    if not result.message:
+    if not result.message_code:
         return False
     new_board = _norm_board_keys(result.updated_positions) if result.updated_positions else prev_board
     return new_board == _norm_board_keys(prev_board)
@@ -263,9 +272,9 @@ def is_rejected_move(
 
 def parse_client_event(data: dict) -> tuple[GameEvent, int | None, int | None]:
     if not isinstance(data.get("board"), dict):
-        raise ValueError("Отсутствует состояние доски")
+        raise ValueError("ws.missing_board")
     if not data.get("movers_color"):
-        raise ValueError("Не указан цвет ходящего")
+        raise ValueError("ws.missing_mover")
 
     raw_from = (
         change_position_name_from_frontend(data.get("move_from"))

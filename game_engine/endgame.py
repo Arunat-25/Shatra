@@ -1,5 +1,6 @@
 from typing import Tuple, Optional
 from game_engine.board import Board
+from game_engine.message_codes import DRAW_REPETITION, DRAW_TWO_BIYS
 
 
 def _count_biys(board: Board) -> int:
@@ -24,11 +25,16 @@ def _only_two_biys_left(board: Board) -> bool:
     return biy_count == 2 and other_count == 0
 
 
-def is_game_over(board: Board, position_history: dict = None,
-                 moves_with_two_biys: int = 0) -> Tuple[bool, Optional[str]]:
+def is_game_over(
+    board: Board,
+    position_history: dict = None,
+    moves_with_two_biys: int = 0,
+) -> Tuple[bool, Optional[str], Optional[str]]:
     """Проверяет, закончилась ли игра.
-    
-    Возвращает (True, winner_message) если игра окончена, иначе (False, None).
+
+    Returns:
+        (is_over, winner_color, draw_reason)
+        winner_color — «белый»/«черный» при победе бия; draw_reason — код ничьей.
     """
     biy_count = 0
     last_biy_color = None
@@ -37,18 +43,17 @@ def is_game_over(board: Board, position_history: dict = None,
             biy_count += 1
             last_biy_color = "белый" if "бел" in piece_name else "черный"
     if biy_count == 1:
-        return True, f"{last_biy_color.capitalize()} бий победил!"
+        return True, last_biy_color, None
 
-    # Ничья: 3 хода, когда на доске остались только два бия
     if biy_count == 2 and moves_with_two_biys >= 3 and _only_two_biys_left(board):
-        return True, "Ничья! Сделано 3 хода с двумя биями."
+        return True, None, DRAW_TWO_BIYS
 
     if position_history:
         pos_key = str(sorted(board.cells.items()))
         if position_history.get(pos_key, 0) >= 3:
-            return True, "Ничья! Позиция повторилась 3 раза."
+            return True, None, DRAW_REPETITION
 
-    return False, None
+    return False, None, None
 
 
 def add_to_history(position_history: dict, positions: dict):

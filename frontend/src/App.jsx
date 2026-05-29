@@ -46,7 +46,11 @@ function AppShell() {
             <Route
               key={path}
               path={path}
-              element={<PageTransition>{element}</PageTransition>}
+              element={
+                path === '/:roomId'
+                  ? element
+                  : <PageTransition>{element}</PageTransition>
+              }
             />
           ))}
           <Route path="*" element={<Navigate to="/" replace />} />

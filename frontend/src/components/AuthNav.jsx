@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
-import { getStoredLocale, normalizeLocale, setStoredLocale } from '../i18n';
+import LocaleSwitcher from './LocaleSwitcher';
 
 function IconProfile() {
   return (
@@ -24,17 +24,11 @@ function IconLogout() {
 
 export default function AuthNav() {
   const { pathname } = useLocation();
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { user, isAuthenticated, loading, logout } = useAuth();
-  const locale = normalizeLocale(i18n.language || getStoredLocale());
   const onLoginPage = pathname === '/login';
   const onRegisterPage = pathname === '/register';
   const onProfilePage = pathname === '/profile';
-
-  const setLocale = (lng) => {
-    setStoredLocale(lng);
-    i18n.changeLanguage(lng);
-  };
 
   if (loading) {
     return (
@@ -46,31 +40,7 @@ export default function AuthNav() {
 
   return (
     <nav className="app-auth-nav" aria-label={t('nav.account')}>
-      <div className="app-auth-nav__locale" role="group" aria-label="Language">
-        <button
-          type="button"
-          className={`app-auth-nav__locale-btn ${locale === 'ru' ? 'is-active' : ''}`}
-          onClick={() => setLocale('ru')}
-        >
-          {t('locale.ru')}
-        </button>
-        <span className="app-auth-nav__locale-sep">|</span>
-        <button
-          type="button"
-          className={`app-auth-nav__locale-btn ${locale === 'en' ? 'is-active' : ''}`}
-          onClick={() => setLocale('en')}
-        >
-          {t('locale.en')}
-        </button>
-        <span className="app-auth-nav__locale-sep">|</span>
-        <button
-          type="button"
-          className={`app-auth-nav__locale-btn ${locale === 'alt' ? 'is-active' : ''}`}
-          onClick={() => setLocale('alt')}
-        >
-          {t('locale.alt')}
-        </button>
-      </div>
+      <LocaleSwitcher />
       {isAuthenticated ? (
         <>
           <span className="app-auth-nav__username" title={user.username}>

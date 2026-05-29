@@ -86,7 +86,7 @@ class TestHandleTimeout:
         assert game["game_over"] is True
         set_game.assert_called_once()
         payload = mgr.send_to_room.call_args[0][1]
-        assert payload["winner"] == "черный"
+        assert payload["winner_color"] == "черный"
         assert payload["reason"] == "timeout"
         stop.assert_called_once()
 

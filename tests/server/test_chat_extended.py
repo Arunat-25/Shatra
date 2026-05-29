@@ -79,7 +79,7 @@ class TestRateLimit:
             )
         assert ok is True
         msg = ws.send_json.call_args[0][0]
-        assert "много" in msg["message"].lower()
+        assert msg["message_code"] == "chat.rate_limit"
 
 
 @pytest.mark.asyncio
@@ -121,7 +121,7 @@ class TestHandleChatMessage:
                 "r", "c", ws, {"text": "   "}, is_ai_room=False
             )
         assert ok is True
-        assert "пуст" in ws.send_json.call_args[0][0]["message"].lower()
+        assert ws.send_json.call_args[0][0]["message_code"] == "chat.empty"
 
     async def test_broadcast_includes_display_name(self):
         room_id = "r1"

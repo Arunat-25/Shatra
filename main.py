@@ -15,7 +15,7 @@ from backend.auth.dependencies import get_optional_user
 from backend.db.models import User
 from backend.models import CreateRoomRequest
 from backend.room_manager import create_room, list_rooms, join_room
-from backend.game_session import websocket_endpoint
+from backend.session import websocket_endpoint
 from backend.state import init_redis, close_redis, get_room
 from backend.db.session import init_db, close_db
 from backend.auth.router import router as auth_router

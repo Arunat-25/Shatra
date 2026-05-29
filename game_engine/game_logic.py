@@ -1,5 +1,6 @@
 from typing import Optional
 from game_engine.models import GameEvent, GameEventResult
+from game_engine.message_codes import MOVE_INVALID_EVENT
 from game_engine.moves import process_move, has_mandatory_from_position
 from game_engine.hints import get_hints as _get_hints
 
@@ -39,7 +40,7 @@ class GameLogic:
                 position_history=_history,
                 moves_with_two_biys=moves_with_two_biys
             )
-        return GameEventResult(message="Некорректные данные события")
+        return GameEventResult(message_code=MOVE_INVALID_EVENT)
 
     def has_mandatory_from_position(self, cells: dict, color: str, pos: int = None) -> bool:
         return has_mandatory_from_position(cells, color, pos)

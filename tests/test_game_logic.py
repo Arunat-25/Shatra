@@ -3,6 +3,7 @@
 from backend.board_utils import get_starting_board
 from game_engine.board import Board
 from game_engine.endgame import is_game_over
+from game_engine.message_codes import MOVE_NO_PIECE, TURN_NOW
 from game_engine.game_logic import logic
 from game_engine.hints import get_hints
 from game_engine.models import GameEvent
@@ -21,8 +22,8 @@ def test_handle_event_returns_error_for_invalid_move():
         GameEvent(positions=board, mover_color="черный", from_pos=10, to_pos=18)
     )
 
-    assert result.message == "Нет фигуры на выбранной позиции"
-    assert result.updated_positions == board
+    assert result.message_code == MOVE_NO_PIECE
+    assert result.updated_positions is None
 
 
 def test_handle_event_returns_hints_for_current_piece():
@@ -56,7 +57,7 @@ def test_handle_event_moves_piece_and_switches_turn():
     assert result.updated_positions[11] is None
     assert result.updated_positions[18] == "черная шатра"
     assert result.movers_color == "белый"
-    assert "Теперь ходит" in result.message
+    assert result.message_code == TURN_NOW
 
 
 def test_handle_event_capture_removes_enemy_piece():
@@ -99,10 +100,11 @@ def test_is_game_over_detects_single_biy_remaining():
     board = make_empty_board()
     board[10] = "черный бий"
 
-    is_over, winner = is_game_over(Board(board))
+    is_over, winner_color, draw_reason = is_game_over(Board(board))
 
     assert is_over is True
-    assert winner == "Черный бий победил!"
+    assert winner_color == "черный"
+    assert draw_reason is None
 
 
 def test_is_game_over_returns_false_when_both_bies_exist():
@@ -110,10 +112,11 @@ def test_is_game_over_returns_false_when_both_bies_exist():
     board[10] = "черный бий"
     board[53] = "белый бий"
 
-    is_over, winner = is_game_over(Board(board))
+    is_over, winner_color, draw_reason = is_game_over(Board(board))
 
     assert is_over is False
-    assert winner is None
+    assert winner_color is None
+    assert draw_reason is None
 
 
 def test_capture_chain_uses_the_correct_mandatory_piece():
@@ -270,4 +273,4 @@ def test_game_ends_immediately_when_biy_captured_in_shatra_chain():
     )
     assert second.game_over is True
     assert second.movers_color is None
-    assert second.winner == "Белый бий победил!"
+    assert second.winner_color == "белый"

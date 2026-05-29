@@ -72,8 +72,7 @@ class TestRegister:
         _register(client, "dup_user")
         r = _register(client, "dup_user", password="otherpass1")
         assert r.status_code == 409
-        assert "уже занято" in r.json()["detail"].lower()
-        assert "войдите" in r.json()["detail"].lower()
+        assert r.json()["detail"] == "auth.username_taken_register"
 
     def test_duplicate_username_case_insensitive(self, client):
         _register(client, "CaseUser")
@@ -114,7 +113,7 @@ class TestLogin:
         _register(client, "login_test")
         r = _login(client, "login_test", password="wrongpass1")
         assert r.status_code == 401
-        assert "пароль" in r.json()["detail"].lower()
+        assert r.json()["detail"] == "auth.invalid_credentials"
 
     def test_unknown_user(self, client):
         r = _login(client, "nobody_here")
@@ -305,8 +304,7 @@ class TestProfileUpdate:
             json={"username": "taken_name"},
         )
         assert r.status_code == 409
-        assert "уже занято" in r.json()["detail"].lower()
-        assert "войдите" not in r.json()["detail"].lower()
+        assert r.json()["detail"] == "auth.username_taken_profile"
 
     def test_invalid_username_on_profile_422(self, client, auth_headers):
         r = client.patch(

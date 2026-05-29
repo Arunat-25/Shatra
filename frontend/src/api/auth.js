@@ -1,15 +1,8 @@
 import { ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY } from '../constants/profile';
 import i18n from '../i18n';
+import { ApiError } from './errors';
 
 const API_BASE = '';
-
-class ApiError extends Error {
-  constructor(message, status = null) {
-    super(message);
-    this.name = 'ApiError';
-    this.status = status;
-  }
-}
 
 function getStoredTokens() {
   return {
@@ -183,4 +176,4 @@ export function changePassword(currentPassword, newPassword) {
   });
 }
 
-export { ApiError };
+export { ApiError } from './errors';

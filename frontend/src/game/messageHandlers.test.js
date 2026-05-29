@@ -18,7 +18,7 @@ describe('dispatchServerMessage', () => {
   it('game_over dispatches GAME_OVER', () => {
     const { calls } = collectDispatches({
       game_over: true,
-      winner: 'белый',
+      winner_color: 'белый',
       reason: 'resign',
     });
     expect(calls.some((c) => c.type === GAME_ACTIONS.GAME_OVER)).toBe(true);
@@ -47,42 +47,42 @@ describe('dispatchServerMessage', () => {
   it('rematch_cancelled marks unavailable', () => {
     const { calls } = collectDispatches({
       status: 'rematch_cancelled',
-      message: 'Соперник вышел',
+      message_code: 'rematch.opponent_left',
     });
     expect(calls[0].type).toBe(GAME_ACTIONS.SET_REMATCH_UNAVAILABLE);
   });
 
-  it('game_cancelled ends game with message for result bar', () => {
+  it('game_cancelled ends game with message_code for result bar', () => {
     const { calls, msg } = collectDispatches({
       status: 'game_cancelled',
-      message: 'Соперник отменил игру.',
+      message_code: 'cancel.opponent',
       by: 'белый',
     });
     expect(calls[0]).toEqual({
       type: GAME_ACTIONS.GAME_CANCELLED,
-      payload: { message: 'Соперник отменил игру.' },
+      payload: { message_code: 'cancel.opponent', message_params: undefined },
     });
     expect(msg).toBeNull();
   });
 
-  it('game_over with cancelled reason shows result actions for opponent', () => {
+  it('game_over with cancelled reason stores message_code', () => {
     const { calls, msg } = collectDispatches({
       game_over: true,
-      winner: 'Соперник отменил игру.',
+      message_code: 'cancel.opponent',
       reason: 'cancelled',
       desk: { '10': 'белый бий' },
     });
     expect(calls.some((c) => c.type === GAME_ACTIONS.GAME_OVER)).toBe(true);
     const over = calls.find((c) => c.type === GAME_ACTIONS.GAME_OVER);
     expect(over.payload.reason).toBe('cancelled');
-    expect(over.payload.winner).toBe('Соперник отменил игру.');
+    expect(over.payload.message_code).toBe('cancel.opponent');
     expect(msg).toBeNull();
   });
 
   it('move in AI mode sets aiThinking when not my turn', () => {
     const { calls } = collectDispatches(
       {
-        message: 'Ход',
+        message_code: 'turn.now',
         desk: { '10': 'черный бий' },
         movers_color: 'черный',
         game_over: false,
@@ -94,10 +94,10 @@ describe('dispatchServerMessage', () => {
     expect(move.payload.aiThinking).toBe(true);
   });
 
-  it('server error returns error text', () => {
-    const { msg } = collectDispatches({ status: 'error', message: 'Нельзя' });
+  it('server error returns localized text from message_code', () => {
+    const { msg } = collectDispatches({ status: 'error', message_code: 'move.impossible' });
     expect(msg.type).toBe('error');
-    expect(msg.text).toBe('Нельзя');
+    expect(msg.text).toBe('Ход невозможен');
   });
 
   it('waiting sets players_info', () => {

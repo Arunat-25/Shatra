@@ -1,9 +1,10 @@
+from fastapi import HTTPException
 import uuid
 import json
 import logging
 from datetime import datetime
 
-from fastapi import HTTPException
+from backend.message_codes import ROOM_FULL, ROOM_GAME_STARTED, ROOM_NOT_FOUND
 
 from backend.db.models import User
 from backend.models import CreateRoomRequest, Room
@@ -64,10 +65,10 @@ async def join_room(room_id: str) -> dict:
     room_data = await get_room(room_id)
     if not room_data:
         logger.warning("Room not found: %s", room_id)
-        raise HTTPException(status_code=404, detail="Комната не найдена")
+        raise HTTPException(status_code=404, detail=ROOM_NOT_FOUND)
     if room_data.get("game_started"):
-        raise HTTPException(status_code=409, detail="Игра в этой комнате уже началась")
+        raise HTTPException(status_code=409, detail=ROOM_GAME_STARTED)
     players = room_data.get("players") or {}
     if len(players) >= 2:
-        raise HTTPException(status_code=409, detail="Комната уже заполнена")
+        raise HTTPException(status_code=409, detail=ROOM_FULL)
     return {"room_id": room_id}

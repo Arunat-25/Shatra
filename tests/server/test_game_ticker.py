@@ -16,7 +16,7 @@ class TestGameTicker:
             "timer_white": 100.0,
             "timer_black": 200.0,
         }
-        game = {"mover": "белый"}
+        game = {"mover": "белый", "move_history": [{"mover": "белый", "from_pos": 1, "to_pos": 2}]}
         saved = []
 
         async def capture_set(rid, data):

@@ -18,8 +18,3 @@ DISTRICTS: tuple[str, ...] = (
 )
 
 USERNAME_PATTERN = re.compile(r"^[a-zA-Zа-яА-ЯёЁ0-9_]{3,32}$")
-
-USERNAME_TAKEN_REGISTER = (
-    "Имя пользователя уже занято. Выберите другое или войдите, если аккаунт уже ваш."
-)
-USERNAME_TAKEN_PROFILE = "Это имя пользователя уже занято. Выберите другое."

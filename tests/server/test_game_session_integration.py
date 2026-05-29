@@ -4,11 +4,8 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from backend.board_utils import get_starting_board, keys_int_to_str
-from backend.game_session import (
-    process_client_message,
-    _start_ai_game,
-    _handle_disconnect,
-)
+from backend.session import process_client_message, _handle_disconnect
+from backend.session.ai import _start_ai_game
 from backend.ws_manager import handle_player2_join, _delete_room_after_grace, manager
 
 
@@ -78,15 +75,22 @@ class PvpState:
             "p-white": self.ws,
             "p-black": AsyncMock(send_json=AsyncMock()),
         }
-        state_targets = ("backend.game_session", "backend.ws_control_handlers")
+        patch_specs = [
+            ("backend.session.messages", ("get_game", "get_room")),
+            ("backend.ws_control_handlers", ("get_game", "get_room", "set_game", "set_room")),
+        ]
+        side_effects = {
+            "get_game": get_game_side_effect,
+            "get_room": get_room_side_effect,
+            "set_game": set_game_side_effect,
+            "set_room": set_room_side_effect,
+        }
         self._patches = []
-        for mod in state_targets:
-            self._patches.extend([
-                patch(f"{mod}.get_game", side_effect=get_game_side_effect),
-                patch(f"{mod}.get_room", side_effect=get_room_side_effect),
-                patch(f"{mod}.set_game", side_effect=set_game_side_effect),
-                patch(f"{mod}.set_room", side_effect=set_room_side_effect),
-            ])
+        for mod, attrs in patch_specs:
+            for attr in attrs:
+                self._patches.append(
+                    patch(f"{mod}.{attr}", side_effect=side_effects[attr])
+                )
         for p in self._patches:
             p.start()
         return self
@@ -132,7 +136,7 @@ class TestProcessClientMessageDraw:
                 )
 
             send.assert_called_once()
-            assert "уже предложили" in send.call_args[0][1]["message"].lower()
+            assert send.call_args[0][1]["message_code"] == "draw.already_offered"
 
     async def test_resign_after_game_over_is_noop(self, pvp_state, ws):
         with pvp_state as st:
@@ -171,9 +175,8 @@ class TestProcessClientMessageCancelGame:
             assert len(sent) == 2
             assert all(m.get("game_over") is True for m in sent)
             assert all(m.get("reason") == "cancelled" for m in sent)
-            messages = {m["winner"] for m in sent}
-            assert "Вы отменили игру." in messages
-            assert "Соперник отменил игру." in messages
+            codes = {m["message_code"] for m in sent}
+            assert codes == {"cancel.you", "cancel.opponent"}
 
     async def test_cancel_after_own_move_is_rejected(self, pvp_state, ws):
         with pvp_state as st:
@@ -188,7 +191,7 @@ class TestProcessClientMessageCancelGame:
             assert st.game.get("game_over") is not True
             send.assert_called_once()
             assert send.call_args[0][1]["status"] == "error"
-            assert "отменить нельзя" in send.call_args[0][1]["message"].lower()
+            assert send.call_args[0][1]["message_code"] == "cancel.too_late"
 
     async def test_cancel_allowed_when_opponent_moved_but_self_has_not(self, pvp_state, ws):
         with pvp_state as st:
@@ -208,7 +211,7 @@ class TestProcessClientMessageCancelGame:
             payload = black_ws.send_json.call_args[0][0]
             assert payload["game_over"] is True
             assert payload["reason"] == "cancelled"
-            assert payload["winner"] == "Вы отменили игру."
+            assert payload["message_code"] == "cancel.you"
 
     async def test_cancel_after_game_over_is_noop(self, pvp_state, ws):
         with pvp_state as st:
@@ -228,8 +231,8 @@ class TestProcessClientMessageMoves:
         with pvp_state as st:
             st.game["game_over"] = True
 
-            with patch("backend.game_session._send_ws_error", new_callable=AsyncMock) as err:
-                with patch("backend.game_session.manager.send_to_room", new_callable=AsyncMock) as room:
+            with patch("backend.session.messages._send_ws_error", new_callable=AsyncMock) as err:
+                with patch("backend.session.messages.manager.send_to_room", new_callable=AsyncMock) as room:
                     await process_client_message(
                         "room1",
                         "p-white",
@@ -239,20 +242,20 @@ class TestProcessClientMessageMoves:
                     )
 
             err.assert_called_once()
-            assert "окончена" in err.call_args[0][1].lower()
+            assert err.call_args[0][1] == "ws.game_over"
             room.assert_not_called()
 
     async def test_move_clears_draw_offer(self, pvp_state, ws):
         with pvp_state as st:
             st.game["draw_offer_from"] = "черный"
 
-            with patch("backend.game_session._decline_draw_offer", new_callable=AsyncMock) as decline:
-                with patch("backend.game_session.apply_move_result", new_callable=AsyncMock) as apply:
-                    apply.return_value = {"message": "ok", "desk": {}}
-                    with patch("backend.game_session.logic.handle_event") as handle:
+            with patch("backend.session.messages._decline_draw_offer", new_callable=AsyncMock) as decline:
+                with patch("backend.session.messages.apply_move_result", new_callable=AsyncMock) as apply:
+                    apply.return_value = {"message_code": "turn.now", "desk": {}}
+                    with patch("backend.session.messages.logic.handle_event") as handle:
                         from game_engine.models import GameEventResult
                         handle.return_value = GameEventResult(
-                            message="",
+                            message_code="",
                             movers_color="черный",
                             updated_positions=dict(st.game["board"]),
                         )
@@ -268,8 +271,8 @@ class TestProcessClientMessageMoves:
 
     async def test_rejected_move_not_broadcast(self, pvp_state, ws):
         with pvp_state as st:
-            with patch("backend.game_session._send_ws_error", new_callable=AsyncMock) as err:
-                with patch("backend.game_session.manager.send_to_room", new_callable=AsyncMock) as room:
+            with patch("backend.session.messages._send_ws_error", new_callable=AsyncMock) as err:
+                with patch("backend.session.messages.manager.send_to_room", new_callable=AsyncMock) as room:
                     await process_client_message(
                         "room1",
                         "p-black",
@@ -304,7 +307,7 @@ class TestProcessClientMessageAi:
                 )
 
             send.assert_called_once()
-            assert "бот" in send.call_args[0][1]["message"].lower()
+            assert send.call_args[0][1]["message_code"] == "draw.bot_declined"
 
 
 @pytest.mark.asyncio
@@ -314,8 +317,8 @@ class TestProcessClientMessageRematch:
             st.game["game_over"] = True
             st.room["rematch_ready"] = ["p-white"]
 
-            with patch("backend.game_session._start_rematch", new_callable=AsyncMock) as start:
-                with patch("backend.game_session._broadcast_rematch_status", new_callable=AsyncMock):
+            with patch("backend.session.rematch._start_rematch", new_callable=AsyncMock) as start:
+                with patch("backend.session.rematch._broadcast_rematch_status", new_callable=AsyncMock):
                     await process_client_message(
                         "room1", "p-black", {"type": "request_rematch"}, ws, is_ai_room=False
                     )
@@ -335,22 +338,22 @@ class TestAiGameStart:
         game_after_init = _game()
 
         with patch(
-            "backend.game_session.get_game",
+            "backend.session.ai.get_game",
             new_callable=AsyncMock,
             side_effect=[None, game_after_init],
         ):
-            with patch("backend.game_session.init_game", new_callable=AsyncMock):
-                with patch("backend.game_session.set_room", new_callable=AsyncMock):
+            with patch("backend.session.ai.init_game", new_callable=AsyncMock):
+                with patch("backend.session.ai.set_room", new_callable=AsyncMock):
                     with patch(
-                        "backend.game_session.build_game_started_response",
+                        "backend.session.ai.build_game_started_response",
                         return_value={"status": "game_started"},
                     ):
                         with patch(
-                            "backend.game_session.manager.send_to_player",
+                            "backend.session.ai.manager.send_to_player",
                             new_callable=AsyncMock,
                         ):
                             with patch(
-                                "backend.game_session.handle_ai_move",
+                                "backend.session.ai.handle_ai_move",
                                 new_callable=AsyncMock,
                             ) as ai_move:
                                 await _start_ai_game("ai-room", ws, room, "черный")
@@ -366,13 +369,13 @@ class TestHandleDisconnectRematch:
         game = _game(game_over=True)
         opponent_ws = AsyncMock()
 
-        with patch("backend.game_session.manager") as mgr:
+        with patch("backend.session.disconnect.manager") as mgr:
             mgr.disconnect = AsyncMock()
             mgr.get_client_id = MagicMock(return_value="p-white")
             mgr.get_opponent_ws = MagicMock(return_value=opponent_ws)
-            with patch("backend.game_session.get_game", new_callable=AsyncMock, return_value=game):
-                with patch("backend.game_session.get_room", new_callable=AsyncMock, return_value=room):
-                    with patch("backend.game_session.set_room", new_callable=AsyncMock) as set_room:
+            with patch("backend.session.disconnect.get_game", new_callable=AsyncMock, return_value=game):
+                with patch("backend.session.disconnect.get_room", new_callable=AsyncMock, return_value=room):
+                    with patch("backend.session.disconnect.set_room", new_callable=AsyncMock) as set_room:
                         await _handle_disconnect("room1", ws, is_ai_room=False)
 
         assert room["rematch_ready"] == []

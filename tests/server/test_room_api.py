@@ -25,7 +25,7 @@ class TestJoinRoom:
             with pytest.raises(HTTPException) as exc:
                 await join_room("abc")
             assert exc.value.status_code == 409
-            assert "началась" in exc.value.detail.lower()
+            assert exc.value.detail == "room.game_started"
 
     async def test_room_full(self):
         room = {
@@ -37,7 +37,7 @@ class TestJoinRoom:
             with pytest.raises(HTTPException) as exc:
                 await join_room("abc")
             assert exc.value.status_code == 409
-            assert "заполнена" in exc.value.detail.lower()
+            assert exc.value.detail == "room.full"
 
     async def test_success(self):
         room = {"room_id": "abc", "game_started": False, "players": {"a": "белый"}}

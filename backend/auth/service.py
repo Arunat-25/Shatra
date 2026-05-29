@@ -7,10 +7,13 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.auth.constants import (
-    DISTRICTS,
-    USERNAME_TAKEN_PROFILE,
-    USERNAME_TAKEN_REGISTER,
+from backend.message_codes import (
+    AUTH_INVALID_CREDENTIALS,
+    AUTH_SESSION_EXPIRED,
+    AUTH_USER_NOT_FOUND,
+    AUTH_USERNAME_TAKEN_PROFILE,
+    AUTH_USERNAME_TAKEN_REGISTER,
+    AUTH_WRONG_PASSWORD,
 )
 from backend.auth.jwt_utils import (
     create_access_token,
@@ -27,6 +30,7 @@ from backend.auth.schemas import (
     TokenResponse,
     UserPublic,
 )
+from backend.auth.constants import DISTRICTS
 from backend.db.models import RefreshToken, User
 
 
@@ -39,7 +43,7 @@ async def _ensure_username_available(
     username: str,
     *,
     exclude_user_id: uuid.UUID | None = None,
-    taken_message: str = USERNAME_TAKEN_PROFILE,
+    taken_message: str = AUTH_USERNAME_TAKEN_PROFILE,
 ) -> tuple[str, str]:
     """Проверить уникальность; вернуть (отображаемое имя, normalized)."""
     display = username.strip()
@@ -54,7 +58,7 @@ async def _ensure_username_available(
 
 async def register(db: AsyncSession, body: RegisterRequest) -> TokenResponse:
     display, username_norm = await _ensure_username_available(
-        db, body.username, taken_message=USERNAME_TAKEN_REGISTER
+        db, body.username, taken_message=AUTH_USERNAME_TAKEN_REGISTER
     )
 
     user = User(
@@ -74,7 +78,7 @@ async def login(db: AsyncSession, body: LoginRequest) -> TokenResponse:
     username_norm = _normalize_username(body.username)
     user = await db.scalar(select(User).where(User.username_normalized == username_norm))
     if not user or not verify_password(body.password, user.password_hash):
-        raise HTTPException(status_code=401, detail="Неверное имя пользователя или пароль")
+        raise HTTPException(status_code=401, detail=AUTH_INVALID_CREDENTIALS)
     return await _issue_tokens(db, user)
 
 
@@ -88,18 +92,18 @@ async def refresh_session(db: AsyncSession, refresh_token: str) -> TokenResponse
         .where(RefreshToken.expires_at > now)
     )
     if not row:
-        raise HTTPException(status_code=401, detail="Сессия истекла. Войдите снова.")
+        raise HTTPException(status_code=401, detail=AUTH_SESSION_EXPIRED)
 
     row.revoked_at = now
     user = await db.get(User, row.user_id)
     if not user:
-        raise HTTPException(status_code=401, detail="Пользователь не найден")
+        raise HTTPException(status_code=401, detail=AUTH_USER_NOT_FOUND)
     return await _issue_tokens(db, user)
 
 
 async def change_password(db: AsyncSession, user: User, body: ChangePasswordRequest) -> None:
     if not verify_password(body.current_password, user.password_hash):
-        raise HTTPException(status_code=401, detail="Неверный текущий пароль")
+        raise HTTPException(status_code=401, detail=AUTH_WRONG_PASSWORD)
     user.password_hash = hash_password(body.new_password)
     user.updated_at = datetime.now(timezone.utc)
     now = datetime.now(timezone.utc)

@@ -163,7 +163,7 @@ class TestExpiredRefreshTokenApi:
         expire_refresh_token_in_db(refresh)
         r = client.post("/api/auth/refresh", json={"refresh_token": refresh})
         assert r.status_code == 401
-        assert "сессия" in r.json()["detail"].lower() or "истек" in r.json()["detail"].lower()
+        assert r.json()["detail"] == "auth.session_expired"
 
     def test_expired_refresh_cannot_access_me_even_if_access_valid(
         self, client, auth_user, auth_headers

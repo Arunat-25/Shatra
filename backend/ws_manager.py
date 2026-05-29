@@ -57,7 +57,7 @@ class ConnectionManager:
         await websocket.accept()
         room_data = await get_room(room_id)
         if not room_data:
-            await websocket.close(code=1008, reason="Комната не найдена")
+            await websocket.close(code=1008, reason="room_not_found")
             return False
 
         if room_id not in self.connections:
@@ -71,7 +71,7 @@ class ConnectionManager:
         if client_id in players:
             if client_id in self.connections.get(room_id, {}):
                 # Уже есть активное соединение — это не reconnect, а дубль
-                await websocket.close(code=1008, reason="Вы уже в игре")
+                await websocket.close(code=1008, reason="already_in_game")
                 return False
             self.connections[room_id][client_id] = websocket
 
@@ -91,7 +91,7 @@ class ConnectionManager:
         # Новый игрок
         if len(players) >= 2:
             # Комната заполнена
-            await websocket.close(code=1008, reason="Комната уже заполнена")
+            await websocket.close(code=1008, reason="room_full")
             return False
 
         from backend.game_helpers import assign_player_color
@@ -108,7 +108,7 @@ class ConnectionManager:
         conns = open_connections if open_connections is not None else self.connections.get(room_id, {})
         for ws in list(conns.values()):
             try:
-                await ws.close(code=1000, reason="Комната закрыта")
+                await ws.close(code=1000, reason="room_closed")
             except Exception:
                 pass
         self.connections.pop(room_id, None)

@@ -6,6 +6,19 @@ from fastapi import WebSocket
 
 from backend.board_utils import keys_int_to_str
 from backend.game_helpers import color_has_moved, opposite_color
+from backend.message_codes import (
+    ws_error,
+    ws_payload,
+    DRAW_BOT_DECLINED,
+    DRAW_ALREADY_OFFERED,
+    DRAW_YOU_OFFERED,
+    DRAW_OPPONENT_OFFERS,
+    DRAW_AGREED,
+    CANCEL_YOU,
+    CANCEL_OPPONENT,
+    CANCEL_COLOR_UNKNOWN,
+    CANCEL_TOO_LATE,
+)
 from backend.state import get_game, set_game, get_room, set_room
 from backend.ws_manager import manager
 
@@ -27,7 +40,7 @@ async def handle_request_rematch(
 ) -> bool:
     if is_ai_room:
         return True
-    from backend.game_session import _broadcast_rematch_status, _start_rematch
+    from backend.session.rematch import _broadcast_rematch_status, _start_rematch
 
     game = await get_game(room_id)
     room_data = await get_room(room_id)
@@ -63,7 +76,7 @@ async def handle_decline_draw(
     *,
     is_ai_room: bool,
 ) -> bool:
-    from backend.game_session import _decline_draw_offer
+    from backend.session.rematch import _decline_draw_offer
 
     game = await get_game(room_id)
     if not game or game.get("game_over", False):
@@ -99,7 +112,7 @@ async def handle_offer_draw(
             await set_game(room_id, game)
         await manager.send_to_player(websocket, {
             "status": "draw_declined",
-            "message": "Бот не принимает ничью.",
+            **ws_payload(DRAW_BOT_DECLINED),
         })
         return True
 
@@ -107,9 +120,9 @@ async def handle_offer_draw(
     pending = game.get("draw_offer_from")
 
     if pending == other_color:
-        draw_msg = "Ничья! Обоюдное согласие."
         game["game_over"] = True
-        game["winner"] = draw_msg
+        game["winner_color"] = ""
+        game["winner"] = ""
         game["reason"] = "draw_agreed"
         game.pop("draw_offer_from", None)
         await set_game(room_id, game)
@@ -122,7 +135,6 @@ async def handle_offer_draw(
             pass
         await manager.send_to_room(room_id, {
             "game_over": True,
-            "winner": draw_msg,
             "reason": "draw_agreed",
             "desk": keys_int_to_str(game.get("board", {})),
         })
@@ -131,7 +143,7 @@ async def handle_offer_draw(
     if pending == my_color:
         await manager.send_to_player(websocket, {
             "status": "draw_offered",
-            "message": "Вы уже предложили ничью. Ожидание ответа соперника.",
+            **ws_payload(DRAW_ALREADY_OFFERED),
         })
         return True
 
@@ -140,12 +152,9 @@ async def handle_offer_draw(
 
     for cid, ws in manager.connections.get(room_id, {}).items():
         color = room_data.get("players", {}).get(cid)
-        if color == my_color:
-            text = "Вы предложили ничью. Ожидание ответа соперника."
-        else:
-            text = "Соперник предлагает ничью. Нажмите ½, чтобы принять."
+        code = DRAW_YOU_OFFERED if color == my_color else DRAW_OPPONENT_OFFERS
         try:
-            await ws.send_json({"status": "draw_offered", "message": text, "by": my_color})
+            await ws.send_json({"status": "draw_offered", "by": my_color, **ws_payload(code)})
         except Exception:
             pass
     return True
@@ -165,9 +174,10 @@ async def handle_resign(
     my_color = room_data.get("players", {}).get(client_id) if room_data else None
     if not my_color:
         my_color = "белый"
-    winner = opposite_color(my_color)
+    winner_color = opposite_color(my_color)
     game["game_over"] = True
-    game["winner"] = winner
+    game["winner_color"] = winner_color
+    game["winner"] = winner_color
     game["reason"] = "resign"
     game.pop("draw_offer_from", None)
     await set_game(room_id, game)
@@ -183,7 +193,7 @@ async def handle_resign(
         pass
     await manager.send_to_room(room_id, {
         "game_over": True,
-        "winner": winner,
+        "winner_color": winner_color,
         "reason": "resign",
         "desk": keys_int_to_str(game.get("board", {})),
     })
@@ -208,20 +218,15 @@ async def handle_cancel_game(
         return True
     my_color = room_data.get("players", {}).get(client_id)
     if not my_color:
-        await manager.send_to_player(websocket, {
-            "status": "error",
-            "message": "Не удалось определить ваш цвет.",
-        })
+        await manager.send_to_player(websocket, ws_error(CANCEL_COLOR_UNKNOWN))
         return True
 
     if color_has_moved(game, my_color):
-        await manager.send_to_player(websocket, {
-            "status": "error",
-            "message": "Игра уже началась — отменить нельзя.",
-        })
+        await manager.send_to_player(websocket, ws_error(CANCEL_TOO_LATE))
         return True
 
     game["game_over"] = True
+    game["winner_color"] = ""
     game["winner"] = ""
     game["reason"] = "cancelled"
     game.pop("draw_offer_from", None)
@@ -237,15 +242,12 @@ async def handle_cancel_game(
 
     for cid, ws in manager.connections.get(room_id, {}).items():
         color = room_data.get("players", {}).get(cid)
-        if color == my_color:
-            text = "Вы отменили игру."
-        else:
-            text = "Соперник отменил игру."
+        code = CANCEL_YOU if color == my_color else CANCEL_OPPONENT
         try:
             await ws.send_json({
                 "game_over": True,
-                "winner": text,
                 "reason": "cancelled",
+                "message_code": code,
                 "desk": keys_int_to_str(game.get("board", {})),
             })
         except Exception:

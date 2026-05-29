@@ -14,7 +14,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from backend import state
-from backend.game_session import _handle_disconnect, _start_rematch
+from backend.session import _handle_disconnect
+from backend.session.rematch import _start_rematch
 from backend.timers import stop_game_timer, disconnect_timer, handle_timeout
 from backend.ws_manager import ConnectionManager, _delete_room_after_grace, manager
 from backend.state import get_room_lock, drop_room_lock
@@ -184,13 +185,13 @@ class TestDisconnectTimerCleanup:
         state.disconnect_timers[room_id] = first
 
         opponent_ws = AsyncMock()
-        with patch("backend.game_session.manager") as mgr:
+        with patch("backend.session.disconnect.manager") as mgr:
             mgr.get_client_id = MagicMock(return_value="a")
             mgr.disconnect = AsyncMock()
             mgr.get_opponent_ws = MagicMock(return_value=opponent_ws)
-            with patch("backend.game_session.get_game", new_callable=AsyncMock, return_value=game):
-                with patch("backend.game_session.get_room", new_callable=AsyncMock, return_value=room):
-                    with patch("backend.game_session.asyncio.create_task") as create_task:
+            with patch("backend.session.disconnect.get_game", new_callable=AsyncMock, return_value=game):
+                with patch("backend.session.disconnect.get_room", new_callable=AsyncMock, return_value=room):
+                    with patch("backend.session.disconnect.asyncio.create_task") as create_task:
                         second = MagicMock()
                         create_task.return_value = second
                         await _handle_disconnect(room_id, ws, is_ai_room=False)
@@ -285,14 +286,14 @@ class TestConnectionRegistryCleanup:
         get_room_lock(room_id)
         game = {"board": {}, "game_over": False, "mover": "белый"}
 
-        with patch("backend.game_session.manager") as mgr:
+        with patch("backend.session.disconnect.manager") as mgr:
             mgr.get_client_id = MagicMock(return_value="solo")
             mgr.disconnect = AsyncMock()
             mgr.get_opponent_ws = MagicMock(return_value=None)
-            with patch("backend.game_session.get_game", new_callable=AsyncMock, return_value=game):
-                with patch("backend.game_session.get_room", new_callable=AsyncMock, return_value={"players": {}}):
-                    with patch("backend.game_session.delete_game", new_callable=AsyncMock) as delete_game:
-                        with patch("backend.game_session.delete_room", new_callable=AsyncMock) as delete_room:
+            with patch("backend.session.disconnect.get_game", new_callable=AsyncMock, return_value=game):
+                with patch("backend.session.disconnect.get_room", new_callable=AsyncMock, return_value={"players": {}}):
+                    with patch("backend.session.disconnect.delete_game", new_callable=AsyncMock) as delete_game:
+                        with patch("backend.session.disconnect.delete_room", new_callable=AsyncMock) as delete_room:
                             await _handle_disconnect(room_id, ws, is_ai_room=False)
 
         await asyncio.sleep(0)
@@ -315,13 +316,13 @@ class TestRematchAndControlCleanup:
             "time_control": 60,
         }
 
-        with patch("backend.game_session.init_game", new_callable=AsyncMock):
-            with patch("backend.game_session.get_game", new_callable=AsyncMock, return_value={"board": {}, "mover": "белый"}):
-                with patch("backend.game_session.set_room", new_callable=AsyncMock):
-                    with patch("backend.game_session.manager") as mgr:
+        with patch("backend.session.rematch.init_game", new_callable=AsyncMock):
+            with patch("backend.session.rematch.get_game", new_callable=AsyncMock, return_value={"board": {}, "mover": "белый"}):
+                with patch("backend.session.rematch.set_room", new_callable=AsyncMock):
+                    with patch("backend.session.rematch.manager") as mgr:
                         mgr.connections = {room_id: {}}
                         mgr.send_to_player = AsyncMock()
-                        with patch("backend.game_session.asyncio.create_task") as create_task:
+                        with patch("backend.session.rematch.asyncio.create_task") as create_task:
                             new_task = MagicMock()
                             create_task.return_value = new_task
                             await _start_rematch(room_id, room)
@@ -370,7 +371,7 @@ class TestManyRoomsNoLeak:
 
     async def test_process_move_acquires_lock_then_releases(self):
         """Лок комнаты не должен оставаться захваченным после хода."""
-        from backend.game_session import process_client_message
+        from backend.session import process_client_message
         from backend.board_utils import keys_int_to_str, get_starting_board
 
         room_id = "t-lock-move"
@@ -404,11 +405,10 @@ class TestManyRoomsNoLeak:
 
         manager.connections[room_id] = {"p-white": ws, "p-black": AsyncMock()}
 
-        with patch("backend.game_session.get_game", side_effect=get_game):
-            with patch("backend.game_session.get_room", side_effect=get_room):
-                with patch("backend.game_session.set_game", side_effect=set_game):
-                    with patch("backend.game_session.set_room", new_callable=AsyncMock):
-                        with patch("backend.game_session.manager.send_to_room", new_callable=AsyncMock):
+        with patch("backend.session.messages.get_game", side_effect=get_game):
+            with patch("backend.session.messages.get_room", side_effect=get_room):
+                with patch("backend.game_helpers.set_game", side_effect=set_game):
+                    with patch("backend.session.messages.manager.send_to_room", new_callable=AsyncMock):
                             await process_client_message(
                                 room_id,
                                 "p-black",
@@ -439,12 +439,12 @@ class TestOrphanedStateCleanup:
         state.disconnect_timers[room_id] = asyncio.create_task(asyncio.sleep(9999))
         get_room_lock(room_id)
 
-        with patch("backend.game_session.manager") as mgr:
+        with patch("backend.session.disconnect.manager") as mgr:
             mgr.get_client_id = MagicMock(return_value="solo")
             mgr.disconnect = AsyncMock()
             mgr.connections = {}
-            with patch("backend.game_session.get_game", new_callable=AsyncMock, return_value=None):
-                with patch("backend.game_session.get_room", new_callable=AsyncMock, return_value=None):
+            with patch("backend.session.disconnect.get_game", new_callable=AsyncMock, return_value=None):
+                with patch("backend.session.disconnect.get_room", new_callable=AsyncMock, return_value=None):
                     await _handle_disconnect(room_id, ws, is_ai_room=False)
 
         await asyncio.sleep(0)

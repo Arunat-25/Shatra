@@ -23,6 +23,7 @@ from backend.game_helpers import (
     _norm_board_keys,
 )
 from game_engine.game_logic import logic
+from game_engine.message_codes import MOVE_NO_PIECE, MOVE_TARGET_OCCUPIED, MOVE_WRONG_COLOR, TURN_NOW
 from game_engine.models import GameEvent, GameEventResult
 
 
@@ -76,7 +77,7 @@ class TestMoveHistoryResponse:
                 },
             ],
         }
-        result = GameEventResult(message="", movers_color="белый")
+        result = GameEventResult(message_code="", movers_color="белый")
         resp = build_move_response(game, result, "черный")
         assert len(resp["move_history"]) == 1
         assert resp["move_history"][0]["from_pos"] == 12
@@ -91,7 +92,7 @@ class TestMoveHistoryResponse:
                 {"from_pos": 5, "to_pos": 6, "desk": {"10": "черный бий"}},
             ],
         }
-        result = GameEventResult(message="", movers_color="белый")
+        result = GameEventResult(message_code="", movers_color="белый")
         resp = build_move_response(game, result, "черный")
         assert len(resp["move_history"]) == 2
         assert resp["move_history"][0]["move_number"] == 1
@@ -100,7 +101,7 @@ class TestMoveHistoryResponse:
     def test_clears_mandatory_capture_flag_after_turn_switch(self, starting_board):
         game = {"board": starting_board, "move_history": []}
         result = GameEventResult(
-            message="Ход",
+            message_code=TURN_NOW,
             movers_color="черный",
             updated_positions=starting_board,
             position_for_mandatory_capture=11,
@@ -137,7 +138,7 @@ class TestRejectedMoveEdgeCases:
     def test_same_board_with_error_message_is_rejected(self):
         board = {11: "черная шатра"}
         result = GameEventResult(
-            message="Не ваш ход!",
+            message_code=MOVE_WRONG_COLOR,
             movers_color="черный",
             updated_positions=dict(board),
         )
@@ -146,9 +147,9 @@ class TestRejectedMoveEdgeCases:
     def test_game_over_with_unchanged_board_not_counted_as_rejected(self):
         board = {11: "черная шатра"}
         result = GameEventResult(
-            message="Конец",
+            message_code=TURN_NOW,
             game_over=True,
-            winner="белый",
+            winner_color="белый",
             updated_positions=dict(board),
         )
         assert is_rejected_move(result, board, 11, 18) is False
@@ -163,13 +164,13 @@ class TestRejectedMoveEdgeCases:
                 to_pos=46,
             )
         )
-        assert result.message
+        assert result.message_code == MOVE_WRONG_COLOR
         assert is_rejected_move(
             result,
             _norm_board_keys(starting_board),
             39,
             46,
-        ) or result.updated_positions == starting_board
+        )
 
 
 class TestColorAssignmentTricks:
@@ -234,7 +235,7 @@ class TestApplyMoveResultEdgeCases:
             "mover": "белый",
             "move_history": [],
         }
-        result = GameEventResult(game_over=True, winner="белый", updated_positions=dict(starting_board))
+        result = GameEventResult(game_over=True, winner_color="белый", updated_positions=dict(starting_board))
         room = {"type": "public", "rematch_ready": ["p1", "p2"]}
 
         with patch("backend.game_helpers.set_game", new_callable=AsyncMock):
@@ -246,7 +247,7 @@ class TestApplyMoveResultEdgeCases:
 
     async def test_ai_game_over_does_not_touch_rematch_list(self, starting_board):
         game = {"board": dict(starting_board), "mover": "белый", "move_history": []}
-        result = GameEventResult(game_over=True, winner="белый", updated_positions=dict(starting_board))
+        result = GameEventResult(game_over=True, winner_color="белый", updated_positions=dict(starting_board))
         room = {"type": "ai", "rematch_ready": []}
 
         with patch("backend.game_helpers.set_game", new_callable=AsyncMock):
@@ -262,7 +263,7 @@ class TestEngineTrickyMoves:
         result = logic.handle_event(
             GameEvent(positions=board, mover_color="черный", from_pos=12, to_pos=20)
         )
-        assert result.message
+        assert result.message_code
         assert result.movers_color != "черный" or result.updated_positions == board
 
     def test_cannot_move_empty_square(self, starting_board):
@@ -270,12 +271,12 @@ class TestEngineTrickyMoves:
         result = logic.handle_event(
             GameEvent(positions=board, mover_color="белый", from_pos=30, to_pos=38)
         )
-        assert "фигур" in result.message.lower() or "позици" in result.message.lower()
+        assert result.message_code == MOVE_NO_PIECE
 
     def test_pass_zero_zero_does_not_false_reject_as_illegal_move(self, starting_board):
         board = dict(starting_board)
         result = GameEventResult(
-            message="",
+            message_code="",
             movers_color="черный",
             updated_positions=board,
             opportunity_pass_the_move=True,
@@ -285,7 +286,7 @@ class TestEngineTrickyMoves:
     def test_essential_positions_hint_not_treated_as_rejected(self, starting_board):
         board = dict(starting_board)
         result = GameEventResult(
-            message="Выберите фигуру",
+            message_code="",
             movers_color="белый",
             updated_positions=board,
             essential_positions=[53],
@@ -295,9 +296,9 @@ class TestEngineTrickyMoves:
 
 class TestParseClientEventValidation:
     def test_missing_board_raises(self):
-        with pytest.raises(ValueError, match="доск"):
+        with pytest.raises(ValueError, match="missing_board"):
             parse_client_event({"movers_color": "белый"})
 
     def test_missing_mover_color_raises(self):
-        with pytest.raises(ValueError, match="цвет"):
+        with pytest.raises(ValueError, match="missing_mover"):
             parse_client_event({"board": {}})

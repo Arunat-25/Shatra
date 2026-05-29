@@ -55,7 +55,7 @@ class TestConnectionManagerConnect:
                 ok2 = await cm.connect("room1", ws2, "player-a")
                 assert ok2 is False
                 ws2.close.assert_called()
-                assert "игре" in str(ws2.close.call_args).lower()
+                assert ws2.close.call_args.kwargs.get("reason") == "already_in_game"
 
     async def test_third_player_rejected_when_two_in_room(self, cm, mock_ws):
         room = _room({"p1": "белый", "p2": "черный"})

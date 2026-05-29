@@ -96,7 +96,7 @@ async def handle_timeout(room_id: str, timed_out_color: str):
     await manager.send_to_room(room_id, {
         "status": "timeout",
         "game_over": True,
-        "winner": winner,
+        "winner_color": winner,
         "reason": "timeout",
         "desk": keys_int_to_str(game["board"]) if game else {},
     })
@@ -136,13 +136,14 @@ async def disconnect_timer(room_id: str, remaining_ws: WebSocket, disconnected_c
                 players = room_data.get("players", {})
                 disconnected_color = players.get(disconnected_client_id)
             winner = _opposite_color(disconnected_color or "белый")
+            game["winner_color"] = winner
             game["winner"] = winner
             game["reason"] = "opponent_disconnected"
             await set_game(room_id, game)
 
             await manager.send_to_room(room_id, {
                 "game_over": True,
-                "winner": winner,
+                "winner_color": winner,
                 "reason": "opponent_disconnected",
             })
 

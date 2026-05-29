@@ -289,8 +289,8 @@ def _child_state(state: SearchState, fm: int, to: int):
         return SearchState(result.updated_positions, state.to_move, nc, list(result.captured_pieces or [])), result
     return SearchState(result.updated_positions, nm, None, []), result
 
-def _we_won(r, c): return r.game_over and bool(r.winner) and ((c=="белый" and "бел" in r.winner.lower()) or (c=="черный" and "чер" in r.winner.lower()))
-def _we_lost(r, c): return r.game_over and bool(r.winner) and not _we_won(r, c)
+def _we_won(r, c): return r.game_over and r.winner_color == c
+def _we_lost(r, c): return r.game_over and bool(r.winner_color) and r.winner_color != c
 
 def _move_exposes_biy(state, move, ai_color):
     child, res = _child_state(state, move[0], move[1])
@@ -330,10 +330,9 @@ def _terminal_score(result, ai_color: str) -> Optional[int]:
 # 📊 ОЦЕНКА (СОХРАНЕНА ТАКТИКА + ✅ ФИКСЫ)
 # ═══════════════════════════════════════════════════════════
 def evaluate(cells, ai_color, test_move=None):
-    over, winner = is_game_over(Board(cells))
-    if over and winner:
-        w = winner.lower()
-        if (ai_color == "белый" and "бел" in w) or (ai_color == "черный" and "чер" in w):
+    over, winner_color, _draw = is_game_over(Board(cells))
+    if over and winner_color:
+        if winner_color == ai_color:
             return WIN_SCORE
         return LOSE_SCORE
 
@@ -597,8 +596,8 @@ def quiescence(state, alpha, beta, maximizing, ai_color, depth=0, start_time=Non
 def minimax(state, depth, alpha, beta, maximizing, ai_color, start_time=None, time_limit=math.inf):
     if start_time and time.time() - start_time > time_limit:
         return evaluate(state.cells, ai_color), None
-    over, winner = is_game_over(Board(state.cells))
-    if over and winner:
+    over, winner_color, _draw = is_game_over(Board(state.cells))
+    if over and winner_color:
         return evaluate(state.cells, ai_color), None
     if depth == 0:
         val = quiescence(state, alpha, beta, maximizing, ai_color, start_time=start_time, time_limit=time_limit)
