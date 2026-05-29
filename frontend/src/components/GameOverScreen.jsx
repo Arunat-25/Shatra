@@ -29,7 +29,7 @@ export default function GameOverScreen({ winner, myColor, modeAi, reason, onGoTo
           </button>
           {modeAi && (
             <button className="btn-lobby btn-ai" onClick={() => navigate(0)}>
-              Играть снова
+              Новая игра
             </button>
           )}
         </div>

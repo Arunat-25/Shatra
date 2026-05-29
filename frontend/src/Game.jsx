@@ -304,12 +304,12 @@ export default function Game() {
                   onClick={playAgain}
                   title="Создать новую комнату в зале ожидания"
                 >
-                  Снова
+                  Новая игра
                 </button>
                 {!modeAi && (
                   <>
                   <p className="game-result-hint">
-                    Реванш — та же комната, цвета меняются. Снова — новая игра.
+                    Реванш — та же комната, цвета меняются. «Новая игра» — новая комната в зале.
                   </p>
                   <button
                     type="button"
@@ -337,7 +337,7 @@ export default function Game() {
                   </button>
                   {state.rematchUnavailable && (
                     <p className="game-result-hint game-result-hint--warn">
-                      Соперник вышел — нажмите «Снова» для новой игры.
+                      Соперник вышел — нажмите «Новая игра».
                     </p>
                   )}
                   </>
