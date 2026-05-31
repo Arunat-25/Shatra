@@ -8,11 +8,12 @@ import useGameActions from './hooks/useGameActions';
 import useMessage from './hooks/useMessage';
 import useEscapeKey from './hooks/useEscapeKey';
 import useCellClick from './hooks/useCellClick';
+import useLowTimeSound from './hooks/useLowTimeSound';
+import useGameAudioUnlock from './hooks/useGameAudioUnlock';
 import WaitingScreen from './components/WaitingScreen';
 import GameActionsBar from './components/game/GameActionsBar';
 import GameViewport from './components/game/GameViewport';
 import GameDesktopLayout from './components/game/GameDesktopLayout';
-import LocaleSwitcher from './components/LocaleSwitcher';
 import { MSG_ERROR } from './constants';
 import { getClientId } from './api';
 import { formatGameOverMessage, getBoardSideOrder } from './utils';
@@ -48,6 +49,15 @@ export default function Game() {
     state,
   });
 
+  useGameAudioUnlock();
+  useLowTimeSound({
+    timeControl: state.timeControl,
+    timer: state.timer,
+    myColor: state.myColor,
+    gameOver: state.gameOver,
+    waiting: state.waiting,
+  });
+
   useEffect(() => {
     document.body.classList.add('in-game');
     const root = document.getElementById('root');
@@ -57,6 +67,13 @@ export default function Game() {
       root?.classList.remove('in-game');
     };
   }, []);
+
+  useEffect(() => {
+    if (!roomId) return;
+    if (sessionStorage.getItem(`chatHidden:${roomId}`) === '1') {
+      dispatch({ type: GAME_ACTIONS.TOGGLE_CHAT_HIDDEN });
+    }
+  }, [roomId, dispatch]);
 
   const isBoardBlocked =
     state.gameOver || state.aiThinking || state.opponentDisconnected || wsReconnecting;
@@ -118,17 +135,14 @@ export default function Game() {
 
   return (
     <div className="game-page">
-      <header className="game-hud">
-        <button
-          type="button"
-          className="hud-title"
-          onClick={actions.goToLobby}
-          title={t('game.toLobby')}
-        >
-          {t('game.hudTitle')}
-        </button>
-        <LocaleSwitcher compact />
-      </header>
+      <button
+        type="button"
+        className="hud-title"
+        onClick={actions.goToLobby}
+        title={t('game.toLobby')}
+      >
+        {t('game.hudTitle')}
+      </button>
       <div className="room-layout">
         <GameViewport
           boardTop={boardTop}
@@ -148,6 +162,9 @@ export default function Game() {
           actionsBar={sidebarActions}
           moveHistoryProps={moveHistoryProps}
           onSendChat={actions.sendChat}
+          chatHidden={state.chatHidden}
+          onToggleChatHidden={actions.toggleChatHidden}
+          roomId={roomId}
         />
       </div>
     </div>

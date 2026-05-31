@@ -95,6 +95,10 @@ export default function useGameActions({
     send({ type: 'chat', text });
   }, [send]);
 
+  const toggleChatHidden = useCallback(() => {
+    dispatch({ type: GAME_ACTIONS.TOGGLE_CHAT_HIDDEN });
+  }, [dispatch]);
+
   const requestRematch = useCallback(() => {
     const s = stateRef.current;
     if (s.gameOver && !modeAi && !s.rematchReady && !s.rematchUnavailable) {
@@ -120,6 +124,7 @@ export default function useGameActions({
     cancelGame,
     playAgain,
     sendChat,
+    toggleChatHidden,
     requestRematch,
     drawPending,
     drawIncoming,

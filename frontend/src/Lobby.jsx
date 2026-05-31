@@ -7,11 +7,12 @@ import RoomCard from './components/RoomCard';
 import GameEmblem from './components/GameEmblem';
 import GameSetupPicker from './components/GameSetupPicker';
 import { ROOM_PUBLIC, ROOM_PRIVATE, ROOM_AI, POLL_INTERVAL } from './constants';
+import TutorialCarousel from './components/tutorial/TutorialCarousel';
 
 export default function Lobby() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { rooms, error, refreshing, dismissError, setExternalError, fetchRooms } = useRoomPolling(listRooms, POLL_INTERVAL);
+  const { rooms, stats, error, refreshing, dismissError, setExternalError, fetchRooms } = useRoomPolling(listRooms, POLL_INTERVAL);
   const [joinerRoomId, setJoinerRoomId] = useState(null);
   const [showSetup, setShowSetup] = useState(false);
   const [pickerMode, setPickerMode] = useState(null);
@@ -100,6 +101,7 @@ export default function Lobby() {
   const showLoading = refreshing && rooms.length === 0;
 
   return (
+    <div className="lobby-page">
     <div className="lobby-layout">
       <div className="lobby-left">
         <div className="lobby-left-inner">
@@ -108,6 +110,13 @@ export default function Lobby() {
           </div>
           <h1>{t('lobby.title')}</h1>
           <p className="lobby-subtitle">{t('lobby.subtitle')}</p>
+          {stats && (
+            <p className="lobby-stats" aria-live="polite">
+              {t('lobby.onlineCount', { count: stats.online_total ?? 0 })}
+              {' · '}
+              {t('lobby.activeGamesCount', { count: stats.active_games ?? 0 })}
+            </p>
+          )}
 
           {showSetup ? (
             <GameSetupPicker
@@ -178,6 +187,9 @@ export default function Lobby() {
           )}
         </div>
       </div>
+
+      <TutorialCarousel />
+    </div>
     </div>
   );
 }

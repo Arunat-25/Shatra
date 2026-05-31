@@ -1,5 +1,5 @@
-/* ===== Mobile game layout (viewport-first) ===== */
-@media (max-width: 768px) {
+/* ===== Compact game layout (narrow desktop + mobile) ===== */
+@media (max-width: 1319px) {
   body.in-game {
     overflow-y: auto;
   }
@@ -10,12 +10,8 @@
     align-items: stretch;
   }
 
-  .game-hud .hud-title {
+  .game-page .hud-title {
     display: none;
-  }
-
-  .game-hud .locale-switcher--compact {
-    display: flex;
   }
 
   .game-page {
@@ -50,7 +46,8 @@
     gap: 0;
     box-sizing: border-box;
     flex-shrink: 0;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 
   .move-history-slot--sidebar {
@@ -67,7 +64,7 @@
 
   .game-screen-fit {
     display: grid;
-    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-rows: minmax(36px, auto) minmax(0, 1fr) minmax(36px, auto);
     align-items: stretch;
     width: 100%;
     max-width: none;
@@ -78,16 +75,42 @@
     padding: 0;
     gap: 2px;
     box-sizing: border-box;
-    overflow: hidden;
+    overflow: visible;
   }
 
   .game-player-bar--mobile {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'nick time'
+      'counts counts';
+    align-items: center;
+    column-gap: 8px;
+    row-gap: 2px;
     padding: 4px 8px;
     flex-shrink: 0;
     border-radius: var(--radius-md);
     position: relative;
     z-index: 2;
+  }
+
+  .game-player-bar--mobile .game-player-bar__left {
+    display: contents;
+  }
+
+  .game-player-bar--mobile .game-player-bar__nick {
+    grid-area: nick;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .game-player-bar--mobile .game-player-bar__time {
+    grid-area: time;
+  }
+
+  .game-player-bar--mobile .room-counts-row--inline {
+    grid-area: counts;
+    justify-content: flex-start;
   }
 
   .game-player-bar--top {
@@ -98,6 +121,7 @@
   .game-player-bar--bottom {
     grid-row: 3;
     margin-top: 0;
+    z-index: 3;
   }
 
   .game-player-bar__nick {
@@ -108,8 +132,16 @@
     font-size: 1.05rem;
   }
 
-  .room-board {
+  .room-board-wrap {
     grid-row: 2;
+    min-height: 0;
+    max-height: 100%;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+  }
+
+  .room-board {
     position: relative;
     left: auto;
     top: auto;
@@ -125,6 +157,28 @@
     overflow: hidden;
     container-type: size;
     container-name: board-slot;
+  }
+
+  .opponent-disconnect-status--board-edge {
+    top: max(6px, env(safe-area-inset-top, 0px));
+    right: max(4px, env(safe-area-inset-right, 0px));
+  }
+
+  .opponent-disconnect-status--board-edge .opponent-disconnect-status__card {
+    padding: 10px 12px;
+  }
+
+  .opponent-disconnect-status--board-edge .opponent-disconnect-status__title {
+    font-size: 0.82rem;
+  }
+
+  .opponent-disconnect-status--board-edge .opponent-disconnect-status__text {
+    font-size: 0.72rem;
+    margin-bottom: 6px;
+  }
+
+  .opponent-disconnect-status--board-edge .opponent-disconnect-status__number {
+    font-size: 1.4rem;
   }
 
   .room-board .board {
@@ -171,11 +225,7 @@
   .room-board .cell-number {
     top: 1px;
     left: 2px;
-    font-size: max(5px, calc(var(--cell-size) * 0.16));
-  }
-
-  .room-board .field-of-reserve .cell-number {
-    font-size: max(5px, calc(var(--reserve-cell-size) * 0.16));
+    font-size: max(5px, calc(var(--cell-size) * 0.19));
   }
 
   .game-actions-bar--sidebar {
@@ -344,5 +394,14 @@
 
   .game-player-bar .room-counts-row--inline {
     gap: 6px;
+  }
+}
+
+/* Низкое окно (сжатие по высоте на десктопе) — прокрутка вместо обрезки */
+@media (max-width: 1319px) and (max-height: 740px) {
+  .game-viewport-first {
+    max-height: none;
+    min-height: auto;
+    overflow-y: auto;
   }
 }

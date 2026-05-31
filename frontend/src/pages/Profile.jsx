@@ -1,14 +1,44 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ApiError, changePassword, updateProfile } from '../api/auth';
+import { ApiError, changePassword, fetchMyGames, updateProfile } from '../api/auth';
 import { useAuth } from '../context/AuthContext';
 import { DISTRICTS } from '../constants/profile';
+import { useDistrictLabel } from '../i18n/districtLabel';
 import { resolveApiErrorMessage } from '../i18n/resolveMessage';
 import GameEmblem from '../components/GameEmblem';
 
+const PAGE_SIZE = 20;
+
+function formatOpponent(display, t) {
+  if (display === '__ai__') return t('auth.opponentAi');
+  if (display === '__anonymous__') return t('auth.opponentAnonymous');
+  return display;
+}
+
+function formatResult(result, t) {
+  if (result === 'win') return t('auth.resultWin');
+  if (result === 'loss') return t('auth.resultLoss');
+  return t('auth.resultDraw');
+}
+
+function formatRoomType(roomType, t) {
+  if (roomType === 'private') return t('auth.roomTypePrivate');
+  if (roomType === 'ai') return t('auth.roomTypeAi');
+  return t('auth.roomTypePublic');
+}
+
+function formatGameDate(iso, locale) {
+  try {
+    return new Date(iso).toLocaleString(locale);
+  } catch {
+    return iso;
+  }
+}
+
 export default function Profile() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const districtLabel = useDistrictLabel();
   const { user, loading, isAuthenticated, setUser, logout } = useAuth();
   const [username, setUsername] = useState('');
   const [firstName, setFirstName] = useState('');
@@ -22,6 +52,10 @@ export default function Profile() {
   const [passwordError, setPasswordError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [passwordSubmitting, setPasswordSubmitting] = useState(false);
+  const [games, setGames] = useState([]);
+  const [gamesTotal, setGamesTotal] = useState(0);
+  const [gamesLoading, setGamesLoading] = useState(false);
+  const [gamesError, setGamesError] = useState('');
 
   useEffect(() => {
     if (user) {
@@ -31,6 +65,26 @@ export default function Profile() {
       setDistrict(user.district || '');
     }
   }, [user]);
+
+  const loadGames = useCallback(async (offset = 0, append = false) => {
+    setGamesLoading(true);
+    setGamesError('');
+    try {
+      const data = await fetchMyGames({ limit: PAGE_SIZE, offset });
+      setGames((prev) => (append ? [...prev, ...data.items] : data.items));
+      setGamesTotal(data.total);
+    } catch (err) {
+      setGamesError(err instanceof ApiError ? resolveApiErrorMessage(err.message) : t('auth.gamesLoadFailed'));
+    } finally {
+      setGamesLoading(false);
+    }
+  }, [t]);
+
+  useEffect(() => {
+    if (isAuthenticated && !loading) {
+      void loadGames(0, false);
+    }
+  }, [isAuthenticated, loading, loadGames]);
 
   if (loading) {
     return (
@@ -94,7 +148,7 @@ export default function Profile() {
 
   return (
     <div className="auth-page">
-      <div className="auth-card">
+      <div className="auth-card auth-card--wide">
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
           <GameEmblem size={56} />
         </div>
@@ -136,7 +190,7 @@ export default function Profile() {
             <select id="district" value={district} onChange={(e) => setDistrict(e.target.value)}>
               <option value="">{t('auth.districtNone')}</option>
               {DISTRICTS.map((d) => (
-                <option key={d} value={d}>{d}</option>
+                <option key={d} value={d}>{districtLabel(d)}</option>
               ))}
             </select>
           </div>
@@ -189,6 +243,53 @@ export default function Profile() {
             {passwordSubmitting ? t('auth.changingPassword') : t('auth.changePassword')}
           </button>
         </form>
+
+        <hr style={{ margin: '24px 0', borderColor: 'var(--border)' }} />
+        <h2 className="profile-games-title">{t('auth.gamesTitle')}</h2>
+        {gamesError && <div className="auth-error">{gamesError}</div>}
+        {gamesLoading && games.length === 0 ? (
+          <p className="auth-subtitle">{t('auth.gamesLoading')}</p>
+        ) : games.length === 0 ? (
+          <p className="auth-subtitle">{t('auth.gamesEmpty')}</p>
+        ) : (
+          <div className="profile-games-table-wrap">
+            <table className="profile-games-table">
+              <thead>
+                <tr>
+                  <th>{t('auth.gameDate')}</th>
+                  <th>{t('auth.gameOpponent')}</th>
+                  <th>{t('auth.gameResult')}</th>
+                  <th>{t('auth.gameType')}</th>
+                  <th>{t('auth.gameMoves')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {games.map((game) => (
+                  <tr key={game.id}>
+                    <td>{formatGameDate(game.finished_at, i18n.language)}</td>
+                    <td>{formatOpponent(game.opponent_display, t)}</td>
+                    <td className={`profile-games-result profile-games-result--${game.result}`}>
+                      {formatResult(game.result, t)}
+                    </td>
+                    <td>{formatRoomType(game.room_type, t)}</td>
+                    <td>{game.moves_count}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {games.length < gamesTotal && (
+          <button
+            type="button"
+            className="btn-lobby btn-secondary profile-games-load-more"
+            disabled={gamesLoading}
+            onClick={() => void loadGames(games.length, true)}
+          >
+            {gamesLoading ? t('auth.gamesLoading') : t('auth.gamesLoadMore')}
+          </button>
+        )}
+
         <p className="auth-footer">
           <Link to="/">{t('auth.toHome')}</Link>
         </p>

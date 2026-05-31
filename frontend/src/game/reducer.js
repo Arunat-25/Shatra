@@ -65,7 +65,7 @@ export const initialGameState = {
   rematchUnavailable: false,
   playersInfo: [],
   chatMessages: [],
-  chatOpen: false,
+  chatHidden: false,
 };
 
 export function gameReducer(state, action) {
@@ -81,11 +81,22 @@ export function gameReducer(state, action) {
       return { ...state, playersInfo: action.payload || [] };
 
     case GAME_ACTIONS.CHAT_HISTORY:
+      if (state.chatHidden) return state;
       return { ...state, chatMessages: action.payload || [] };
 
     case GAME_ACTIONS.CHAT_MESSAGE: {
+      if (state.chatHidden) return state;
       const next = [...state.chatMessages, action.payload];
       return { ...state, chatMessages: next.slice(-50) };
+    }
+
+    case GAME_ACTIONS.TOGGLE_CHAT_HIDDEN: {
+      const chatHidden = !state.chatHidden;
+      return {
+        ...state,
+        chatHidden,
+        chatMessages: chatHidden ? [] : state.chatMessages,
+      };
     }
 
     case GAME_ACTIONS.SET_MOVE_FROM:

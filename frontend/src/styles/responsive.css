@@ -3,8 +3,8 @@
 @media (min-width: 860px) {
   .game-page {
     display: block;
-    width: 100vw;
-    max-width: 100vw;
+    width: 100%;
+    max-width: 100%;
     height: 100vh;
     height: 100dvh;
     margin: 0;
@@ -17,60 +17,16 @@
 
 }
 
-/* Две колонки лобби, но правый край ещё под навигацией (напр. 1280×800) */
-@media (min-width: 861px) and (max-width: 1560px) {
-  .app-shell--lobby {
-    --lobby-nav-clear-top: 54px;
+@media (max-width: 960px) {
+  :root {
+    --auth-nav-inset-top: 10px;
+    --auth-nav-inset-end: 10px;
   }
-
-  .app-shell--lobby .app-main {
-    padding-top: var(--lobby-nav-clear-top);
-  }
-}
-
-/* Очень широкий экран: зал ожидания правее угла с навигацией */
-@media (min-width: 1561px) {
-  .app-shell--lobby {
-    --lobby-nav-clear-top: 0;
-  }
-
-  .app-shell--lobby .app-main {
-    padding-top: 0;
-  }
-}
-
-@media (max-width: 860px) {
-  .app-auth-nav {
-    top: 10px;
-    right: 10px;
-    max-width: calc(100vw - 20px);
-  }
-
-  .lobby-layout {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-  .app-shell--lobby {
-    --lobby-nav-clear-top: 58px;
-  }
-
-  /* Заголовок чуть уже — только под угол с навигацией, кнопки на всю ширину */
-  .app-shell--lobby .lobby-emblem,
-  .app-shell--lobby .lobby-left h1,
-  .app-shell--lobby .lobby-subtitle {
-    max-width: calc(100% - 3.5rem);
-    margin-inline: auto;
-  }
-
-  .lobby-left { padding: 32px 24px; }
-  .lobby-left h1 { font-size: 2rem; }
-  .lobby-right { max-height: 50vh; }
-}
-
-@media (max-width: 768px) {
-  #root { padding: 10px 10px; }
 
   .app-auth-nav {
+    top: var(--auth-nav-inset-top);
+    right: var(--auth-nav-inset-end);
+    max-width: calc(100% - 20px);
     gap: 6px;
     padding: 4px 6px;
   }
@@ -102,12 +58,51 @@
     padding: 22px 20px 28px;
   }
 
+  .lobby-layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  /* Заголовок чуть уже — только под угол с навигацией, кнопки на всю ширину */
+  .app-shell--lobby .lobby-emblem,
+  .app-shell--lobby .lobby-left h1,
+  .app-shell--lobby .lobby-subtitle {
+    max-width: calc(100% - 3.5rem);
+    margin-inline: auto;
+  }
+
+  .lobby-left { padding: 32px 24px; }
+  .lobby-left h1 { font-size: 2rem; }
+}
+
+/* Узкое окно на «широком» лобби: две колонки, но меньше отступы */
+@media (max-width: 1100px) and (min-width: 961px) {
+  .lobby-layout {
+    gap: 14px;
+    max-width: 100%;
+  }
+
+  .lobby-left {
+    padding: 28px 22px;
+  }
+
+  .lobby-right {
+    padding: 20px 18px;
+  }
+
+  .lobby-left h1 {
+    font-size: 1.85rem;
+  }
+}
+
+@media (max-width: 768px) {
+  #root:not(:has(.app-shell--lobby)) { padding: 10px 10px; }
+
   .game-page { gap: 0; }
   .game-screen { gap: 0; max-width: 100%; }
 
   .board { padding: 10px; }
-  .kletka { width: 44px; height: 44px; }
-  .field-of-reserve .kletka { width: 38px; height: 38px; }
 
   .game-header {
     padding: 8px 12px;
@@ -123,13 +118,6 @@
   .waiting-invite-heading { letter-spacing: 0.08em; }
 
   .keyboard-hint { display: none; }
-}
-
-@media (max-width: 1100px) and (min-width: 769px) {
-  .room-right > .room-left {
-    width: 220px;
-    left: max(8px, calc(50% - 280px - 12px - 220px));
-  }
 }
 
 @media (max-width: 540px) {
@@ -168,6 +156,7 @@
 
   .kletka { -webkit-tap-highlight-color: transparent; }
   .kletka:active { transform: scale(0.96); }
+  .board-content--dragging .kletka:active { transform: none; }
   .action-card, .btn-join, .btn-pass, .btn-lobby {
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
@@ -186,7 +175,7 @@
 
 @media print {
   html, body { background: white; overflow: visible; color: black; }
-  .game-page, .lobby-layout { height: auto; overflow: visible; }
+  .game-page { height: auto; overflow: visible; }
   .board { break-inside: avoid; box-shadow: none; }
   .action-card, .btn-join, .btn-pass, .btn-exit, .btn-lobby { display: none; }
 }

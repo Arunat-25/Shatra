@@ -38,6 +38,18 @@ describe('resolveWsErrorMessage', () => {
   });
 });
 
+describe('resolveMessage chat errors', () => {
+  it('maps chat.rate_limit', () => {
+    expect(resolveMessage({ message_code: 'chat.rate_limit' }))
+      .toContain('много');
+  });
+
+  it('maps chat.duplicate', () => {
+    expect(resolveMessage({ message_code: 'chat.duplicate' }))
+      .toContain('подряд');
+  });
+});
+
 describe('resolveApiErrorMessage', () => {
   it('maps auth.invalid_credentials', () => {
     expect(resolveApiErrorMessage('auth.invalid_credentials'))

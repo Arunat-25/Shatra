@@ -1,5 +1,6 @@
-import { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import QRCode from 'qrcode';
 
 function CopyIcon() {
   return (
@@ -46,11 +47,28 @@ export default function WaitingScreen({
 }) {
   const { t } = useTranslation();
   const [copyStatus, setCopyStatus] = useState('');
+  const [qrDataUrl, setQrDataUrl] = useState('');
 
   const inviteUrl = useMemo(
     () => (roomId ? `${window.location.origin}/${roomId}?mode=private` : ''),
     [roomId],
   );
+
+  useEffect(() => {
+    if (!showInviteLink || !inviteUrl) {
+      setQrDataUrl('');
+      return undefined;
+    }
+    let cancelled = false;
+    QRCode.toDataURL(inviteUrl, { width: 120, margin: 1 })
+      .then((url) => {
+        if (!cancelled) setQrDataUrl(url);
+      })
+      .catch(() => {
+        if (!cancelled) setQrDataUrl('');
+      });
+    return () => { cancelled = true; };
+  }, [showInviteLink, inviteUrl]);
 
   const copyLink = useCallback(async () => {
     if (!inviteUrl) return;
@@ -91,19 +109,32 @@ export default function WaitingScreen({
         ) : showInviteLink ? (
           <>
             <h1 className="waiting-invite-heading">{t('game.inviteHeading')}</h1>
-            <div className="waiting-link-row">
-              <p className="waiting-link-url">{inviteUrl}</p>
-              <button
-                type="button"
-                className="btn-copy-icon"
-                onClick={copyLink}
-                title={t('game.copyLink')}
-                aria-label={t('game.copyLink')}
-              >
-                <CopyIcon />
-              </button>
+            <div className="waiting-invite-share">
+              {qrDataUrl && (
+                <img
+                  className="waiting-qr"
+                  src={qrDataUrl}
+                  width={120}
+                  height={120}
+                  alt={t('game.qrLabel')}
+                />
+              )}
+              <div className="waiting-invite-link-block">
+                <div className="waiting-link-row">
+                  <p className="waiting-link-url">{inviteUrl}</p>
+                  <button
+                    type="button"
+                    className="btn-copy-icon"
+                    onClick={copyLink}
+                    title={t('game.copyLink')}
+                    aria-label={t('game.copyLink')}
+                  >
+                    <CopyIcon />
+                  </button>
+                </div>
+                {copyStatus && <p className="waiting-copy-status">{copyStatus}</p>}
+              </div>
             </div>
-            {copyStatus && <p className="waiting-copy-status">{copyStatus}</p>}
             <p className="waiting-invite-note">
               {t('game.inviteNote')}
             </p>

@@ -12,6 +12,31 @@ describe('gameReducer chat and players', () => {
     expect(next.chatMessages).toEqual(history);
   });
 
+  it('CHAT_HISTORY ignored when chat hidden', () => {
+    const next = gameReducer(
+      { ...initialGameState, chatHidden: true },
+      { type: GAME_ACTIONS.CHAT_HISTORY, payload: [{ text: 'a' }] },
+    );
+    expect(next.chatMessages).toEqual([]);
+  });
+
+  it('CHAT_MESSAGE ignored when chat hidden', () => {
+    const next = gameReducer(
+      { ...initialGameState, chatHidden: true, chatMessages: [] },
+      { type: GAME_ACTIONS.CHAT_MESSAGE, payload: { text: 'x', ts: 1 } },
+    );
+    expect(next.chatMessages).toEqual([]);
+  });
+
+  it('TOGGLE_CHAT_HIDDEN clears messages when hiding', () => {
+    const next = gameReducer(
+      { ...initialGameState, chatMessages: [{ text: 'a' }] },
+      { type: GAME_ACTIONS.TOGGLE_CHAT_HIDDEN },
+    );
+    expect(next.chatHidden).toBe(true);
+    expect(next.chatMessages).toEqual([]);
+  });
+
   it('CHAT_MESSAGE appends and caps at 50', () => {
     const base = {
       ...initialGameState,

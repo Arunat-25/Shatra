@@ -44,9 +44,11 @@ const CODE_TO_I18N = {
   'cancel.too_late': 'server.error',
 
   // Chat
-  'chat.ai_unavailable': 'server.error',
-  'chat.empty': 'server.error',
-  'chat.rate_limit': 'server.error',
+  'chat.ai_unavailable': 'chat.errors.aiUnavailable',
+  'chat.empty': 'chat.errors.empty',
+  'chat.rate_limit': 'chat.errors.rateLimit',
+  'chat.too_fast': 'chat.errors.tooFast',
+  'chat.duplicate': 'chat.errors.duplicate',
 
   // Room / WS / auth (codes match backend/message_codes.py)
   'room.not_found': 'errors.roomNotFound',

@@ -1,7 +1,51 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { isSoundEnabled, setSoundEnabled } from '../audio/soundSettings';
+import { resumeAudioContext, preloadGameSounds } from '../audio/gameSounds';
 
 const RESIGN_ARM_MS = 4000;
+
+function SoundIcon({ muted }) {
+  return (
+    <svg className="room-icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+      {muted ? (
+        <>
+          <path
+            d="M11 5L6 9H3v6h3l5 4V5z"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M16 9l5 6M21 9l-5 6"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          />
+        </>
+      ) : (
+        <>
+          <path
+            d="M11 5L6 9H3v6h3l5 4V5z"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M15.5 8.5a4.5 4.5 0 010 7M18 6a7.5 7.5 0 010 12"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          />
+        </>
+      )}
+    </svg>
+  );
+}
 
 function FlagIcon() {
   return (
@@ -33,6 +77,15 @@ export default function GameControls({
 }) {
   const { t } = useTranslation();
   const [resignArmed, setResignArmed] = useState(false);
+  const [soundOn, setSoundOn] = useState(() => isSoundEnabled());
+
+  const toggleSound = useCallback(async () => {
+    await resumeAudioContext();
+    await preloadGameSounds();
+    const next = !soundOn;
+    setSoundOn(next);
+    setSoundEnabled(next);
+  }, [soundOn]);
 
   useEffect(() => {
     if (!resignArmed) return undefined;
@@ -107,6 +160,19 @@ export default function GameControls({
             </>
           )
         )}
+        <button
+          type="button"
+          className={[
+            'room-icon-btn',
+            soundOn ? '' : 'room-icon-btn--sound-off',
+          ].filter(Boolean).join(' ')}
+          onClick={toggleSound}
+          title={soundOn ? t('game.sounds.on') : t('game.sounds.off')}
+          aria-label={soundOn ? t('game.sounds.on') : t('game.sounds.off')}
+          aria-pressed={soundOn}
+        >
+          <SoundIcon muted={!soundOn} />
+        </button>
         <button
           type="button"
           className={[

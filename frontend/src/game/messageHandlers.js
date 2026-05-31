@@ -160,7 +160,7 @@ export const messageHandlers = [
     check: (d) => d.status === 'opponent_disconnected',
     handle: (d, dispatch) => {
       dispatch({ type: GAME_ACTIONS.OPPONENT_DISCONNECTED, payload: d });
-      return { text: t('disconnect.waiting'), type: 'warning' };
+      return null;
     },
   },
   {

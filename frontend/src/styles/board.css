@@ -193,27 +193,27 @@
   top: 2px;
   left: 3px;
   font-size: max(6px, calc(var(--cell-size, 52px) * 0.19));
-  font-weight: 600;
-  color: rgba(0, 0, 0, 0.35);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: rgba(40, 28, 16, 0.72);
   pointer-events: none;
-  z-index: 1;
+  z-index: 3;
   line-height: 1;
-}
-.field-of-reserve .cell-number {
-  font-size: max(5px, calc(var(--reserve-cell-size, 46px) * 0.19));
-}
-.kletka.has-piece:not(.drag-origin) .cell-number {
-  opacity: 0;
-}
-.kletka.drag-origin .cell-number {
-  z-index: 5;
-  opacity: 1;
+  text-shadow:
+    0 0 2px rgba(255, 255, 255, 0.95),
+    0 1px 1px rgba(255, 255, 255, 0.6);
 }
 .cell-dark .cell-number {
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.88);
+  text-shadow:
+    0 0 2px rgba(0, 0, 0, 0.75),
+    0 1px 2px rgba(0, 0, 0, 0.5);
 }
 .field-of-king .cell-number {
-  color: rgba(147, 64, 14, 0.45);
+  color: rgba(120, 53, 10, 0.8);
+  text-shadow:
+    0 0 2px rgba(255, 255, 255, 0.9),
+    0 1px 1px rgba(255, 255, 255, 0.5);
 }
 
 .cell-light {
@@ -269,6 +269,11 @@
 }
 
 /* ===== INTERACTIONS ===== */
+.board-content--dragging .kletka,
+.board-content--dragging .kletka:hover,
+.board-content--dragging .kletka:active {
+  transform: none !important;
+}
 .kletka:not(.board.disabled .kletka):hover { z-index: 2; transform: scale(1.04); }
 .cell-light:not(.board.disabled .kletka):hover { filter: brightness(1.04); }
 .cell-dark:not(.board.disabled .kletka):hover { filter: brightness(1.08); }
@@ -298,20 +303,28 @@
 }
 
 /* ===== PIECES ===== */
+.board {
+  --piece-scale: 0.92;
+}
 .image-in-kletka {
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 100%;
-  height: 100%;
+  width: calc(100% * var(--piece-scale));
+  height: calc(100% * var(--piece-scale));
+  margin: auto;
   transition: transform var(--duration-fast) var(--ease-out);
   z-index: 2;
+  -webkit-user-drag: none;
+  user-select: none;
 }
 .image-in-kletka svg,
 .drag-ghost-inner svg {
   display: block;
   width: 100%;
   height: 100%;
+  -webkit-user-drag: none;
+  pointer-events: none;
 }
 .drag-origin .image-in-kletka {
   opacity: 0.25;
@@ -327,7 +340,7 @@
   transform: translate(0, 0);
 }
 .drag-ghost-inner {
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) scale(var(--piece-scale, 0.92));
   filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.2));
 }
 .kletka.highlight-captured .image-in-kletka { animation: pieceCapture 0.5s ease-out forwards; }

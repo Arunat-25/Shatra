@@ -68,7 +68,10 @@ export function getClientId() {
 
 export function getWsUrl(roomId) {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  return `${protocol}//${window.location.host}/ws/${roomId}/?client_id=${getClientId()}`;
+  const params = new URLSearchParams({ client_id: getClientId() });
+  const token = getAccessToken();
+  if (token) params.set('access_token', token);
+  return `${protocol}//${window.location.host}/ws/${roomId}/?${params.toString()}`;
 }
 
 // ===== REST API =====
@@ -92,7 +95,19 @@ export function createRoom(
 }
 
 export function listRooms() {
-  return request(`${API_BASE}/rooms`);
+  const params = new URLSearchParams({ client_id: getClientId() });
+  return request(`${API_BASE}/rooms?${params}`);
+}
+
+/** Закрыть lobby-presence (tab close / уход со страницы лобби). */
+export function leaveLobbyPresence() {
+  const params = new URLSearchParams({ client_id: getClientId() });
+  const url = `${API_BASE}/rooms/presence/leave?${params}`;
+  if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
+    navigator.sendBeacon(url);
+    return;
+  }
+  void fetch(url, { method: 'POST', keepalive: true }).catch(() => {});
 }
 
 export function joinRoom(roomId) {

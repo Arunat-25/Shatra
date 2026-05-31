@@ -8,19 +8,6 @@
   position: relative;
 }
 
-.game-hud {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 1000;
-  pointer-events: none;
-}
-
-.game-hud > * {
-  pointer-events: auto;
-}
-
 .hud-title {
   position: fixed;
   top: 12px;
@@ -38,25 +25,6 @@
 }
 .hud-title:hover { opacity: 0.8; }
 
-.game-hud .locale-switcher--compact {
-  display: none;
-  position: fixed;
-  top: max(6px, env(safe-area-inset-top));
-  right: 8px;
-  z-index: 1001;
-  gap: 2px;
-  font-size: 0.68rem;
-}
-
-.locale-switcher--compact .locale-switcher__btn {
-  padding: 2px 3px;
-  font-size: 0.68rem;
-}
-
-.locale-switcher--compact .locale-switcher__sep {
-  font-size: 0.62rem;
-}
-
 .room-layout {
   position: relative;
   width: 100%;
@@ -65,7 +33,7 @@
 }
 
 .room-board {
-  width: 560px;
+  width: min(560px, 100%);
   max-width: 560px;
   margin: 0 auto;
   height: 100%;
@@ -231,7 +199,7 @@
 }
 
 /* Порядок блоков в боковой панели на десктопе */
-@media (min-width: 769px) {
+@media (min-width: 1320px) {
   .room-right > .room-left {
     position: fixed;
     top: 5mm;
@@ -437,6 +405,10 @@
 
 .room-icon-btn--danger:hover {
   background: linear-gradient(135deg, rgba(170, 43, 16, 0.16), rgba(170, 43, 16, 0.06));
+}
+
+.room-icon-btn--sound-off {
+  opacity: 0.55;
 }
 
 .room-icon-btn--resign-armed {
@@ -801,53 +773,52 @@
 .thinking-dot:nth-child(3) { animation-delay: 0.4s; }
 .game-info-ai { color: var(--violet); font-weight: 600; flex-shrink: 0; font-size: 0.78rem; }
 
-/* ===== DISCONNECT ===== */
-.opponent-disconnected-overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(240, 232, 211, 0.80);
-  backdrop-filter: blur(6px);
-  z-index: 100;
-  border-radius: inherit;
+/* ===== OPPONENT DISCONNECT STATUS (sidebar / board edge) ===== */
+.room-board-wrap {
+  position: relative;
+  width: 100%;
+  min-width: 0;
 }
 
-.opponent-disconnected-modal {
+.opponent-disconnect-status__card {
   background: var(--bg-elevated);
   border: 1px solid rgba(154, 102, 0, 0.28);
   border-radius: var(--radius-lg);
-  padding: 24px 28px;
+  padding: 14px 16px;
   text-align: center;
-  max-width: 300px;
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-md);
   animation: fadeIn 0.25s ease-out;
 }
 
-.opponent-disconnected-icon { font-size: 2rem; margin-bottom: 8px; }
-.opponent-disconnected-title {
-  font-family: var(--font-display);
-  font-size: 1rem;
-  color: var(--text-primary);
-  margin: 0 0 8px;
-}
-.opponent-disconnected-text {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  margin: 0 0 16px;
-  line-height: 1.45;
+.opponent-disconnect-status__icon {
+  font-size: 1.5rem;
+  margin-bottom: 6px;
+  line-height: 1;
 }
 
-.opponent-disconnected-countdown {
+.opponent-disconnect-status__title {
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  color: var(--text-primary);
+  margin: 0 0 6px;
+}
+
+.opponent-disconnect-status__text {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin: 0 0 10px;
+  line-height: 1.4;
+}
+
+.opponent-disconnect-status__countdown {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
 }
 
-.countdown-number {
-  font-size: 2rem;
+.opponent-disconnect-status__number {
+  font-size: 1.75rem;
   font-weight: 700;
   color: var(--danger);
   font-variant-numeric: tabular-nums;
@@ -855,11 +826,40 @@
   min-width: 2ch;
   text-align: center;
 }
-.countdown-label {
-  font-size: 0.75rem;
+
+.opponent-disconnect-status__label {
+  font-size: 0.72rem;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
+}
+
+.opponent-disconnect-status--sidebar {
+  display: none;
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.opponent-disconnect-status--board-edge {
+  display: none;
+  position: absolute;
+  top: 8px;
+  right: 6px;
+  z-index: 5;
+  max-width: min(46%, 200px);
+  pointer-events: none;
+}
+
+@media (min-width: 1320px) {
+  .opponent-disconnect-status--sidebar {
+    display: block;
+  }
+}
+
+@media (max-width: 1319px) {
+  .opponent-disconnect-status--board-edge {
+    display: block;
+  }
 }
 
 /* ===== TIMER ===== */
@@ -884,7 +884,7 @@
   width: 100%;
 }
 
-@media (min-width: 769px) {
+@media (min-width: 1320px) {
   /* Как .move-history-line (0.8rem) */
   .room-side-panel .timer-row__nick {
     font-size: 0.8rem;
@@ -1577,12 +1577,44 @@
 
 .game-chat-header {
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   padding: 10px 12px;
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--text-muted);
   border-bottom: 1px solid var(--border-subtle);
   letter-spacing: 0.04em;
+}
+
+.game-chat-toggle {
+  font-size: 0.72rem;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.game-chat-toggle:hover {
+  color: var(--gold);
+  border-color: var(--gold);
+}
+
+.game-chat--hidden .game-chat-panel {
+  display: none;
+}
+
+.game-chat-hidden-hint {
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 0.78rem;
+  color: var(--text-faint);
+  font-style: italic;
 }
 
 .game-chat-panel {

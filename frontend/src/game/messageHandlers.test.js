@@ -124,6 +124,15 @@ describe('dispatchServerMessage', () => {
     });
   });
 
+  it('opponent_disconnected dispatches without toast message', () => {
+    const { calls, msg } = collectDispatches({
+      status: 'opponent_disconnected',
+      timeout: 30,
+    });
+    expect(calls.some((c) => c.type === GAME_ACTIONS.OPPONENT_DISCONNECTED)).toBe(true);
+    expect(msg).toBeNull();
+  });
+
   it('chat appends message', () => {
     const { calls } = collectDispatches({
       type: 'chat',

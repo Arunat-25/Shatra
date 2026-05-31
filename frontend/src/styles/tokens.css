@@ -65,4 +65,10 @@
   --duration-fast: 150ms;
   --duration-normal: 250ms;
   --duration-slow: 400ms;
+
+  /*
+   * Layout breakpoints (use same px in @media — CSS vars are not valid in queries):
+   * --bp-lobby-stack: 960px   — lobby → one column
+   * --bp-game-compact: 1320px — game → stacked layout (3-col needs ~1320px+)
+   */
 }

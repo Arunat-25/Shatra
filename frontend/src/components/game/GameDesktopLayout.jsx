@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import GameClock from '../GameClock';
 import GameChat from '../GameChat';
 import MoveHistory from '../MoveHistory';
+import OpponentDisconnectStatus from './OpponentDisconnectStatus';
 
 export default function GameDesktopLayout({
   state,
@@ -12,6 +13,9 @@ export default function GameDesktopLayout({
   actionsBar,
   moveHistoryProps,
   onSendChat,
+  chatHidden,
+  onToggleChatHidden,
+  roomId,
 }) {
   const { t } = useTranslation();
 
@@ -33,6 +37,12 @@ export default function GameDesktopLayout({
         </div>
 
         <div className="room-sidebar-extra">
+          {state.opponentDisconnected && (
+            <OpponentDisconnectStatus
+              placement="sidebar"
+              disconnectCountdown={state.disconnectCountdown}
+            />
+          )}
           {message && (
             <div className={`message message-${messageType}`}>{message}</div>
           )}
@@ -45,6 +55,9 @@ export default function GameDesktopLayout({
             messages={state.chatMessages}
             onSend={onSendChat}
             disabled={wsReconnecting || state.opponentDisconnected}
+            chatHidden={chatHidden}
+            onToggleHidden={onToggleChatHidden}
+            roomId={roomId}
           />
         </aside>
       )}

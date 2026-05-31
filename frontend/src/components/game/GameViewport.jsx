@@ -1,7 +1,8 @@
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import BoardGrid from '../../BoardGrid';
-import DisconnectOverlay from '../DisconnectOverlay';
 import MoveHistory from '../MoveHistory';
+import OpponentDisconnectStatus from './OpponentDisconnectStatus';
 import PlayerBar from '../PlayerBar';
 
 export default function GameViewport({
@@ -28,30 +29,34 @@ export default function GameViewport({
           timeControl={state.timeControl}
           countsByType={state.countsByType}
         />
-        <div className="room-board">
-          <div
-            className={[
-              'board',
-              isBoardBlocked ? 'disabled' : '',
-              (state.aiThinking || state.opponentDisconnected) ? 'board-dimmed' : '',
-              state.aiThinking ? 'board-ai-thinking' : '',
-            ].filter(Boolean).join(' ')}
-          >
-            {state.opponentDisconnected && (
-              <DisconnectOverlay disconnectCountdown={state.disconnectCountdown} />
-            )}
-            <BoardGrid
-              board={state.board}
-              onCellClick={onCellClick}
-              moveFrom={state.moveFrom}
-              highlightedEssential={state.highlightedEssential}
-              highlightedCaptured={state.highlightedCaptured}
-              lastMove={state.lastMove}
-              historyFrom={state.historyFrom}
-              historyTo={state.historyTo}
-              myColor={state.myColor}
-            />
+        <div className="room-board-wrap">
+          <div className="room-board">
+            <div
+              className={[
+                'board',
+                isBoardBlocked ? 'disabled' : '',
+                state.aiThinking ? 'board-dimmed board-ai-thinking' : '',
+              ].filter(Boolean).join(' ')}
+            >
+              <BoardGrid
+                board={state.board}
+                onCellClick={onCellClick}
+                moveFrom={state.moveFrom}
+                highlightedEssential={state.highlightedEssential}
+                highlightedCaptured={state.highlightedCaptured}
+                lastMove={state.lastMove}
+                historyFrom={state.historyFrom}
+                historyTo={state.historyTo}
+                myColor={state.myColor}
+              />
+            </div>
           </div>
+          {state.opponentDisconnected && (
+            <OpponentDisconnectStatus
+              placement="board-edge"
+              disconnectCountdown={state.disconnectCountdown}
+            />
+          )}
         </div>
 
         <PlayerBar

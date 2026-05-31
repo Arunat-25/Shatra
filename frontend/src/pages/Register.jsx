@@ -4,11 +4,13 @@ import { useTranslation } from 'react-i18next';
 import { ApiError, register } from '../api/auth';
 import { useAuth } from '../context/AuthContext';
 import { DISTRICTS } from '../constants/profile';
+import { useDistrictLabel } from '../i18n/districtLabel';
 import { resolveApiErrorMessage } from '../i18n/resolveMessage';
 import GameEmblem from '../components/GameEmblem';
 
 export default function Register() {
   const { t } = useTranslation();
+  const districtLabel = useDistrictLabel();
   const navigate = useNavigate();
   const { applyTokens } = useAuth();
   const [username, setUsername] = useState('');
@@ -120,7 +122,7 @@ export default function Register() {
             <select id="district" value={district} onChange={(e) => setDistrict(e.target.value)}>
               <option value="">{t('auth.districtNone')}</option>
               {DISTRICTS.map((d) => (
-                <option key={d} value={d}>{d}</option>
+                <option key={d} value={d}>{districtLabel(d)}</option>
               ))}
             </select>
           </div>

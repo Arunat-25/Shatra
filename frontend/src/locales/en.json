@@ -3,6 +3,7 @@
     "login": "Log in",
     "register": "Sign up",
     "profile": "Profile",
+    "admin": "Admin",
     "logout": "Log out",
     "account": "Account"
   },
@@ -32,7 +33,27 @@
     "aiRoom": "Game vs bot",
     "creator": "Creator",
     "noTimer": "No timer",
-    "closeError": "Close"
+    "closeError": "Close",
+    "onlineCount": "Online: {{count}}",
+    "activeGamesCount": "Games in progress: {{count}}"
+  },
+  "tutorial": {
+    "title": "Rules",
+    "slide1": {
+      "mainField": "Main field"
+    },
+    "slide2": {
+      "fortress": "Fortress"
+    },
+    "slide3": {
+      "gate": "Gate"
+    },
+    "slide4": {
+      "blackShatra": "Shatra",
+      "whiteShatra": "White shatra",
+      "blackBiy": "Black biy",
+      "whiteBiy": "Biy"
+    }
   },
   "setup": {
     "title": "Game settings",
@@ -107,7 +128,25 @@
     "invalidToken": "Invalid token",
     "userNotFound": "User not found",
     "wrongPassword": "Incorrect current password",
-    "authRequired": "Authentication required"
+    "authRequired": "Authentication required",
+    "gamesTitle": "My games",
+    "gamesEmpty": "No finished games yet",
+    "gamesLoadMore": "Load more",
+    "gamesLoading": "Loading…",
+    "gamesLoadFailed": "Could not load game history",
+    "gameDate": "Date",
+    "gameOpponent": "Opponent",
+    "gameResult": "Result",
+    "gameType": "Type",
+    "gameMoves": "Moves",
+    "resultWin": "Win",
+    "resultLoss": "Loss",
+    "resultDraw": "Draw",
+    "opponentAi": "Bot",
+    "opponentAnonymous": "Anonymous",
+    "roomTypePublic": "Public",
+    "roomTypePrivate": "Private",
+    "roomTypeAi": "vs Bot"
   },
   "game": {
     "toLobby": "Lobby",
@@ -124,6 +163,7 @@
     "linkCopied": "Link copied",
     "linkCopyFailed": "Could not copy link",
     "inviteNote": "The first person to open the link will play with you",
+    "qrLabel": "Invite QR code",
     "reconnecting": "Reconnecting…",
     "hudTitle": "Shatra",
     "boardAria": "Game board",
@@ -137,7 +177,11 @@
     "connectionRestored": "Connection restored",
     "gameStarted": "Game started!",
     "createNewFailed": "Could not create a new game",
-    "draw": "Draw"
+    "draw": "Draw",
+    "sounds": {
+      "on": "Sound on",
+      "off": "Sound off"
+    }
   },
   "controls": {
     "pass": "Pass",
@@ -199,7 +243,17 @@
     "empty": "No messages yet",
     "placeholder": "Message…",
     "send": "Send",
-    "anonymous": "Anonymous"
+    "anonymous": "Anonymous",
+    "hide": "Hide chat",
+    "show": "Show chat",
+    "hiddenHint": "Incoming messages are hidden. You can still send messages.",
+    "errors": {
+      "empty": "Empty message",
+      "rateLimit": "Too many messages. Please wait.",
+      "tooFast": "Wait a second before sending again.",
+      "duplicate": "You can't send the same message twice in a row.",
+      "aiUnavailable": "Chat is unavailable in bot games"
+    }
   },
   "server": {
     "error": "Server error",
@@ -250,5 +304,77 @@
     "text": "An unexpected error occurred. Please refresh the page.",
     "reload": "Refresh page",
     "details": "Technical details"
+  },
+  "admin": {
+    "title": "Admin dashboard",
+    "subtitle": "Site statistics",
+    "registrations": "Registrations",
+    "registrationsTotal": "New users",
+    "online": "Online",
+    "onlinePeriod": "For period",
+    "onlinePeriodHint": "Unique people who were online at least once during the selected period.",
+    "onlineUniqueInPeriod": "Unique in period",
+    "onlineSnapshot": "At a point in time",
+    "onlineAt": "Point in time",
+    "onlineTotal": "Unique online",
+    "onlineRegistered": "Registered",
+    "onlineAnonymous": "Anonymous",
+    "games": "Games",
+    "gamesTotal": "Finished games",
+    "period": "Period",
+    "roomType": "Game type",
+    "anonymousPlayers": "Anonymous in game",
+    "byRoomType": "By room type",
+    "byAnonymous": "By anonymous count",
+    "refresh": "Refresh",
+    "show": "Show",
+    "invalidDateTime": "Invalid date and time",
+    "periods": {
+      "1h": "1 hour",
+      "3h": "3 hours",
+      "6h": "6 hours",
+      "12h": "12 hours",
+      "today": "Today",
+      "24h": "24 hours",
+      "7d": "7 days",
+      "30d": "30 days",
+      "all": "All time"
+    },
+    "roomTypes": {
+      "all": "All",
+      "public": "Lobby",
+      "private": "Friend",
+      "ai": "Vs bot"
+    },
+    "anonymousCounts": {
+      "0": "0 anonymous",
+      "1": "1 anonymous",
+      "2": "2 anonymous",
+      "all": "All"
+    },
+    "chartEmpty": "No data for this period",
+    "charts": {
+      "registrations": "Registrations over time",
+      "games": "Finished games over time",
+      "online": "Online users over time",
+      "onlineHint": "Each point is unique users during that interval; the sum of points may differ from the total for the whole period.",
+      "legendTotal": "Total",
+      "legendRegistered": "Registered",
+      "legendAnonymous": "Anonymous"
+    }
+  },
+  "districts": {
+    "Кош-Агач": "Кош-Агач",
+    "Майма": "Майма",
+    "Онгудай": "Онгудай",
+    "Турочак": "Турочак",
+    "Улаган": "Улаган",
+    "Усть-Кан": "Усть-Кан",
+    "Усть-Кокса": "Усть-Кокса",
+    "Чемал": "Чемал",
+    "Чоя": "Чоя",
+    "Шебалино": "Шебалино",
+    "Горно-Алтайск": "Горно-Алтайск",
+    "Другое": "Другое"
   }
 }

@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import AuthNav from './components/AuthNav';
@@ -7,18 +8,35 @@ import Game from './Game';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
+const Admin = lazy(() => import('./pages/Admin'));
+
+function AdminFallback() {
+  return (
+    <div className="admin-page">
+      <p>…</p>
+    </div>
+  );
+}
 
 const routes = [
   { path: '/', element: <Lobby /> },
   { path: '/login', element: <Login /> },
   { path: '/register', element: <Register /> },
   { path: '/profile', element: <Profile /> },
+  {
+    path: '/admin',
+    element: (
+      <Suspense fallback={<AdminFallback />}>
+        <Admin />
+      </Suspense>
+    ),
+  },
   { path: '/:roomId', element: <Game /> },
 ];
 
-const AUTH_NAV_PATHS = new Set(['/', '/login', '/register', '/profile']);
+const AUTH_NAV_PATHS = new Set(['/', '/login', '/register', '/profile', '/admin']);
 
-const AUTH_FORM_PATHS = new Set(['/login', '/register', '/profile']);
+const AUTH_FORM_PATHS = new Set(['/login', '/register', '/profile', '/admin']);
 
 function AppChrome() {
   const { pathname } = useLocation();
@@ -47,7 +65,7 @@ function AppShell() {
               key={path}
               path={path}
               element={
-                path === '/:roomId'
+                path === '/:roomId' || path === '/admin'
                   ? element
                   : <PageTransition>{element}</PageTransition>
               }

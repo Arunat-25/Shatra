@@ -98,7 +98,7 @@ async function parseError(response) {
   return i18n.t('errors.genericHttp', { status: response.status });
 }
 
-async function authFetch(path, options = {}, retry = true) {
+export async function authFetch(path, options = {}, retry = true) {
   const { access, refresh } = getStoredTokens();
   const headers = { ...options.headers };
   if (access) headers.Authorization = `Bearer ${access}`;
@@ -174,6 +174,11 @@ export function changePassword(currentPassword, newPassword) {
       new_password: newPassword,
     }),
   });
+}
+
+export function fetchMyGames({ limit = 20, offset = 0 } = {}) {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+  return authFetch(`/api/auth/me/games?${params}`);
 }
 
 export { ApiError } from './errors';

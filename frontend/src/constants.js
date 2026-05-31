@@ -154,7 +154,8 @@ export const BOARD_SECTIONS = _buildSectionsForWhite();
 
 // ===== Временные константы =====
 export const MESSAGE_DURATION = 3000;
-export const POLL_INTERVAL = 10000;
+/** Интервал обновления зала ожидания (список комнат + stats.online_total). */
+export const POLL_INTERVAL = 2000;
 export const PAGE_TRANSITION_DURATION = 200;
 
 // ===== Пресеты таймера (секунды) =====

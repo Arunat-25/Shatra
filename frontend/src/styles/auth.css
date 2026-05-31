@@ -159,10 +159,15 @@
 }
 
 /* ===== Глобальная навигация аккаунта (всегда правый верхний угол) ===== */
+:root {
+  --auth-nav-inset-top: 16px;
+  --auth-nav-inset-end: 16px;
+}
+
 .app-auth-nav {
   position: fixed;
-  top: 16px;
-  right: 16px;
+  top: var(--auth-nav-inset-top);
+  right: var(--auth-nav-inset-end);
   left: auto;
   z-index: 1000;
   display: flex;
@@ -261,13 +266,26 @@
   border: none;
   color: var(--text-muted);
   cursor: pointer;
-  padding: 2px 4px;
-  font-size: 0.75rem;
-  font-weight: 600;
+  padding: 3px 5px;
+  line-height: 0;
+  border-radius: 4px;
+  transition: box-shadow var(--duration-fast) var(--ease-out), opacity var(--duration-fast) var(--ease-out);
+}
+
+.locale-switcher__btn:hover {
+  opacity: 0.92;
 }
 
 .locale-switcher__btn.is-active {
-  color: var(--gold);
+  box-shadow: 0 0 0 2px var(--gold);
+}
+
+.locale-switcher__flag {
+  display: block;
+  width: 1.5rem;
+  height: 1rem;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
 }
 
 .locale-switcher__sep {
@@ -278,4 +296,44 @@
 .app-auth-nav__icon-btn:hover {
   background: var(--bg-surface-hover);
   color: var(--gold);
+}
+
+.auth-card--wide {
+  max-width: min(720px, 100%);
+}
+
+.profile-games-title {
+  font-size: 1.1rem;
+  margin-bottom: 12px;
+}
+
+.profile-games-table-wrap {
+  overflow-x: auto;
+  margin-bottom: 12px;
+}
+
+.profile-games-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.profile-games-table th,
+.profile-games-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  text-align: left;
+}
+
+.profile-games-table th {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.profile-games-result--win { color: var(--teal, #106e68); }
+.profile-games-result--loss { color: var(--color-accent, #c2410c); }
+.profile-games-result--draw { color: var(--text-muted); }
+
+.profile-games-load-more {
+  margin-top: 8px;
 }

@@ -5,9 +5,6 @@ import { getPieceType, getPieceColor } from '../utils';
 function cellClass(id, className, board, moveFrom, hE, hC, lastMove, hF, hT) {
   return [
     'kletka', className,
-    board[id] ? 'has-piece' : '',
-    // During drag, we dim the origin cell's piece but keep the number visible.
-    // (the actual dragged piece is rendered as an overlay ghost)
     moveFrom === id ? 'highlight-black' : '',
     hE.includes(id) ? 'highlight-essential' : '',
     hC.includes(id) ? 'highlight-captured' : '',
@@ -21,7 +18,7 @@ function cellClass(id, className, board, moveFrom, hE, hC, lastMove, hF, hT) {
 const Cell = memo(function Cell(props) {
   const { id, className, board, moveFrom, highlightedEssential = [], highlightedCaptured = [],
           lastMove = null, historyFrom = null, historyTo = null, onCellClick,
-          onCellPointerDown, shouldIgnoreClick, isDragOrigin } = props;
+          onCellPointerDown, shouldIgnoreClick, isDragOrigin, isSpotlight } = props;
   const piece = board[id];
 
   return (
@@ -31,6 +28,7 @@ const Cell = memo(function Cell(props) {
         cellClass(id, className, board, moveFrom, highlightedEssential,
           highlightedCaptured, lastMove, historyFrom, historyTo),
         isDragOrigin ? 'drag-origin' : '',
+        isSpotlight ? 'tutorial-spotlight' : '',
       ].filter(Boolean).join(' ')}
       onClick={() => {
         if (shouldIgnoreClick?.()) return;
@@ -39,6 +37,7 @@ const Cell = memo(function Cell(props) {
       onPointerDown={(e) => {
         if (!piece) return;
         if (e.button != null && e.button !== 0) return;
+        e.preventDefault();
         onCellPointerDown?.(id, e);
       }}
     >

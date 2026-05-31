@@ -1,10 +1,11 @@
 import { useTranslation } from 'react-i18next';
 import { getStoredLocale, normalizeLocale, setStoredLocale } from '../i18n';
+import LocaleFlag, { LOCALE_ARIA } from './LocaleFlag';
 
 const LOCALES = ['ru', 'en', 'alt'];
 
 export default function LocaleSwitcher({ compact = false }) {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const locale = normalizeLocale(i18n.language || getStoredLocale());
 
   const setLocale = (lng) => {
@@ -26,8 +27,11 @@ export default function LocaleSwitcher({ compact = false }) {
             type="button"
             className={`locale-switcher__btn ${locale === lng ? 'is-active' : ''}`}
             onClick={() => setLocale(lng)}
+            aria-label={LOCALE_ARIA[lng]}
+            aria-pressed={locale === lng}
+            title={LOCALE_ARIA[lng]}
           >
-            {t(`locale.${lng}`)}
+            <LocaleFlag locale={lng} />
           </button>
         </span>
       ))}

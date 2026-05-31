@@ -4,6 +4,12 @@ import Cell from './components/Cell';
 import ShatraPiece from './ShatraPiece';
 import { getPieceColor, getPieceType } from './utils';
 
+const SECTION_ZONE = {
+  'field-of-reserve': 'fortress',
+  'field-of-king': 'gate',
+  'main-field': 'main',
+};
+
 function cellIdFromPoint(x, y) {
   const el = document.elementFromPoint(x, y);
   const cell = el?.closest?.('.kletka');
@@ -12,16 +18,38 @@ function cellIdFromPoint(x, y) {
   return Number.isFinite(id) ? id : null;
 }
 
+function sectionClassName(sectionClass, highlightZones) {
+  const zone = SECTION_ZONE[sectionClass];
+  if (!zone || !highlightZones?.includes(zone)) {
+    return sectionClass;
+  }
+  return `${sectionClass} tutorial-zone tutorial-zone--${zone}`;
+}
+
 export default function BoardGrid(props) {
-  const { board, onCellClick, moveFrom, highlightedEssential = [], highlightedCaptured = [], lastMove = null, historyFrom = null, historyTo = null, myColor } = props;
+  const {
+    board,
+    onCellClick,
+    moveFrom,
+    highlightedEssential = [],
+    highlightedCaptured = [],
+    lastMove = null,
+    historyFrom = null,
+    historyTo = null,
+    myColor,
+    interactive = true,
+    highlightZones = null,
+    spotlightCells = null,
+  } = props;
   const sections = getBoardSections(myColor);
+  const spotlightSet = spotlightCells ? new Set(spotlightCells) : null;
 
   const dragFromRef = useRef(null);
   const dragStartedAtRef = useRef(0);
   const activePointerIdRef = useRef(null);
   const ignoreClickUntilRef = useRef(0);
   const dragListenersRef = useRef(null);
-  const [dragGhost, setDragGhost] = useState(null); // { fromId, piece, x, y, size }
+  const [dragGhost, setDragGhost] = useState(null);
 
   const clearDragListeners = useCallback(() => {
     const listeners = dragListenersRef.current;
@@ -57,9 +85,12 @@ export default function BoardGrid(props) {
   }, [clearDragListeners, onCellClick]);
 
   const beginDrag = useCallback((cellId, event) => {
+    if (!interactive) return;
     const piece = board[cellId];
     if (!piece || !event) return;
     if (event.button != null && event.button !== 0) return;
+
+    event.preventDefault();
 
     clearDragListeners();
 
@@ -67,15 +98,11 @@ export default function BoardGrid(props) {
     dragStartedAtRef.current = Date.now();
     activePointerIdRef.current = event.pointerId;
     ignoreClickUntilRef.current = Date.now() + 250;
-    onCellClick(cellId);
-
-    const cellEl = event.currentTarget;
-    try {
-      cellEl.setPointerCapture(event.pointerId);
-    } catch {
-      // Some browsers reject capture on unsupported targets.
+    if (moveFrom !== cellId) {
+      onCellClick(cellId);
     }
 
+    const cellEl = event.currentTarget;
     const cellSize = cellEl ? Math.round(cellEl.getBoundingClientRect().width) : undefined;
     setDragGhost({
       fromId: cellId,
@@ -92,11 +119,6 @@ export default function BoardGrid(props) {
 
     const onFinish = (e) => {
       if (e.pointerId !== event.pointerId) return;
-      try {
-        cellEl.releasePointerCapture(event.pointerId);
-      } catch {
-        // Ignore if capture was already released.
-      }
       finishDrag(e);
     };
 
@@ -104,15 +126,17 @@ export default function BoardGrid(props) {
     window.addEventListener('pointerup', onFinish);
     window.addEventListener('pointercancel', onFinish);
     dragListenersRef.current = { onMove, onFinish };
-  }, [board, onCellClick, clearDragListeners, finishDrag]);
+  }, [board, interactive, moveFrom, onCellClick, clearDragListeners, finishDrag]);
 
   const shouldIgnoreClick = useCallback(() => Date.now() < ignoreClickUntilRef.current, []);
 
   useEffect(() => () => clearDragListeners(), [clearDragListeners]);
 
+  const noop = useCallback(() => {}, []);
+
   return (
-    <div className="board-content">
-      {dragGhost && (
+    <div className={dragGhost ? 'board-content board-content--dragging' : 'board-content'}>
+      {interactive && dragGhost && (
         <div
           className="drag-ghost"
           style={{ transform: `translate(${dragGhost.x}px, ${dragGhost.y}px)` }}
@@ -136,7 +160,10 @@ export default function BoardGrid(props) {
         </div>
       )}
       {sections.map((section) => (
-        <div key={`${section.class}-${section.rows?.[0]?.[0]?.id ?? 0}`} className={section.class}>
+        <div
+          key={`${section.class}-${section.rows?.[0]?.[0]?.id ?? 0}`}
+          className={sectionClassName(section.class, highlightZones)}
+        >
           {section.rows.map((row, rowIdx) => (
             <div key={rowIdx} className="row">
               {row.map((cell) => (
@@ -144,10 +171,20 @@ export default function BoardGrid(props) {
                   key={cell.id}
                   id={cell.id}
                   className={cell.color}
-                  isDragOrigin={dragGhost?.fromId === cell.id}
-                  onCellPointerDown={beginDrag}
-                  shouldIgnoreClick={shouldIgnoreClick}
-                  {...{ board, moveFrom, highlightedEssential, highlightedCaptured, lastMove, historyFrom, historyTo, onCellClick }}
+                  isDragOrigin={interactive && dragGhost?.fromId === cell.id}
+                  isSpotlight={spotlightSet?.has(cell.id)}
+                  onCellPointerDown={interactive ? beginDrag : undefined}
+                  shouldIgnoreClick={interactive ? shouldIgnoreClick : undefined}
+                  onCellClick={interactive ? onCellClick : noop}
+                  {...{
+                    board,
+                    moveFrom: interactive ? moveFrom : null,
+                    highlightedEssential: interactive ? highlightedEssential : [],
+                    highlightedCaptured: interactive ? highlightedCaptured : [],
+                    lastMove: interactive ? lastMove : null,
+                    historyFrom: interactive ? historyFrom : null,
+                    historyTo: interactive ? historyTo : null,
+                  }}
                 />
               ))}
             </div>

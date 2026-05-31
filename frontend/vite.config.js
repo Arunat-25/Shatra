@@ -5,9 +5,13 @@ const API_HOST = process.env.API_HOST || 'localhost:8000'
 
 export default defineConfig({
   plugins: [react()],
+  optimizeDeps: {
+    include: ['recharts', 'react-is'],
+  },
   test: {
-    environment: 'node',
+    environment: 'happy-dom',
     exclude: ['**/node_modules/**', '**/dist/**', 'e2e/**'],
+    setupFiles: ['./src/test/setup.js'],
   },
   server: {
     proxy: {

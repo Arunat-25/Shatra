@@ -39,6 +39,17 @@ const REQUIRED_KEYS = [
   'chat.title',
   'chat.send',
   'chat.anonymous',
+  'chat.hide',
+  'chat.show',
+  'lobby.onlineCount',
+  'lobby.activeGamesCount',
+  'tutorial.title',
+  'tutorial.slide1.mainField',
+  'tutorial.slide2.fortress',
+  'tutorial.slide3.gate',
+  'tutorial.slide4.blackShatra',
+  'auth.gamesTitle',
+  'game.qrLabel',
 ];
 
 const LOCALES = { ru, en, alt };

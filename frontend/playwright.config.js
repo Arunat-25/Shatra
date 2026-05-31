@@ -14,6 +14,7 @@ export default defineConfig({
     baseURL,
     trace: 'on-first-retry',
     headless: true,
+    viewport: { width: 1400, height: 900 },
   },
   projects: [{ name: 'chromium', use: { browserName: 'chromium' } }],
 });

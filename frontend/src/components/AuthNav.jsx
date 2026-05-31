@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
+import useAuthNavOffset from '../hooks/useAuthNavOffset';
 import LocaleSwitcher from './LocaleSwitcher';
 
 function IconProfile() {
@@ -26,21 +27,24 @@ export default function AuthNav() {
   const { pathname } = useLocation();
   const { t } = useTranslation();
   const { user, isAuthenticated, loading, logout } = useAuth();
+  const navRef = useAuthNavOffset([loading, isAuthenticated, pathname, user?.username]);
   const onLoginPage = pathname === '/login';
   const onRegisterPage = pathname === '/register';
   const onProfilePage = pathname === '/profile';
+  const onAdminPage = pathname === '/admin';
+  const showLocaleSwitcher = pathname === '/' || onLoginPage || onRegisterPage;
 
   if (loading) {
     return (
-      <nav className="app-auth-nav" aria-label={t('nav.account')}>
+      <nav ref={navRef} className="app-auth-nav" aria-label={t('nav.account')}>
         <span className="app-auth-nav__placeholder" aria-hidden />
       </nav>
     );
   }
 
   return (
-    <nav className="app-auth-nav" aria-label={t('nav.account')}>
-      <LocaleSwitcher />
+    <nav ref={navRef} className="app-auth-nav" aria-label={t('nav.account')}>
+      {showLocaleSwitcher && <LocaleSwitcher />}
       {isAuthenticated ? (
         <>
           <span className="app-auth-nav__username" title={user.username}>
@@ -54,6 +58,11 @@ export default function AuthNav() {
               title={t('nav.profile')}
             >
               <IconProfile />
+            </Link>
+          )}
+          {user.is_admin && !onAdminPage && (
+            <Link to="/admin" className="app-auth-nav__link">
+              {t('nav.admin')}
             </Link>
           )}
           <button
