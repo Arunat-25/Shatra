@@ -24,7 +24,6 @@ export default function Game() {
   const { roomId } = useParams();
   const [searchParams] = useSearchParams();
   const modeAi = searchParams.get('mode') === 'ai';
-  const showInviteLink = searchParams.get('mode') === 'private';
   const myColorRef = useRef(null);
 
   const { state, dispatch, handleServerMessage, deselectPiece } = useGameReducer(
@@ -75,6 +74,14 @@ export default function Game() {
     }
   }, [roomId, dispatch]);
 
+  useEffect(() => {
+    if (!roomId || searchParams.get('mode') !== 'private') return;
+    const rest = new URLSearchParams(searchParams);
+    rest.delete('mode');
+    const qs = rest.toString();
+    navigate(`/${roomId}${qs ? `?${qs}` : ''}`, { replace: true });
+  }, [roomId, searchParams, navigate]);
+
   const isBoardBlocked =
     state.gameOver || state.aiThinking || state.opponentDisconnected || wsReconnecting;
 
@@ -109,7 +116,7 @@ export default function Game() {
       <WaitingScreen
         roomId={roomId}
         modeAi={modeAi}
-        showInviteLink={showInviteLink}
+        showInviteLink={state.showInviteLink}
         joiningError={state.joiningError}
         reconnectMessage={wsReconnecting ? t('game.reconnecting') : ''}
         opponentLabel={opponentLabel}
@@ -135,14 +142,6 @@ export default function Game() {
 
   return (
     <div className="game-page">
-      <button
-        type="button"
-        className="hud-title"
-        onClick={actions.goToLobby}
-        title={t('game.toLobby')}
-      >
-        {t('game.hudTitle')}
-      </button>
       <div className="room-layout">
         <GameViewport
           boardTop={boardTop}

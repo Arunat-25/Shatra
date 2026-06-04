@@ -4,26 +4,12 @@ import Cell from './components/Cell';
 import ShatraPiece from './ShatraPiece';
 import { getPieceColor, getPieceType } from './utils';
 
-const SECTION_ZONE = {
-  'field-of-reserve': 'fortress',
-  'field-of-king': 'gate',
-  'main-field': 'main',
-};
-
 function cellIdFromPoint(x, y) {
   const el = document.elementFromPoint(x, y);
   const cell = el?.closest?.('.kletka');
   if (!cell?.id?.startsWith('position')) return null;
   const id = Number.parseInt(cell.id.slice('position'.length), 10);
   return Number.isFinite(id) ? id : null;
-}
-
-function sectionClassName(sectionClass, highlightZones) {
-  const zone = SECTION_ZONE[sectionClass];
-  if (!zone || !highlightZones?.includes(zone)) {
-    return sectionClass;
-  }
-  return `${sectionClass} tutorial-zone tutorial-zone--${zone}`;
 }
 
 export default function BoardGrid(props) {
@@ -33,16 +19,17 @@ export default function BoardGrid(props) {
     moveFrom,
     highlightedEssential = [],
     highlightedCaptured = [],
+    capturedGhostPieces = {},
     lastMove = null,
     historyFrom = null,
     historyTo = null,
     myColor,
     interactive = true,
-    highlightZones = null,
-    spotlightCells = null,
+    enablePieceDrag = true,
+    tutorialDimmedCells = null,
   } = props;
   const sections = getBoardSections(myColor);
-  const spotlightSet = spotlightCells ? new Set(spotlightCells) : null;
+  const tutorialDimmedSet = tutorialDimmedCells ? new Set(tutorialDimmedCells) : null;
 
   const dragFromRef = useRef(null);
   const dragStartedAtRef = useRef(0);
@@ -162,7 +149,7 @@ export default function BoardGrid(props) {
       {sections.map((section) => (
         <div
           key={`${section.class}-${section.rows?.[0]?.[0]?.id ?? 0}`}
-          className={sectionClassName(section.class, highlightZones)}
+          className={section.class}
         >
           {section.rows.map((row, rowIdx) => (
             <div key={rowIdx} className="row">
@@ -172,15 +159,16 @@ export default function BoardGrid(props) {
                   id={cell.id}
                   className={cell.color}
                   isDragOrigin={interactive && dragGhost?.fromId === cell.id}
-                  isSpotlight={spotlightSet?.has(cell.id)}
-                  onCellPointerDown={interactive ? beginDrag : undefined}
-                  shouldIgnoreClick={interactive ? shouldIgnoreClick : undefined}
+                  isTutorialDimmed={tutorialDimmedSet?.has(cell.id)}
+                  onCellPointerDown={interactive && enablePieceDrag ? beginDrag : undefined}
+                  shouldIgnoreClick={interactive && enablePieceDrag ? shouldIgnoreClick : undefined}
                   onCellClick={interactive ? onCellClick : noop}
                   {...{
                     board,
                     moveFrom: interactive ? moveFrom : null,
                     highlightedEssential: interactive ? highlightedEssential : [],
                     highlightedCaptured: interactive ? highlightedCaptured : [],
+                    capturedGhostPiece: interactive ? capturedGhostPieces[cell.id] : null,
                     lastMove: interactive ? lastMove : null,
                     historyFrom: interactive ? historyFrom : null,
                     historyTo: interactive ? historyTo : null,

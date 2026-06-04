@@ -3,6 +3,7 @@ import logging
 import time
 
 from backend.game_helpers import build_game_started_response
+from backend.game_archive import archive_finished_game, mark_game_started
 from backend.message_codes import DRAW_OPPONENT_DECLINED, DRAW_OFFER_CANCELLED, ws_payload
 from backend.state import get_game, set_game, set_room, game_timers
 from backend.timers import stop_game_timer, game_ticker
@@ -39,6 +40,7 @@ async def _start_rematch(room_id: str, room_data: dict) -> None:
         players[cid] = _opposite_color(players[cid])
     room_data["players"] = players
 
+    await archive_finished_game(room_id)
     await init_game(room_id)
     game = await get_game(room_id)
     if not game:
@@ -50,6 +52,7 @@ async def _start_rematch(room_id: str, room_data: dict) -> None:
         room_data["timer_white"] = tc
         room_data["timer_black"] = tc
         room_data["last_tick"] = time.time()
+    mark_game_started(room_data)
     await set_room(room_id, room_data)
 
     for cid, ws in list(manager.connections.get(room_id, {}).items()):

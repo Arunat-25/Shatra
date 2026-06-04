@@ -7,8 +7,6 @@ import RoomCard from './components/RoomCard';
 import GameEmblem from './components/GameEmblem';
 import GameSetupPicker from './components/GameSetupPicker';
 import { ROOM_PUBLIC, ROOM_PRIVATE, ROOM_AI, POLL_INTERVAL } from './constants';
-import TutorialCarousel from './components/tutorial/TutorialCarousel';
-
 export default function Lobby() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -67,9 +65,8 @@ export default function Lobby() {
     try {
       const type =
         pickerMode === 'private' ? ROOM_PRIVATE : pickerMode === 'ai' ? ROOM_AI : ROOM_PUBLIC;
-      const mode = pickerMode === 'private' ? 'private' : pickerMode === 'ai' ? 'ai' : '';
       const data = await createRoom(type, timeValue, incrementValue, colorPref);
-      const modeParam = mode ? `?mode=${mode}` : '';
+      const modeParam = pickerMode === 'ai' ? '?mode=ai' : '';
       navigate(`/${data.room_id}${modeParam}`);
     } catch (e) {
       setExternalError(e.message);
@@ -187,8 +184,6 @@ export default function Lobby() {
           )}
         </div>
       </div>
-
-      <TutorialCarousel />
     </div>
     </div>
   );

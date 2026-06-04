@@ -68,5 +68,12 @@ class RoomInfo(BaseModel):
     creator_username: Optional[str] = None
 
 
+class LobbyStats(BaseModel):
+    online_total: int = 0
+    active_games: int = 0
+    waiting_public_rooms: int = 0
+
+
 class RoomListResponse(BaseModel):
     rooms: list[RoomInfo]
+    stats: LobbyStats | None = None

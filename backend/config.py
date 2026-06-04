@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     disconnect_timeout: int = 30
     empty_room_grace_seconds: float = 2.0
     tick_interval_seconds: float = 1.0
+    # Закрыть lobby-presence без poll дольше N с (очистка orphan строк, не задержка ухода).
+    lobby_presence_stale_seconds: int = 6
 
     cors_allow_origins: str = "*"
 
@@ -29,6 +31,14 @@ class Settings(BaseSettings):
     jwt_secret: str = "change-me-in-production"
     jwt_access_expire_minutes: int = 30
     jwt_refresh_expire_days: int = 30
+
+    admin_user_ids: str = ""
+
+    @property
+    def admin_user_id_set(self) -> frozenset[str]:
+        if not self.admin_user_ids.strip():
+            return frozenset()
+        return frozenset(part.strip() for part in self.admin_user_ids.split(",") if part.strip())
 
 
 settings = Settings()

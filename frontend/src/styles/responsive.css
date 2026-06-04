@@ -9,6 +9,13 @@
     height: 100dvh;
     margin: 0;
   }
+
+  .app-shell--game .game-page {
+    display: flex;
+    height: 100%;
+    max-height: 100%;
+    min-height: 0;
+  }
   .game-screen {
     max-width: unset;
     width: 100%;
@@ -20,33 +27,42 @@
 @media (max-width: 960px) {
   :root {
     --auth-nav-inset-top: 10px;
+    --auth-nav-inset-start: 10px;
     --auth-nav-inset-end: 10px;
+    --app-chrome-panel-pad-block: 4px;
+    --app-chrome-panel-pad-inline: 6px;
+    --app-chrome-control-height: 32px;
   }
 
-  .app-auth-nav {
+  .app-top-end {
     top: var(--auth-nav-inset-top);
     right: var(--auth-nav-inset-end);
     max-width: calc(100% - 20px);
     gap: 6px;
-    padding: 4px 6px;
   }
 
-  .app-shell--auth-form .auth-page {
-    padding-top: 48px;
+  .app-auth-nav {
+    gap: 6px;
   }
+
 
   .app-auth-nav__username {
     display: none;
   }
 
   .app-auth-nav__link {
-    padding: 6px 10px;
+    padding: 0 10px;
     font-size: 0.82rem;
   }
 
+  .tutorial-tab {
+    font-size: 0.82rem;
+    padding: 0 10px;
+  }
+
   .app-auth-nav__icon-btn {
-    width: 32px;
-    height: 32px;
+    width: var(--app-chrome-control-height);
+    height: var(--app-chrome-control-height);
   }
 
   .auth-page {
@@ -58,21 +74,67 @@
     padding: 22px 20px 28px;
   }
 
-  .lobby-layout {
-    grid-template-columns: 1fr;
-    grid-template-rows: repeat(3, minmax(0, 1fr));
-    gap: 8px;
+  /* Лобби: три блока столбиком, прокрутка страницы (не три равные полосы в 100dvh) */
+  body:has(.app-shell--lobby) {
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 
-  /* Заголовок чуть уже — только под угол с навигацией, кнопки на всю ширину */
+  body:has(.app-shell--lobby) #root {
+    height: auto;
+    max-height: none;
+    min-height: 100dvh;
+  }
+
+  .app-shell--lobby {
+    height: auto;
+    min-height: 100dvh;
+    max-height: none;
+  }
+
+  .app-shell--lobby .app-main,
+  .app-shell--lobby .page-transition,
+  .lobby-page {
+    height: auto;
+    flex: 1 1 auto;
+  }
+
+  .lobby-layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+    grid-auto-rows: auto;
+    height: auto;
+    gap: 10px;
+  }
+
+  .lobby-left,
+  .lobby-right {
+    grid-column: 1;
+    grid-row: auto;
+    height: auto;
+    min-height: 0;
+  }
+
+  .lobby-left { order: 1; }
+  .lobby-right { order: 2; }
+
+  .lobby-left {
+    padding: 32px 24px;
+  }
+
+  .lobby-right {
+    max-height: min(42vh, 380px);
+    padding: 22px 20px;
+  }
+
+  /* Заголовок чуть уже — под углы с обучением (слева) и навигацией (справа) */
   .app-shell--lobby .lobby-emblem,
   .app-shell--lobby .lobby-left h1,
   .app-shell--lobby .lobby-subtitle {
-    max-width: calc(100% - 3.5rem);
+    max-width: calc(100% - 7rem);
     margin-inline: auto;
   }
 
-  .lobby-left { padding: 32px 24px; }
   .lobby-left h1 { font-size: 2rem; }
 }
 
@@ -124,9 +186,12 @@
   .board { padding: 8px; border-radius: var(--radius-lg); }
 
   .lobby-left, .lobby-right { padding: 24px 18px; }
-  .app-shell--lobby .lobby-left { padding: 28px 18px; }
+  .app-shell--lobby .lobby-left {
+    padding: 28px 18px;
+  }
   .lobby-left h1 { font-size: 1.75rem; }
   .lobby-subtitle { margin-bottom: 24px; }
+  .lobby-right { max-height: min(38vh, 340px); }
   .action-card { padding: 12px 14px; }
   .action-card__icon { width: 36px; height: 36px; }
 

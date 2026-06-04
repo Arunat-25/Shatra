@@ -1,16 +1,166 @@
 {
   "nav": {
+    "home": "Home",
     "login": "Log in",
     "register": "Sign up",
     "profile": "Profile",
     "admin": "Admin",
     "logout": "Log out",
-    "account": "Account"
+    "account": "Account",
+    "tutorial": "Tutorial"
   },
   "locale": {
     "ru": "RU",
     "en": "EN",
     "alt": "ALT"
+  },
+  "tutorial": {
+    "pageTitle": "Tutorial",
+    "backToLobby": "Back to home",
+    "next": "Next",
+    "prev": "Back",
+    "tryAgain": "Try again",
+    "passTurn": "Pass turn",
+    "backToSections": "Back to sections",
+    "section1": {
+      "label": "Section 1",
+      "title": "Introduction to the board and moves",
+      "step1": {
+        "text": "The Altai Shatra board has 62 squares."
+      },
+      "step2": {
+        "text": "Squares 1–9 are Black's fortress."
+      },
+      "step3": {
+        "text": "Cell 10 is the gate of Black's fortress."
+      },
+      "step4": {
+        "text": "Cells 11–52 — the main field."
+      },
+      "step5": {
+        "text": "Cell 53 is the gate of White's fortress."
+      },
+      "step6": {
+        "text": "Cells 54–62 — White's fortress."
+      },
+      "step7": {
+        "text": "There are three types of pieces on the board: shatra, biy, and batyr. Let's look at them one by one."
+      },
+      "step8": {
+        "text": "Shatra."
+      },
+      "step9": {
+        "text": "Biy."
+      },
+      "step10": {
+        "text": "Batyr."
+      },
+      "step11": {
+        "text": "A shatra can move to the cells around itself, except the ones behind it."
+      },
+      "step12": {
+        "text": "A biy can move to any neighboring cell around itself."
+      },
+      "step13": {
+        "text": "The batyr moves along the board lines in any direction—for as many empty squares in a row as the path allows."
+      },
+      "step14": {
+        "text": "This is how a game begins. Shatras in the fortresses are the reserve—they are not yet on the main field. Other shatras are already deployed there, with a biy on each gate."
+      }
+    },
+    "section2": {
+      "label": "Section 2",
+      "title": "Goal of the game and becoming a batyr",
+      "step1": {
+        "text": "A white shatra that reaches square 1, 2, or 3 (deep in Black's fortress) becomes a white batyr."
+      },
+      "step2": {
+        "text": "A black shatra that reaches square 60, 61, or 62 (White's fortress) becomes a black batyr."
+      },
+      "step3": {
+        "text": "Move the white shatra to a highlighted square—it will become a batyr."
+      },
+      "step4": {
+        "text": "The same for Black: the shatra on 58 can reach 60, 61, or 62 and become a batyr."
+      },
+      "step5": {
+        "text": "Victory is achieved when you capture the opponent's biy, when the opponent resigns, or when the opponent runs out of time."
+      },
+      "winCaptureSelectHint": "Click the white batyr and capture the black biy on square 29.",
+      "step6": {
+        "text": "A draw is possible if both players agree; if the same position occurs three times; or if only two biys remain and three more moves are played."
+      },
+      "promoWhiteSelectHint": "Click the white shatra and move until it becomes a batyr (squares 1, 2, or 3).",
+      "promoBlackSelectHint": "Click the black shatra and move until it becomes a batyr (squares 60, 61, or 62)."
+    },
+    "section3": {
+      "label": "Section 3",
+      "title": "Basic captures",
+      "step1": {
+        "text": "A shatra captures by jumping over an opponent's piece to the first empty square beyond it—forward, backward, or sideways along a line it could normally move on. If a capture is available, you must take it; a non-capturing move is not allowed in that case."
+      },
+      "step2": {
+        "text": "The batyr captures the same way: it jumps over an opponent's piece and may land on any empty square beyond it along that line. If a capture is available, you must take it; a non-capturing move is not allowed in that case."
+      },
+      "step3": {
+        "text": "The biy captures like a shatra—over an opponent's piece to the empty square beyond it. But it is not required to capture and may move without taking."
+      },
+      "step4": {
+        "text": "If several pieces can capture, you may choose any of them. And if the biy is among them, it cannot make a non-capturing move that turn—only a capture, like the shatra and batyr."
+      }
+    },
+    "section4": {
+      "label": "Section 4",
+      "title": "Capture series",
+      "step1": {
+        "text": "A shatra capture series: after the first capture, if another capture is possible, the same shatra must continue—with the same shatra, jumping over the next enemy piece."
+      },
+      "step2": {
+        "text": "A batyr capture series: while captures are available, the batyr must continue. In one capture series it may not jump over pieces already captured in that series."
+      },
+      "step3": {
+        "text": "A biy capture series: a biy may capture several times in a row, but is not required to capture every piece to the end—unlike the shatra and batyr. If you decide not to capture to the end with your biy, you can pass the turn to your opponent by pressing the Pass turn button."
+      }
+    },
+    "section5": {
+      "label": "Section 5",
+      "title": "Fortress and its gate",
+      "step1": {
+        "text": "During a game, shatras in the reserve (fortress) are deployed onto your half of the main field. Deployment must follow strict order: White from square 54 to 62; Black from 9 to 1. Shatras may not move inside the fortress."
+      },
+      "deployHint": "Deploy every shatra from the fortress onto the main field.",
+      "deployTargetHint": "Choose a highlighted square on the main field.",
+      "mainFieldBlockedHint": "In a game you could move this shatra on the main field, but for now you must deploy the entire reserve.",
+      "fortressOrderHint": "Deploy the shatra from square {{cell}} next—in order from 54 to 62.",
+      "fortressNoMoveHint": "Shatras cannot move inside the fortress—only deploy onto the main field.",
+      "step2": {
+        "text": "However, in the fortress a shatra can capture. After a capture, reserve deployment order changes: the capturing shatra moves to a lower-numbered square, and you must resume deploying from that square in order up to 62."
+      },
+      "captureSelectHint": "Click a white shatra on 60, 61, or 62—it can capture the black shatra.",
+      "captureTargetHint": "Capture to a highlighted square.",
+      "captureWrongPieceHint": "In this position, only the shatras on 60, 61, and 62 can capture.",
+      "captureAfterHint": "The shatra is now on {{cell}}—reserve deployment starts from {{cell}}, then in order up to 62.",
+      "step3": {
+        "text": "The biy and batyr cannot capture into their own fortress or its gate if there is at least one of their own shatras there."
+      },
+      "step4": {
+        "text": "But if your fortress and its gate are empty, the batyr and biy may capture there."
+      },
+      "step4SelectHint": "Move the biy—in this position it must capture to the gate (53).",
+      "step4ChainHint": "The biy must continue capturing—move to a highlighted square (40).",
+      "step5": {
+        "text": "A shatra cannot capture into its own fortress or gate, even when they are empty."
+      },
+      "shatraFortressSelectHint": "Click the white shatra—it cannot capture to the gate or fortress; move to a highlighted square.",
+      "step6": {
+        "text": "A biy or batyr in their own fortress or on its gate may deploy onto their half of the main field—so at the start of a game the biy on the gates (53 and 10) may deploy. When the biy and batyr are in the fortress, the deployment order (54 to 62 or 9 to 1) does not apply. Inside the fortress, the biy and batyr may make ordinary moves, unlike the shatra."
+      },
+      "reserveDeploySelectHint": "Select the white biy (54) or batyr (62)—deployment to the main field and ordinary moves inside the fortress will be highlighted.",
+      "reserveDeployTargetHint": "Move to a highlighted square: deploy onto your half of the board or an ordinary move within the fortress.",
+      "biyBatyrSelectHint": "Click any white piece—all legal moves will be highlighted.",
+      "biyBatyrTargetHint": "Make a move to a highlighted square.",
+      "biyBatyrNoMovesHint": "This piece cannot move right now—select another white piece."
+    }
   },
   "lobby": {
     "title": "Shatra",
@@ -36,24 +186,6 @@
     "closeError": "Close",
     "onlineCount": "Online: {{count}}",
     "activeGamesCount": "Games in progress: {{count}}"
-  },
-  "tutorial": {
-    "title": "Rules",
-    "slide1": {
-      "mainField": "Main field"
-    },
-    "slide2": {
-      "fortress": "Fortress"
-    },
-    "slide3": {
-      "gate": "Gate"
-    },
-    "slide4": {
-      "blackShatra": "Shatra",
-      "whiteShatra": "White shatra",
-      "blackBiy": "Black biy",
-      "whiteBiy": "Biy"
-    }
   },
   "setup": {
     "title": "Game settings",

@@ -25,6 +25,13 @@ export const messageHandlers = [
     check: (d) => d.status === 'waiting',
     handle: (d, dispatch) => {
       dispatch({ type: GAME_ACTIONS.SET_WAITING });
+      dispatch({
+        type: GAME_ACTIONS.SET_WAITING_META,
+        payload: {
+          roomType: d.room_type ?? null,
+          showInviteLink: Boolean(d.show_invite_link),
+        },
+      });
       if (d.players_info) {
         dispatch({ type: GAME_ACTIONS.SET_PLAYERS_INFO, payload: d.players_info });
       }

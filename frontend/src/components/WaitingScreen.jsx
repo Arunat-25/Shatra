@@ -50,7 +50,7 @@ export default function WaitingScreen({
   const [qrDataUrl, setQrDataUrl] = useState('');
 
   const inviteUrl = useMemo(
-    () => (roomId ? `${window.location.origin}/${roomId}?mode=private` : ''),
+    () => (roomId ? `${window.location.origin}/${roomId}` : ''),
     [roomId],
   );
 

@@ -19,11 +19,22 @@ from backend.session.messages import process_client_message, _send_ws_error
 logger = logging.getLogger(__name__)
 
 
-async def _wait_for_second_player(websocket: WebSocket, room_id: str, room_data: dict) -> dict | None:
+async def _wait_for_second_player(
+    websocket: WebSocket,
+    room_id: str,
+    room_data: dict,
+    client_id: str,
+) -> dict | None:
     """Ожидание второго игрока (пока в комнате один участник)."""
+    room_type = room_data.get("type")
     await manager.send_to_player(websocket, {
         "status": "waiting",
         "link": room_id,
+        "room_type": room_type,
+        "show_invite_link": (
+            room_type == "private"
+            and client_id == room_data.get("creator_client_id")
+        ),
         "players_info": build_players_info(room_data),
     })
     try:
@@ -93,7 +104,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
             elif room_data.get("time_control") and room_id not in game_timers:
                 game_timers[room_id] = asyncio.create_task(game_ticker(room_id))
     elif players_in_room < 2:
-        room_data = await _wait_for_second_player(websocket, room_id, room_data)
+        room_data = await _wait_for_second_player(websocket, room_id, room_data, client_id)
         if room_data is None:
             return
     else:

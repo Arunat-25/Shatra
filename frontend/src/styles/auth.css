@@ -2,11 +2,6 @@
   align-items: center;
 }
 
-/* Форма ниже фиксированной навигации справа */
-.app-shell--auth-form .auth-page {
-  padding-top: 52px;
-}
-
 .auth-page {
   display: flex;
   align-items: flex-start;
@@ -161,10 +156,75 @@
 /* ===== Глобальная навигация аккаунта (всегда правый верхний угол) ===== */
 :root {
   --auth-nav-inset-top: 16px;
+  --auth-nav-inset-start: 16px;
   --auth-nav-inset-end: 16px;
+  --app-top-chrome-offset: 72px;
+  --app-chrome-panel-pad-block: 6px;
+  --app-chrome-panel-pad-inline: 8px;
+  --app-chrome-control-height: 36px;
+  --app-chrome-bar-height: calc(
+    var(--app-chrome-panel-pad-block) * 2 + var(--app-chrome-control-height)
+  );
 }
 
+/* Контент ниже фиксированных «Обучение» (слева) и навигации с языком (справа) */
+.app-shell--chrome:not(.app-shell--lobby):not(.app-shell--tutorial-lesson) .app-main {
+  padding-top: var(--app-top-chrome-offset, 72px);
+  box-sizing: border-box;
+}
+
+.app-top-start {
+  position: fixed;
+  top: var(--auth-nav-inset-top);
+  left: var(--auth-nav-inset-start);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-sizing: border-box;
+}
+
+.app-brand {
+  font-family: var(--font-display, inherit);
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  color: var(--gold);
+  text-decoration: none;
+  padding: 4px 2px;
+  white-space: nowrap;
+  transition: color var(--duration-fast) var(--ease-out), opacity var(--duration-fast) var(--ease-out);
+}
+
+.app-brand:hover {
+  color: var(--gold-bright);
+  opacity: 0.9;
+}
+
+.app-tutorial-tab,
+.app-locale-nav,
 .app-auth-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--app-chrome-panel-pad-block) var(--app-chrome-panel-pad-inline);
+  height: var(--app-chrome-bar-height);
+  min-height: var(--app-chrome-bar-height);
+  box-sizing: border-box;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  animation: fadeInUp 0.4s var(--ease-out);
+}
+
+.app-brand:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.app-top-end {
   position: fixed;
   top: var(--auth-nav-inset-top);
   right: var(--auth-nav-inset-end);
@@ -175,22 +235,21 @@
   justify-content: flex-end;
   flex-wrap: wrap;
   gap: 8px;
-  width: auto;
   max-width: calc(100vw - 32px);
-  margin: 0;
-  padding: 6px 8px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
-  animation: fadeInUp 0.4s var(--ease-out);
   box-sizing: border-box;
+}
+
+.app-auth-nav {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
 }
 
 .app-auth-nav__placeholder {
   display: block;
   width: 80px;
-  height: 32px;
+  height: var(--app-chrome-control-height);
 }
 
 .app-auth-nav__username {
@@ -204,9 +263,15 @@
 }
 
 .app-auth-nav__link {
-  padding: 8px 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: var(--app-chrome-control-height);
+  padding: 0 14px;
   font-size: 0.9rem;
   font-weight: 500;
+  line-height: 1;
   color: var(--text-primary);
   text-decoration: none;
   border-radius: var(--radius-md);
@@ -232,8 +297,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: var(--app-chrome-control-height);
+  height: var(--app-chrome-control-height);
   padding: 0;
   border: none;
   border-radius: var(--radius-md);
@@ -244,15 +309,52 @@
   transition: background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
 }
 
+.tutorial-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: var(--app-chrome-control-height);
+  padding: 0 14px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: normal;
+  line-height: 1;
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  white-space: nowrap;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+.tutorial-tab:hover {
+  background: var(--bg-surface-hover);
+}
+
+.tutorial-tab.is-active {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.tutorial-tab:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.app-locale-nav .locale-switcher {
+  height: var(--app-chrome-control-height);
+  min-height: var(--app-chrome-control-height);
+}
+
 .locale-switcher {
   display: flex;
   align-items: center;
   gap: 4px;
+  height: var(--app-chrome-control-height);
   font-size: 0.75rem;
-}
-
-.app-auth-nav .locale-switcher {
-  margin-right: 8px;
 }
 
 .locale-switcher__item {
@@ -262,11 +364,17 @@
 }
 
 .locale-switcher__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--app-chrome-control-height);
+  min-height: var(--app-chrome-control-height);
+  min-width: var(--app-chrome-control-height);
   background: transparent;
   border: none;
   color: var(--text-muted);
   cursor: pointer;
-  padding: 3px 5px;
+  padding: 0 6px;
   line-height: 0;
   border-radius: 4px;
   transition: box-shadow var(--duration-fast) var(--ease-out), opacity var(--duration-fast) var(--ease-out);

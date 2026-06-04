@@ -15,8 +15,36 @@ CHAT_MAX_LENGTH = 200
 CHAT_MAX_MESSAGES = 50
 CHAT_RATE_LIMIT = 5
 CHAT_RATE_WINDOW = 10
+CHAT_MIN_INTERVAL = 1.0
 
 _TAG_RE = re.compile(r"<[^>]+>")
+
+
+def _last_message_ts(room_data: dict, client_id: str) -> float | None:
+    messages = room_data.get("chat_messages") or []
+    for entry in reversed(messages):
+        if entry.get("client_id") == client_id:
+            ts = entry.get("ts")
+            if isinstance(ts, (int, float)):
+                return float(ts)
+    return None
+
+
+def _is_consecutive_duplicate(room_data: dict, client_id: str, text: str) -> bool:
+    """Reject only when the new text matches this player's immediately previous message."""
+    messages = room_data.get("chat_messages") or []
+    for entry in reversed(messages):
+        if entry.get("client_id") != client_id:
+            continue
+        return entry.get("text") == text
+    return False
+
+
+def _too_soon(room_data: dict, client_id: str, now: float) -> bool:
+    last_ts = _last_message_ts(room_data, client_id)
+    if last_ts is None:
+        return False
+    return (now - last_ts) < CHAT_MIN_INTERVAL
 
 
 def sanitize_chat_text(raw: str) -> str | None:
@@ -80,8 +108,16 @@ async def handle_chat_message(
         await manager.send_to_player(websocket, ws_error("chat.rate_limit"))
         return True
 
-    meta = (room_data.get("player_meta") or {}).get(client_id) or {}
     ts = time.time()
+    if _is_consecutive_duplicate(room_data, client_id, text):
+        await manager.send_to_player(websocket, ws_error("chat.duplicate"))
+        return True
+
+    if _too_soon(room_data, client_id, ts):
+        await manager.send_to_player(websocket, ws_error("chat.too_fast"))
+        return True
+
+    meta = (room_data.get("player_meta") or {}).get(client_id) or {}
     entry = {
         "client_id": client_id,
         "username": meta.get("username"),

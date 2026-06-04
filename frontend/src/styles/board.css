@@ -296,6 +296,21 @@
   border-radius: 50%;
   pointer-events: none;
 }
+/* Ворота: ♔ на ::after — иначе перекрывает кружок подсказки */
+.field-of-king .kletka.highlight-essential::after {
+  content: '';
+  top: 50%;
+  left: 50%;
+  right: auto;
+  transform: translate(-50%, -50%);
+  width: 11px;
+  height: 11px;
+  background: rgba(45, 212, 191, 0.5);
+  border-radius: 50%;
+  font-size: 0;
+  color: transparent;
+  opacity: 1;
+}
 .highlight-captured {
   opacity: 0.55;
   filter: grayscale(40%) brightness(0.8);
@@ -330,6 +345,13 @@
   opacity: 0.25;
   filter: saturate(0.85);
 }
+.captured-ghost-piece {
+  opacity: 0.25;
+  filter: saturate(0.85);
+}
+.captured-ghost-cell {
+  pointer-events: auto;
+}
 
 .drag-ghost {
   position: fixed;
@@ -343,7 +365,9 @@
   transform: translate(-50%, -50%) scale(var(--piece-scale, 0.92));
   filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.2));
 }
-.kletka.highlight-captured .image-in-kletka { animation: pieceCapture 0.5s ease-out forwards; }
+.kletka.highlight-captured .image-in-kletka:not(.captured-ghost-piece) {
+  animation: pieceCapture 0.5s ease-out forwards;
+}
 
 /* ===== LAST MOVE ===== */
 .kletka.last-move-from {

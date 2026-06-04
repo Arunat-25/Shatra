@@ -9,9 +9,23 @@ from backend.message_codes import ROOM_FULL, ROOM_GAME_STARTED, ROOM_NOT_FOUND
 from backend.db.models import User
 from backend.models import CreateRoomRequest, Room
 from backend.player_identity import meta_from_user
-from backend.state import get_room, set_room, delete_room, scan_keys, get_raw
+from backend.state import get_room, set_room, scan_keys, get_raw, get_game
 
 logger = logging.getLogger(__name__)
+
+
+def _resolve_creator_username(room_data: dict) -> str | None:
+    """Username from room field or registered creator player_meta."""
+    username = room_data.get("creator_username")
+    if username:
+        return username
+    creator_id = room_data.get("creator_client_id")
+    if not creator_id:
+        return None
+    meta = (room_data.get("player_meta") or {}).get(creator_id) or {}
+    if meta.get("is_anonymous", True):
+        return None
+    return meta.get("username")
 
 
 async def create_room(request: CreateRoomRequest, user: User | None = None) -> dict:
@@ -41,6 +55,24 @@ async def create_room(request: CreateRoomRequest, user: User | None = None) -> d
     return {"room_id": room_id, "type": request.type}
 
 
+async def count_active_games() -> int:
+    """Rooms with a live player connection, game started, and not over."""
+    from backend.ws_manager import manager
+
+    live_rooms = manager.connections
+    count = 0
+    for room_id, conns in live_rooms.items():
+        if not conns:
+            continue
+        room_data = await get_room(room_id)
+        if not room_data or not room_data.get("game_started"):
+            continue
+        game = await get_game(room_id)
+        if game and not game.get("game_over", False):
+            count += 1
+    return count
+
+
 async def list_rooms() -> dict:
     """Возвращает список активных комнат (ожидающих второго игрока)."""
     keys = await scan_keys("room:*")
@@ -56,9 +88,16 @@ async def list_rooms() -> dict:
                     "created_at": r.get("created_at", ""),
                     "time_control": r.get("time_control"),
                     "increment": r.get("increment") or 0,
-                    "creator_username": r.get("creator_username"),
+                    "creator_username": _resolve_creator_username(r),
                 })
-    return {"rooms": rooms_data}
+    active_games = await count_active_games()
+    return {
+        "rooms": rooms_data,
+        "stats": {
+            "waiting_public_rooms": len(rooms_data),
+            "active_games": active_games,
+        },
+    }
 
 
 async def join_room(room_id: str) -> dict:

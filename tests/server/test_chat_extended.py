@@ -175,3 +175,79 @@ class TestHandleChatMessage:
                 room_id, "c1", MagicMock(), {"text": "?"}, is_ai_room=False
             )
             assert mgr.send_to_room.call_args[0][1]["display_name"] == "Аноним"
+
+
+@pytest.mark.asyncio
+class TestChatAntiSpam:
+    async def test_too_fast_rejected(self):
+        import time
+
+        room_id = "r1"
+        now = time.time()
+        room = {
+            "chat_messages": [{"client_id": "c1", "text": "hi", "ts": now - 0.2}],
+            "player_meta": {"c1": {"username": "u", "is_anonymous": False}},
+        }
+        ws = AsyncMock()
+        ws.send_json = AsyncMock()
+        with (
+            patch("backend.chat.get_room", new_callable=AsyncMock, return_value=room),
+            patch("backend.chat._check_rate_limit", new_callable=AsyncMock, return_value=True),
+        ):
+            ok = await handle_chat_message(
+                room_id, "c1", ws, {"text": "again"}, is_ai_room=False
+            )
+        assert ok is True
+        assert ws.send_json.call_args[0][0]["message_code"] == "chat.too_fast"
+
+    async def test_consecutive_duplicate_rejected(self):
+        room_id = "r1"
+        room = {
+            "chat_messages": [{"client_id": "c1", "text": "same", "ts": 1.0}],
+            "player_meta": {"c1": {"username": "u", "is_anonymous": False}},
+        }
+        ws = AsyncMock()
+        ws.send_json = AsyncMock()
+        with (
+            patch("backend.chat.get_room", new_callable=AsyncMock, return_value=room),
+            patch("backend.chat._check_rate_limit", new_callable=AsyncMock, return_value=True),
+            patch("backend.chat._too_soon", return_value=False),
+        ):
+            ok = await handle_chat_message(
+                room_id, "c1", ws, {"text": "same"}, is_ai_room=False
+            )
+        assert ok is True
+        assert ws.send_json.call_args[0][0]["message_code"] == "chat.duplicate"
+
+    async def test_same_text_allowed_after_other_message(self):
+        room_id = "r1"
+        room = {
+            "chat_messages": [
+                {"client_id": "c1", "text": "same", "ts": 1.0},
+                {"client_id": "c1", "text": "other", "ts": 2.0},
+            ],
+            "player_meta": {"c1": {"username": "u", "is_anonymous": False}},
+        }
+        ws = AsyncMock()
+        ws.send_json = AsyncMock()
+        stored = {room_id: dict(room)}
+
+        async def fake_set(rid, data):
+            stored[rid] = data
+
+        with (
+            patch("backend.chat.get_room", new_callable=AsyncMock, return_value=stored[room_id]),
+            patch("backend.chat.set_room", side_effect=fake_set),
+            patch("backend.chat._check_rate_limit", new_callable=AsyncMock, return_value=True),
+            patch("backend.chat._too_soon", return_value=False),
+            patch("backend.chat.manager") as mgr,
+        ):
+            mgr.send_to_room = AsyncMock()
+            ok = await handle_chat_message(
+                room_id, "c1", ws, {"text": "same"}, is_ai_room=False
+            )
+        assert ok is True
+        broadcast = mgr.send_to_room.call_args[0][1]
+        assert broadcast["type"] == "chat"
+        assert broadcast["text"] == "same"
+        assert stored[room_id]["chat_messages"][-1]["text"] == "same"

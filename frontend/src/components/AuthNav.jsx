@@ -1,8 +1,10 @@
+import { useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import useAuthNavOffset from '../hooks/useAuthNavOffset';
 import LocaleSwitcher from './LocaleSwitcher';
+import TutorialTab from './TutorialTab';
 
 function IconProfile() {
   return (
@@ -27,25 +29,34 @@ export default function AuthNav() {
   const { pathname } = useLocation();
   const { t } = useTranslation();
   const { user, isAuthenticated, loading, logout } = useAuth();
-  const navRef = useAuthNavOffset([loading, isAuthenticated, pathname, user?.username]);
+  const topStartRef = useRef(null);
+  const topEndRef = useRef(null);
+  const navRef = useAuthNavOffset(
+    [loading, isAuthenticated, pathname, user?.username],
+    topStartRef,
+    topEndRef,
+  );
   const onLoginPage = pathname === '/login';
   const onRegisterPage = pathname === '/register';
   const onProfilePage = pathname === '/profile';
   const onAdminPage = pathname === '/admin';
-  const showLocaleSwitcher = pathname === '/' || onLoginPage || onRegisterPage;
 
-  if (loading) {
-    return (
-      <nav ref={navRef} className="app-auth-nav" aria-label={t('nav.account')}>
-        <span className="app-auth-nav__placeholder" aria-hidden />
-      </nav>
-    );
-  }
+  const topTools = (
+    <div ref={topStartRef} className="app-top-start">
+      <Link to="/" className="app-brand" aria-label={t('nav.home')}>
+        {t('lobby.title')}
+      </Link>
+      <div className="app-tutorial-tab">
+        <TutorialTab />
+      </div>
+    </div>
+  );
 
-  return (
+  const accountNav = (
     <nav ref={navRef} className="app-auth-nav" aria-label={t('nav.account')}>
-      {showLocaleSwitcher && <LocaleSwitcher />}
-      {isAuthenticated ? (
+      {loading ? (
+        <span className="app-auth-nav__placeholder" aria-hidden />
+      ) : isAuthenticated ? (
         <>
           <span className="app-auth-nav__username" title={user.username}>
             {user.username}
@@ -90,5 +101,17 @@ export default function AuthNav() {
         </>
       )}
     </nav>
+  );
+
+  return (
+    <>
+      {topTools}
+      <div ref={topEndRef} className="app-top-end">
+        <div className="app-locale-nav">
+          <LocaleSwitcher />
+        </div>
+        {accountNav}
+      </div>
+    </>
   );
 }

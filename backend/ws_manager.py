@@ -8,8 +8,10 @@ from backend.config import settings
 from backend.board_utils import get_starting_board
 from backend.db.models import User
 from backend.game_helpers import build_game_started_response
+from backend.game_archive import mark_game_started
 from backend.game_state import GameState
-from backend.player_identity import meta_from_user
+from backend.player_identity import merge_player_meta, user_id_from_meta
+from backend.presence import end_session, start_session
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +49,13 @@ class ConnectionManager:
         # room_id -> {client_id: WebSocket}
         self.connections: dict[str, dict[str, WebSocket]] = {}
 
+    def connected_client_ids(self) -> frozenset[str]:
+        """client_id с активным WebSocket (для live online, без orphan presence в БД)."""
+        ids: set[str] = set()
+        for room_conns in self.connections.values():
+            ids.update(room_conns.keys())
+        return frozenset(ids)
+
     async def connect(
         self,
         room_id: str,
@@ -65,7 +74,20 @@ class ConnectionManager:
 
         players = room_data.setdefault("players", {})
         player_meta = room_data.setdefault("player_meta", {})
-        player_meta[client_id] = meta_from_user(user)
+        meta = merge_player_meta(player_meta.get(client_id), user)
+        player_meta[client_id] = meta
+        if client_id == room_data.get("creator_client_id") and not meta.get("is_anonymous", True):
+            username = meta.get("username")
+            if username:
+                room_data["creator_username"] = username
+
+        async def _record_presence() -> None:
+            await start_session(
+                client_id=client_id,
+                user_id=user_id_from_meta(meta) or (user.id if user else None),
+                is_anonymous=bool(meta.get("is_anonymous", True)),
+                room_id=room_id,
+            )
 
         # Reconnect: client_id уже в комнате — только если нет активного WS
         if client_id in players:
@@ -86,6 +108,8 @@ class ConnectionManager:
                     await opponent.send_json({"status": "opponent_reconnected"})
                 except Exception:
                     pass
+            await set_room(room_id, room_data)
+            await _record_presence()
             return True
 
         # Новый игрок
@@ -100,6 +124,7 @@ class ConnectionManager:
 
         self.connections[room_id][client_id] = websocket
         await set_room(room_id, room_data)
+        await _record_presence()
         logger.info("Player %s joined room %s as %s", client_id[:6], room_id, players[client_id])
         return True
 
@@ -132,6 +157,9 @@ class ConnectionManager:
                 client_id = cid
                 room_conns.pop(cid, None)
                 break
+
+        if client_id:
+            await end_session(client_id)
 
         room_data = await get_room(room_id)
         # Не удаляем комнату мгновенно, если отключился creator:
@@ -202,6 +230,7 @@ async def handle_player2_join(room_id: str, room_data: dict):
             await manager.send_to_player(ws, response)
 
     room_data["game_started"] = True
+    mark_game_started(room_data)
     await set_room(room_id, room_data)
 
     if room_data.get("time_control"):

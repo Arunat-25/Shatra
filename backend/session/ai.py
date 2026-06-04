@@ -7,7 +7,7 @@ from game_engine.models import GameEvent, GameEventResult
 from game_engine.game_logic import logic
 from backend.state import get_game, set_game, set_room, game_timers
 from backend.ws_manager import manager, init_game
-from backend.timers import game_ticker
+from backend.timers import game_ticker, stop_game_timer
 from backend.ai import get_best_move
 from backend.game_helpers import (
     build_game_started_response,
@@ -15,6 +15,7 @@ from backend.game_helpers import (
     apply_move_result,
     get_ai_color,
 )
+from backend.game_archive import mark_game_started, on_game_finished
 
 logger = logging.getLogger(__name__)
 
@@ -55,8 +56,11 @@ async def handle_ai_move(room_id: str, game: dict, max_recursion: int = 5):
         game["game_over"] = True
         game["winner_color"] = "белый" if ai_color == "черный" else "черный"
         game["winner"] = game["winner_color"]
+        game["reason"] = "ai.no_move"
         await set_game(room_id, game)
         await manager.send_to_room(room_id, response)
+        stop_game_timer(room_id)
+        await on_game_finished(room_id)
         return
 
     from_cell, to_cell = move
@@ -114,6 +118,7 @@ async def _start_ai_game(room_id: str, websocket: WebSocket, room_data: dict, my
         await init_game(room_id)
         game = await get_game(room_id)
         room_data["game_started"] = True
+        mark_game_started(room_data)
         await set_room(room_id, room_data)
         response = build_game_started_response(game, room_data, my_color)
         await manager.send_to_player(websocket, response)
@@ -126,5 +131,9 @@ async def _start_ai_game(room_id: str, websocket: WebSocket, room_data: dict, my
     else:
         response = build_game_started_response(game, room_data, my_color)
         await manager.send_to_player(websocket, response)
-        if room_data.get("time_control") and room_id not in game_timers:
+        if (
+            room_data.get("time_control")
+            and room_id not in game_timers
+            and not game.get("game_over")
+        ):
             game_timers[room_id] = asyncio.create_task(game_ticker(room_id))

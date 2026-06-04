@@ -32,23 +32,23 @@ def test_shatra_capture_into_fortress_blocked_by_own_shatra():
         assert not (f == 42 and t == 53), "get_all_mandatory_captures не должно содержать 42->53"
 
 
-def test_shatra_capture_into_fortress_allowed_with_biy():
-    """1b. Белая шатра может взять в свои ворота если в крепости только бий (не шатра)."""
+def test_shatra_capture_into_fortress_forbidden_even_with_biy():
+    """1b. Белая шатра не может взять в свои ворота, даже если в крепости только бий."""
     board = _make_board()
     board[42] = "белая шатра"
     board[49] = "черная шатра"  # враг
-    board[54] = "белый бий"     # свой бий в крепости — не блокирует
+    board[54] = "белый бий"     # свой бий в крепости — не помогает
 
     from game_engine.pieces.shatra import Shatra
     s = Shatra("белый")
     can = s.can_capture(board, 42, 53, [])
-    assert can, "Шатра может взять в свои ворота, если в крепости только бий"
+    assert not can, "Шатра НЕ может взять в свои ворота, даже если в крепости только бий"
 
     b = Board(board)
     mandatory = get_all_mandatory_captures(b, "белый", [])
-    assert (42, 53) in mandatory, "get_all_mandatory_captures должно содержать 42->53"
+    assert (42, 53) not in mandatory, "get_all_mandatory_captures не должно содержать 42->53"
     v, _ = validate_move(board, 42, 53, "белый", [])
-    assert v, "validate_move(42->53) должно быть True"
+    assert not v, "validate_move(42->53) должно быть False"
 
 
 # ============================================================
@@ -146,12 +146,12 @@ def test_biy_cannot_move_when_shatra_batyr_and_biy_can_capture():
     board = _make_board()
     # Батыр на 35: 35→53 через врага на 49 (42 свободна — шатра не блокирует путь)
     board[35] = "белый батыр"
-    # Шатра на 44: 44→53 через врага на 50
-    board[44] = "белая шатра"
+    # Шатра на 20: 20→36 через врага на 28 (не в свою крепость)
+    board[20] = "белая шатра"
     # Бий на 48: 48→46 через врага на 47
     board[48] = "белый бий"
     board[49] = "черная шатра"
-    board[50] = "черная шатра"
+    board[28] = "черная шатра"
     board[47] = "черная шатра"
 
     board_obj = Board(board)

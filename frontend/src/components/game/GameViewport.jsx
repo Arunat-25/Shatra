@@ -44,6 +44,7 @@ export default function GameViewport({
                 moveFrom={state.moveFrom}
                 highlightedEssential={state.highlightedEssential}
                 highlightedCaptured={state.highlightedCaptured}
+                capturedGhostPieces={state.capturedGhostPieces}
                 lastMove={state.lastMove}
                 historyFrom={state.historyFrom}
                 historyTo={state.historyTo}

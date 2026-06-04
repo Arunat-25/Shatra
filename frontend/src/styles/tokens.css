@@ -3,7 +3,9 @@
   /* Surfaces — yurt felt, mountain parchment, warm stone */
   --bg-deep: #E8DCCA;
   --bg-base: #F0E8D3;
+  --bg-scene-veil: rgba(240, 232, 211, 0.62);
   --bg-elevated: #FAF5E8;
+  --bg-elevated-glass: rgba(250, 245, 232, 0.68);
   --bg-surface: #F3EAD7;
   --bg-surface-hover: #EAE0C8;
   --bg-inset: rgba(61, 40, 23, 0.07);

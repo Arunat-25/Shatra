@@ -44,17 +44,24 @@ jobs:
           pip install -r requirements.txt -r requirements-dev.txt
       - name: Ruff
         run: ruff check backend/ game_engine/ main.py
+      - name: Create test database
+        run: |
+          PGPASSWORD=shatra psql -h localhost -U shatra -d postgres -tc \
+            "SELECT 1 FROM pg_database WHERE datname = 'shatra_test'" | grep -q 1 \
+            || PGPASSWORD=shatra psql -h localhost -U shatra -d postgres -c \
+            "CREATE DATABASE shatra_test OWNER shatra;"
       - name: Alembic migrate
         run: alembic upgrade head
         env:
-          DATABASE_URL: postgresql+asyncpg://shatra:shatra@localhost:5432/shatra
+          DATABASE_URL: postgresql+asyncpg://shatra:shatra@localhost:5432/shatra_test
           JWT_SECRET: test-secret-ci
       - name: Pytest
         run: pytest tests/ -q
         env:
           REDIS_HOST: localhost
           REDIS_PORT: 6379
-          DATABASE_URL: postgresql+asyncpg://shatra:shatra@localhost:5432/shatra
+          REDIS_DB: 1
+          TEST_DATABASE_URL: postgresql+asyncpg://shatra:shatra@localhost:5432/shatra_test
           JWT_SECRET: test-secret-ci
 
   frontend:
@@ -124,10 +131,16 @@ jobs:
       - name: Install Playwright browser
         working-directory: frontend
         run: npx playwright install --with-deps chromium
+      - name: Create test database
+        run: |
+          PGPASSWORD=shatra psql -h localhost -U shatra -d postgres -tc \
+            "SELECT 1 FROM pg_database WHERE datname = 'shatra_test'" | grep -q 1 \
+            || PGPASSWORD=shatra psql -h localhost -U shatra -d postgres -c \
+            "CREATE DATABASE shatra_test OWNER shatra;"
       - name: Alembic migrate
         run: alembic upgrade head
         env:
-          DATABASE_URL: postgresql+asyncpg://shatra:shatra@localhost:5432/shatra
+          DATABASE_URL: postgresql+asyncpg://shatra:shatra@localhost:5432/shatra_test
           JWT_SECRET: test-secret-ci
       - name: Start API server
         run: |
@@ -139,7 +152,8 @@ jobs:
         env:
           REDIS_HOST: localhost
           REDIS_PORT: 6379
-          DATABASE_URL: postgresql+asyncpg://shatra:shatra@localhost:5432/shatra
+          REDIS_DB: 0
+          DATABASE_URL: postgresql+asyncpg://shatra:shatra@localhost:5432/shatra_test
           JWT_SECRET: test-secret-ci
       - name: E2E smoke
         working-directory: frontend

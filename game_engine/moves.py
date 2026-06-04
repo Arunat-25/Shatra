@@ -161,15 +161,17 @@ def process_move(
 
     if piece_kind == "шатра":
         if _promote_shatra(new_cells, to_cell, current_color):
-            return _finish_move(
-                positions=new_cells,
-                mover_color=current_color,
-                message_code=PIECE_PROMOTED,
-                message_params={"color": current_color},
-                history=True,
-                clear_pending=True,
-                captured_positions=captured_positions,
-            )
+            if not captured_positions:
+                return _finish_move(
+                    positions=new_cells,
+                    mover_color=current_color,
+                    message_code=PIECE_PROMOTED,
+                    message_params={"color": current_color},
+                    history=True,
+                    clear_pending=True,
+                    captured_positions=captured_positions,
+                )
+            piece_kind = "батыр"
 
     next_board = Board(new_cells)
     over, winner_color, draw_reason = is_game_over(next_board, position_history, moves_with_two_biys)
@@ -185,12 +187,10 @@ def process_move(
     can_continue_chain = False
     if has_captured:
         if piece_kind in ["шатра", "бий"]:
-            for to_cell_next, enemy_cell_next in shatra_and_biy_possible_captures.get(to_cell, {}).items():
-                enemy_piece = new_cells.get(enemy_cell_next)
-                target_free = new_cells.get(to_cell_next) is None
-                if enemy_piece and target_free:
-                    enemy_prefix = "бел" if current_color == "черный" else "чер"
-                    if enemy_prefix in enemy_piece:
+            piece_at_land = Board(new_cells).get_piece_object(to_cell)
+            if piece_at_land:
+                for to_cell_next in shatra_and_biy_possible_captures.get(to_cell, {}):
+                    if piece_at_land.can_capture(new_cells, to_cell, to_cell_next, new_batyr_captures):
                         can_continue_chain = True
                         break
         else:
@@ -226,6 +226,7 @@ def process_move(
             draw_reason=draw_reason,
             captured_positions=captured_positions,
             captured_pieces=new_batyr_captures,
+            opportunity_pass=can_pass_turn,
         )
 
     next_player = _opponent(current_color)
@@ -285,41 +286,24 @@ def _process_chain_shatra_biy(
     board_copy, cells, current_color, from_cell, to_cell,
     current_batyr_captures, piece, position_history=None, moves_with_two_biys=0,
 ) -> GameEventResult:
-    possible_captures = shatra_and_biy_possible_captures.get(from_cell, {})
-    if to_cell not in possible_captures:
+    if not piece.can_capture(board_copy, from_cell, to_cell, current_batyr_captures):
         return GameEventResult(
             message_code=CAPTURE_MUST,
             movers_color=current_color,
             updated_positions=cells,
         )
-    enemy_cell = possible_captures[to_cell]
-    enemy_piece = board_copy.get(enemy_cell)
-    enemy_prefix = "чер" if current_color == "белый" else "бел"
-    if not enemy_piece or enemy_prefix not in enemy_piece:
-        return GameEventResult(
-            message_code=MOVE_NO_CAPTURE_TARGET,
-            movers_color=current_color,
-            updated_positions=cells,
-        )
-    if board_copy.get(to_cell) is not None:
-        return GameEventResult(
-            message_code=MOVE_TARGET_OCCUPIED,
-            movers_color=current_color,
-            updated_positions=cells,
-        )
 
-    new_cells = copy.deepcopy(cells)
+    new_cells, captured_positions, new_batyr_captures = execute_move(
+        board_copy, from_cell, to_cell, current_color, current_batyr_captures,
+    )
+    _promote_shatra(new_cells, to_cell, current_color)
     board = Board(new_cells)
-    board.move_piece(from_cell, to_cell)
-    board.remove_piece(enemy_cell)
-    captured_positions = [enemy_cell]
-    new_batyr_captures = copy.copy(current_batyr_captures)
-    piece_kind = "бий" if piece.get_type() == "бий" else "шатра"
+    piece_kind = piece.get_type()
 
     over, winner_color, draw_reason = is_game_over(board, position_history, moves_with_two_biys)
     if over:
         return _game_over_result(
-            board.copy_cells(),
+            new_cells,
             winner_color=winner_color,
             draw_reason=draw_reason,
             captured_positions=captured_positions,
@@ -327,15 +311,17 @@ def _process_chain_shatra_biy(
         )
 
     can_continue_chain = False
-    board_dict = board.copy_cells()
-    for to_cell_next, enemy_cell_next in shatra_and_biy_possible_captures.get(to_cell, {}).items():
-        enemy_name = board_dict.get(enemy_cell_next)
-        target_free = board_dict.get(to_cell_next) is None
-        if enemy_name and target_free:
-            ep = "бел" if current_color == "черный" else "чер"
-            if ep in enemy_name:
-                can_continue_chain = True
-                break
+    piece_at_land = board.get_piece_object(to_cell)
+    if piece_at_land:
+        if piece_at_land.get_type() == "батыр":
+            can_continue_chain = batyr_can_continue_capture(
+                board, to_cell, current_color, new_batyr_captures,
+            )
+        else:
+            for to_cell_next in shatra_and_biy_possible_captures.get(to_cell, {}):
+                if piece_at_land.can_capture(new_cells, to_cell, to_cell_next, new_batyr_captures):
+                    can_continue_chain = True
+                    break
 
     can_pass_turn = piece_kind == "бий"
 
@@ -343,7 +329,7 @@ def _process_chain_shatra_biy(
         return GameEventResult(
             message_code=CAPTURE_CONTINUE,
             movers_color=current_color,
-            updated_positions=board.copy_cells(),
+            updated_positions=new_cells,
             captured_positions=captured_positions,
             opportunity_pass_the_move=can_pass_turn,
             position_for_mandatory_capture=to_cell,
@@ -352,7 +338,7 @@ def _process_chain_shatra_biy(
 
     next_player = _opponent(current_color)
     return _finish_move(
-        positions=board.copy_cells(),
+        positions=new_cells,
         mover_color=current_color,
         message_code=TURN_NOW,
         message_params={"color": next_player},

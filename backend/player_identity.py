@@ -19,6 +19,27 @@ def meta_from_user(user: User | None) -> dict:
     return {"user_id": None, "username": None, "is_anonymous": True}
 
 
+def merge_player_meta(existing: dict | None, user: User | None) -> dict:
+    """WS без токена не затирает аккаунт, записанный при REST create room."""
+    if user is not None:
+        return meta_from_user(user)
+    if existing and existing.get("user_id") and not existing.get("is_anonymous", True):
+        return dict(existing)
+    return meta_from_user(None)
+
+
+def user_id_from_meta(meta: dict | None) -> uuid.UUID | None:
+    if not meta:
+        return None
+    raw = meta.get("user_id")
+    if not raw:
+        return None
+    try:
+        return uuid.UUID(str(raw))
+    except ValueError:
+        return None
+
+
 def display_name(meta: dict | None) -> str:
     if not meta:
         return "Аноним"

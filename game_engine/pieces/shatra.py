@@ -61,19 +61,11 @@ class Shatra(Piece):
         return self._can_enter_fortress(cells, from_cell, to_cell)
 
     def _can_enter_fortress(self, cells: dict, from_cell: int, to_cell: int) -> bool:
-        # Нельзя входить в свою крепость/ворота, если там есть своя шатра
+        # Шатра никогда не может брать в свою крепость или ворота
         if self.color == "черный" and 1 <= to_cell <= 10:
-            for cell in range(1, 10):
-                piece = cells.get(cell)
-                if piece and "черная шатра" in piece:
-                    return False
-            return True
+            return False
         if self.color == "белый" and 53 <= to_cell <= 62:
-            for cell in range(54, 63):
-                piece = cells.get(cell)
-                if piece and "белая шатра" in piece:
-                    return False
-            return True
+            return False
         return True
 
     def get_type(self) -> str:

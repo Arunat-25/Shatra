@@ -98,33 +98,14 @@ def _get_chain_hints(
     """Подсказки для продолжения цепочки взятий."""
     allowed = []
     if piece.get_type() in ["шатра", "бий"]:
-        enemy_prefix = "чер" if current_color == "белый" else "бел"
-        for to_cell, enemy_cell in shatra_and_biy_possible_captures.get(from_cell, {}).items():
-            enemy_piece = cells.get(enemy_cell)
-            target_free = cells.get(to_cell) is None
-            if enemy_piece and target_free and enemy_prefix in enemy_piece:
+        for to_cell in shatra_and_biy_possible_captures.get(from_cell, {}):
+            if piece.can_capture(cells, from_cell, to_cell, batyr_captured_this_turn):
                 allowed.append(to_cell)
     elif piece.get_type() == "батыр":
-        opponent_prefix = "чер" if current_color == "белый" else "бел"
         for direction in batyr_moves_and_captures.get(from_cell, []):
-            enemy_found = False
-            for cell in direction:
-                cell_piece = cells.get(cell)
-                if cell in batyr_captured_this_turn:
-                    continue
-                if cell_piece and opponent_prefix in cell_piece:
-                    if cell not in batyr_captured_this_turn:
-                        enemy_found = True
-                        for next_cell in direction[direction.index(cell) + 1:]:
-                            next_piece = cells.get(next_cell)
-                            if next_piece is None:
-                                allowed.append(next_cell)
-                            elif opponent_prefix in next_piece:
-                                break
-                            else:
-                                break
-                        break
-                    continue
+            for to_cell in direction:
+                if piece.can_capture(cells, from_cell, to_cell, batyr_captured_this_turn):
+                    allowed.append(to_cell)
     return GameEventResult(
         essential_positions=allowed,
         captured_pieces=batyr_captured_this_turn.copy()

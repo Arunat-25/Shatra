@@ -115,6 +115,29 @@ describe('dispatchServerMessage', () => {
     )).toBe(true);
   });
 
+  it('waiting sets room meta for private host invite', () => {
+    const { calls } = collectDispatches({
+      status: 'waiting',
+      room_type: 'private',
+      show_invite_link: true,
+    });
+    expect(calls.some(
+      (c) => c.type === GAME_ACTIONS.SET_WAITING_META
+        && c.payload.roomType === 'private'
+        && c.payload.showInviteLink === true,
+    )).toBe(true);
+  });
+
+  it('waiting without show_invite_link for guest', () => {
+    const { calls } = collectDispatches({
+      status: 'waiting',
+      room_type: 'private',
+      show_invite_link: false,
+    });
+    const meta = calls.find((c) => c.type === GAME_ACTIONS.SET_WAITING_META);
+    expect(meta.payload.showInviteLink).toBe(false);
+  });
+
   it('chat_history loads messages', () => {
     const messages = [{ text: 'hi', ts: 1 }];
     const { calls } = collectDispatches({ type: 'chat_history', messages });

@@ -5,9 +5,19 @@
 ```bash
 source .venv/bin/activate
 pip install -r requirements-dev.txt
+
+# Один раз, если postgres поднят без свежего volume:
+./scripts/ensure-test-db.sh
+
 pytest tests/ -q
 cd frontend && npm test
 ```
+
+**Изоляция от dev:** pytest подключается к `shatra_test` (PostgreSQL) и Redis DB `1`, а не к рабочей базе `shatra` / Redis DB `0`. Настройки — `tests/test_env.py`, переменная `TEST_DATABASE_URL`.
+
+| Каталог | Что проверяют |
+|---------|---------------|
+| `tests/admin/test_admin_e2e.py` | E2E: регистрация/игры/онлайн через API+WS → admin stats |
 
 С покрытием: `pytest tests/ --cov=backend --cov=game_engine -q`
 

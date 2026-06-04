@@ -8,11 +8,12 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.auth.jwt_utils import decode_token
-from backend.auth.service import user_to_public
+from backend.auth.service import user_to_public, is_user_admin
 from backend.auth.schemas import UserPublic
 from backend.db.models import User
 from backend.db.session import get_db
 from backend.message_codes import (
+    ADMIN_FORBIDDEN,
     AUTH_INVALID_TOKEN,
     AUTH_REQUIRED,
     AUTH_USER_NOT_FOUND,
@@ -57,3 +58,9 @@ async def get_optional_user(
     except (jwt.PyJWTError, ValueError, KeyError):
         return None
     return await db.get(User, user_id)
+
+
+async def get_admin_user(user: User = Depends(get_current_user)) -> User:
+    if not is_user_admin(user):
+        raise HTTPException(status_code=403, detail=ADMIN_FORBIDDEN)
+    return user

@@ -57,4 +57,36 @@ describe('gameReducer', () => {
     expect(next.waiting).toBe(false);
     expect(next.myColor).toBe('белый');
   });
+
+  it('keeps captured pieces visible while capture chain continues', () => {
+    const state = {
+      ...initialGameState,
+      board: {
+        20: 'белая шатра',
+        28: 'черная шатра',
+      },
+    };
+
+    const pending = gameReducer(state, {
+      type: GAME_ACTIONS.MOVE_MADE,
+      payload: {
+        desk: { 36: 'белая шатра' },
+        captured_positions: [28],
+        position_for_mandatory_capture: 36,
+      },
+    });
+
+    expect(pending.capturedGhostPieces).toEqual({ 28: 'черная шатра' });
+
+    const finished = gameReducer(pending, {
+      type: GAME_ACTIONS.MOVE_MADE,
+      payload: {
+        desk: { 52: 'белая шатра' },
+        captured_positions: [44],
+        position_for_mandatory_capture: null,
+      },
+    });
+
+    expect(finished.capturedGhostPieces).toEqual({});
+  });
 });

@@ -1,6 +1,6 @@
 from pathlib import Path
 from contextlib import asynccontextmanager
-from fastapi import Depends, FastAPI, WebSocket
+from fastapi import Depends, FastAPI, Query, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -14,11 +14,15 @@ from backend.config import settings
 from backend.auth.dependencies import get_optional_user
 from backend.db.models import User
 from backend.models import CreateRoomRequest
+from datetime import datetime, timezone
+
 from backend.room_manager import create_room, list_rooms, join_room
+from backend.presence import touch_lobby_presence, count_online_for_lobby, end_lobby_sessions
 from backend.session import websocket_endpoint
 from backend.state import init_redis, close_redis, get_room
 from backend.db.session import init_db, close_db
 from backend.auth.router import router as auth_router
+from backend.admin.router import router as admin_router
 
 
 @asynccontextmanager
@@ -69,11 +73,20 @@ else:
     # Не ломаем разработку (vite dev), но в проде это поможет понять, что build не сделан.
     logger.warning("React dist assets missing; static mount skipped: %s", REACT_DIST)
 
+# Vite copies frontend/public/ (e.g. sounds/) to dist/ — must be mounted before SPA catch-all.
+_sounds_dir = REACT_DIST / "sounds"
+if _sounds_dir.is_dir():
+    app.mount("/sounds", StaticFiles(directory=str(_sounds_dir)), name="game_sounds")
+
+_images_dir = REACT_DIST / "images"
+if _images_dir.is_dir():
+    app.mount("/images", StaticFiles(directory=str(_images_dir)), name="site_images")
+
 
 # === REST API (ДО catch-all) ===
 
 app.include_router(auth_router, prefix="/api/auth")
-
+app.include_router(admin_router, prefix="/api/admin")
 @app.post("/rooms")
 async def create_room_api(
     request: CreateRoomRequest,
@@ -83,8 +96,29 @@ async def create_room_api(
 
 
 @app.get("/rooms")
-async def list_rooms_api():
-    return await list_rooms()
+async def list_rooms_api(
+    client_id: str | None = Query(default=None, min_length=1, max_length=64),
+    user: User | None = Depends(get_optional_user),
+):
+    if client_id:
+        await touch_lobby_presence(
+            client_id=client_id,
+            user_id=user.id if user else None,
+            is_anonymous=user is None,
+        )
+    result = await list_rooms()
+    online = await count_online_for_lobby()
+    stats = result.setdefault("stats", {})
+    stats["online_total"] = online["total_unique"]
+    return result
+
+
+@app.post("/rooms/presence/leave")
+async def lobby_presence_leave(
+    client_id: str = Query(..., min_length=1, max_length=64),
+):
+    await end_lobby_sessions(client_id)
+    return {"ok": True}
 
 
 @app.post("/rooms/{room_id}/join")

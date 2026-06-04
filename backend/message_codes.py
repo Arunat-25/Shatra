@@ -19,6 +19,7 @@ AUTH_SESSION_EXPIRED = "auth.session_expired"
 AUTH_WRONG_PASSWORD = "auth.wrong_password"
 AUTH_USERNAME_TAKEN_REGISTER = "auth.username_taken_register"
 AUTH_USERNAME_TAKEN_PROFILE = "auth.username_taken_profile"
+ADMIN_FORBIDDEN = "admin.forbidden"
 
 # Draw / rematch / control
 DRAW_BOT_DECLINED = "draw.bot_declined"
@@ -42,6 +43,8 @@ CANCEL_TOO_LATE = "cancel.too_late"
 CHAT_AI_UNAVAILABLE = "chat.ai_unavailable"
 CHAT_EMPTY = "chat.empty"
 CHAT_RATE_LIMIT = "chat.rate_limit"
+CHAT_TOO_FAST = "chat.too_fast"
+CHAT_DUPLICATE = "chat.duplicate"
 
 # Session / AI
 AI_NO_MOVE = "ai.no_move"

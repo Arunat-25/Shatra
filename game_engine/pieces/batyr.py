@@ -40,6 +40,9 @@ class Batyr(Piece):
         if captured_this_turn is None:
             captured_this_turn = []
 
+        if to_cell in captured_this_turn:
+            return False
+
         if cells.get(to_cell) is not None:
             return False
 

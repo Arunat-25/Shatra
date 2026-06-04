@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1
-
 # --- Frontend (Vite) ---
 FROM node:22-alpine AS frontend
 WORKDIR /app/frontend

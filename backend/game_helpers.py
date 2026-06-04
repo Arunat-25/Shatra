@@ -216,7 +216,14 @@ async def apply_move_result(
         )
 
     await set_game(room_id, game)
-    return build_move_response(game, result, prev_mover, from_cell, to_cell)
+    response = build_move_response(game, result, prev_mover, from_cell, to_cell)
+    if result.game_over:
+        from backend.timers import stop_game_timer
+
+        stop_game_timer(room_id)
+        from backend.game_archive import on_game_finished
+        await on_game_finished(room_id)
+    return response
 
 
 def ws_error_payload(code: str, **params) -> dict:

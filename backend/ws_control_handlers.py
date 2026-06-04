@@ -138,6 +138,8 @@ async def handle_offer_draw(
             "reason": "draw_agreed",
             "desk": keys_int_to_str(game.get("board", {})),
         })
+        from backend.game_archive import on_game_finished
+        await on_game_finished(room_id)
         return True
 
     if pending == my_color:
@@ -197,6 +199,8 @@ async def handle_resign(
         "reason": "resign",
         "desk": keys_int_to_str(game.get("board", {})),
     })
+    from backend.game_archive import on_game_finished
+    await on_game_finished(room_id)
     return True
 
 

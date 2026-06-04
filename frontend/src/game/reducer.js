@@ -25,12 +25,27 @@ function updateBoardState(state, desk, extra = {}) {
     countsByType,
     highlightedEssential: [],
     highlightedCaptured: [],
+    capturedGhostPieces: {},
     ...extra,
   };
 }
 
+function buildCapturedGhostPieces(state, payload) {
+  if (!payload?.position_for_mandatory_capture) return {};
+
+  const ghosts = { ...(state.capturedGhostPieces || {}) };
+  for (const pos of payload.captured_positions || []) {
+    const cell = Number(pos);
+    const piece = state.board?.[cell];
+    if (piece) ghosts[cell] = piece;
+  }
+  return ghosts;
+}
+
 export const initialGameState = {
   waiting: true,
+  roomType: null,
+  showInviteLink: false,
   joiningError: '',
   myColor: null,
   moversColor: null,
@@ -47,6 +62,7 @@ export const initialGameState = {
   gameOverMessageCode: '',
   highlightedEssential: [],
   highlightedCaptured: [],
+  capturedGhostPieces: {},
   lastMove: null,
   aiThinking: false,
   whiteCount: 0,
@@ -74,6 +90,12 @@ export function gameReducer(state, action) {
       return { ...initialGameState };
     case GAME_ACTIONS.SET_WAITING:
       return { ...state, waiting: true, joiningError: '' };
+    case GAME_ACTIONS.SET_WAITING_META:
+      return {
+        ...state,
+        roomType: action.payload?.roomType ?? state.roomType,
+        showInviteLink: Boolean(action.payload?.showInviteLink),
+      };
     case GAME_ACTIONS.SET_JOINING_ERROR:
       return { ...state, joiningError: action.payload };
 
@@ -180,9 +202,10 @@ export function gameReducer(state, action) {
 
     case GAME_ACTIONS.MOVE_MADE: {
       const newLastMove = lastMoveFromPayload(action.payload);
+      const posForMandatoryCapture = action.payload.position_for_mandatory_capture || null;
       return updateBoardState(state, action.payload.desk, {
         moversColor: action.payload.movers_color || state.moversColor,
-        posForMandatoryCapture: action.payload.position_for_mandatory_capture || null,
+        posForMandatoryCapture,
         canPass: !!action.payload.opportunity_pass_the_move,
         moveFrom: null,
         aiThinking: action.payload.aiThinking ?? false,
@@ -190,6 +213,7 @@ export function gameReducer(state, action) {
         historyFrom: null,
         historyTo: null,
         lastMove: newLastMove ?? state.lastMove,
+        capturedGhostPieces: buildCapturedGhostPieces(state, action.payload),
       });
     }
 
@@ -281,6 +305,7 @@ export function gameReducer(state, action) {
         moveFrom: null,
         highlightedEssential: [],
         highlightedCaptured: [],
+        capturedGhostPieces: {},
       };
     }
 

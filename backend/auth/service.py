@@ -31,6 +31,7 @@ from backend.auth.schemas import (
     UserPublic,
 )
 from backend.auth.constants import DISTRICTS
+from backend.config import settings
 from backend.db.models import RefreshToken, User
 
 
@@ -143,11 +144,17 @@ async def update_profile(db: AsyncSession, user: User, body: ProfileUpdateReques
         user.district = body.district
     user.updated_at = datetime.now(timezone.utc)
     await db.flush()
-    return UserPublic.model_validate(user)
+    return user_to_public(user)
+
+
+def is_user_admin(user: User) -> bool:
+    if user.is_admin:
+        return True
+    return str(user.id) in settings.admin_user_id_set
 
 
 def user_to_public(user: User) -> UserPublic:
-    return UserPublic.model_validate(user)
+    return UserPublic.model_validate(user).model_copy(update={"is_admin": is_user_admin(user)})
 
 
 async def _issue_tokens(db: AsyncSession, user: User) -> TokenResponse:
@@ -165,7 +172,7 @@ async def _issue_tokens(db: AsyncSession, user: User) -> TokenResponse:
     return TokenResponse(
         access_token=access,
         refresh_token=plain_refresh,
-        user=UserPublic.model_validate(user),
+        user=user_to_public(user),
     )
 
 

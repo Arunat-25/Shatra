@@ -1,12 +1,55 @@
 """Общие фикстуры для тестов Shatra."""
 
-import os
+import asyncio
 
-os.environ.setdefault("JWT_SECRET", "test-secret")
-
+import psycopg2
 import pytest
 
+import tests.test_env  # noqa: F401 — изолированная БД/Redis до импорта backend
+
 from backend.board_utils import get_starting_board
+from tests.test_env import SYNC_DB_URL
+
+
+def _ensure_schema_patches() -> None:
+    """Добавляет колонки из новых миграций, если БД создана через create_all_tables."""
+    conn = psycopg2.connect(SYNC_DB_URL)
+    conn.autocommit = True
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT 1 FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'presence_sessions'
+              AND column_name = 'last_seen_at'
+            """
+        )
+        if cur.fetchone() is None:
+            cur.execute(
+                "ALTER TABLE presence_sessions ADD COLUMN last_seen_at TIMESTAMPTZ"
+            )
+            cur.execute(
+                "UPDATE presence_sessions SET last_seen_at = connected_at"
+            )
+            cur.execute(
+                "CREATE INDEX IF NOT EXISTS ix_presence_sessions_last_seen_at "
+                "ON presence_sessions (last_seen_at)"
+            )
+    conn.close()
+
+
+def pytest_configure(config):
+    config.addinivalue_line(
+        "markers", "integration: full-stack tests with Redis and PostgreSQL"
+    )
+
+
+@pytest.fixture(scope="session", autouse=True)
+def ensure_test_db_schema():
+    from backend.db.session import create_all_tables
+
+    asyncio.run(create_all_tables())
+    _ensure_schema_patches()
 
 
 @pytest.fixture

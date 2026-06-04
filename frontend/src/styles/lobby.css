@@ -57,7 +57,7 @@ body:has(.app-shell--lobby) #root {
 
 .lobby-layout {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-template-rows: minmax(0, 1fr);
   gap: 8px;
   width: 100%;
@@ -70,8 +70,7 @@ body:has(.app-shell--lobby) #root {
 }
 
 .lobby-left,
-.lobby-right,
-.lobby-tutorial {
+.lobby-right {
   height: 100%;
   min-height: 0;
   box-sizing: border-box;
@@ -548,6 +547,13 @@ body:has(.app-shell--lobby) #root {
   min-height: calc(100vh - 40px);
   min-height: calc(100dvh - 40px);
   padding: 20px;
+}
+
+.app-shell--game .waiting-screen {
+  flex: 1 1 0;
+  min-height: 0;
+  height: auto;
+  box-sizing: border-box;
 }
 
 .waiting-content {

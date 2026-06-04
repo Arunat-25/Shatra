@@ -52,6 +52,8 @@ npm run dev
 
 Vite проксирует `/rooms` и `/ws` на backend (`API_HOST` в `vite.config.js`, по умолчанию `localhost:8000`).
 
+Звуки игры — сэмплы из [lila](https://github.com/lichess-org/lila) (набор piano, AGPL). См. [docs/SOUNDS.md](docs/SOUNDS.md). Обновить файлы: `./scripts/copy-lichess-sounds.sh`.
+
 ## Конфигурация
 
 Переменные окружения (см. [.env.example](.env.example)):
@@ -66,6 +68,15 @@ Vite проксирует `/rooms` и `/ws` на backend (`API_HOST` в `vite.co
 | `SENTRY_DSN` | Мониторинг ошибок (опционально) | — |
 | `DATABASE_URL` | PostgreSQL (asyncpg) | `postgresql+asyncpg://shatra:shatra@localhost:5432/shatra` |
 | `JWT_SECRET` | Секрет для JWT | *(обязательно сменить)* |
+| `ADMIN_USER_IDS` | UUID админов через запятую (без правки БД) | — |
+
+### Админ-панель
+
+- URL: `/admin` (только для пользователей с `is_admin` в БД или UUID в `ADMIN_USER_IDS`).
+- Назначить админа в БД: `UPDATE users SET is_admin = TRUE WHERE username = '...';`
+- Либо добавить UUID в `.env`: `ADMIN_USER_IDS=uuid1,uuid2`
+- API: `GET /api/admin/stats/registrations`, `/online`, `/games`
+- **Онлайн** учитывает WS в комнате и polling лобби (`GET /rooms?client_id=...`, TTL 25 с)
 
 ### Аккаунты
 
@@ -80,9 +91,15 @@ Vite проксирует `/rooms` и `/ws` на backend (`API_HOST` в `vite.co
 ```bash
 source .venv/bin/activate
 pip install -r requirements-dev.txt
+
+# Один раз (если postgres уже был без init-скрипта):
+./scripts/ensure-test-db.sh
+
 pytest tests/ -q
 cd frontend && npm test
 ```
+
+Pytest использует **отдельную БД** `shatra_test` и **Redis DB 1** (см. `tests/test_env.py`), чтобы не затирать dev-данные в `shatra` / Redis DB 0.
 
 Структура: [tests/README.md](tests/README.md).
 

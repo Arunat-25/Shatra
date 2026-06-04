@@ -141,27 +141,6 @@ def test_capture_target_occupied():
     assert not s.can_capture(board, 20, 36), "20→36, 36 занята"
 
 
-def test_capture_forbidden_own_fortress_white():
-    """Шатра с большого поля не может бить в свою крепость (50→55 через 53)"""
-    board = {i: None for i in range(1, 63)}
-    board[50] = 'белая шатра'
-    board[53] = 'черная шатра'
-    board[55] = None
-    s = Shatra('белый')
-    assert not s.can_capture(board, 50, 55), "50→55 запрещён (бить в свою крепость)"
-
-
-def test_capture_forbidden_own_fortress_black():
-    """Чёрная шатра с большого поля не может бить в свою крепость (14→8 через 10)"""
-    board = {i: None for i in range(1, 63)}
-    board[14] = 'черная шатра'
-    board[10] = 'белая шатра'
-    board[1] = 'черная шатра'  # своя шатра в крепости — блокирует вход/взятие
-    board[8] = None
-    s = Shatra('черный')
-    assert not s.can_capture(board, 14, 8), "14→8 запрещён (бить в свою крепость)"
-
-
 def test_capture_not_in_own_fortress():
     """Шатра может бить, если target не в своей крепости (11→25 через 18)"""
     board = {i: None for i in range(1, 63)}

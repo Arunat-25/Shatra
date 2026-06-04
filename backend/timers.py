@@ -36,8 +36,10 @@ async def game_ticker(room_id: str):
                     stop_game_timer(room_id)
                     return
 
-                mover = None
                 game = await get_game(room_id)
+                if game and game.get("game_over"):
+                    stop_game_timer(room_id)
+                    return
                 if game:
                     mover = game.get("mover")
 
@@ -91,6 +93,9 @@ async def handle_timeout(room_id: str, timed_out_color: str):
     game = await get_game(room_id)
     if game:
         game["game_over"] = True
+        game["winner_color"] = winner
+        game["winner"] = winner
+        game["reason"] = "timeout"
         await set_game(room_id, game)
 
     await manager.send_to_room(room_id, {
@@ -103,6 +108,8 @@ async def handle_timeout(room_id: str, timed_out_color: str):
 
     stop_game_timer(room_id)
     logger.info("Timeout in %s: %s ran out of time", room_id, timed_out_color)
+    from backend.game_archive import on_game_finished
+    await on_game_finished(room_id)
 
 
 def stop_game_timer(room_id: str):
@@ -148,6 +155,8 @@ async def disconnect_timer(room_id: str, remaining_ws: WebSocket, disconnected_c
             })
 
             stop_game_timer(room_id)
+            from backend.game_archive import on_game_finished
+            await on_game_finished(room_id)
 
         disconnect_timers.pop(room_id, None)
     except asyncio.CancelledError:

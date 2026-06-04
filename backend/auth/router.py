@@ -1,19 +1,22 @@
 """Маршруты /api/auth."""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.auth import service
+from backend.auth import games as games_service
 from backend.auth.dependencies import get_current_user, get_current_user_public
 from backend.auth.schemas import (
     ChangePasswordRequest,
     DistrictsResponse,
+    FinishedGameSummary,
     LoginRequest,
     MessageResponse,
     ProfileUpdateRequest,
     RefreshRequest,
     RegisterRequest,
     TokenResponse,
+    UserGamesListResponse,
     UserPublic,
 )
 from backend.db.models import User
@@ -74,3 +77,19 @@ async def update_me(
     result = await service.update_profile(db, user, body)
     await db.commit()
     return result
+
+
+@router.get("/me/games", response_model=UserGamesListResponse)
+async def my_games(
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    items, total = await games_service.list_user_games(db, user.id, limit=limit, offset=offset)
+    return UserGamesListResponse(
+        items=[FinishedGameSummary(**item) for item in items],
+        total=total,
+        limit=limit,
+        offset=offset,
+    )

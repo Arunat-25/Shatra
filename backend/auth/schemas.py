@@ -2,6 +2,7 @@
 
 import re
 import uuid
+from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
@@ -92,6 +93,7 @@ class UserPublic(BaseModel):
     first_name: str | None
     last_name: str | None
     district: str | None
+    is_admin: bool = False
 
     model_config = {"from_attributes": True}
 
@@ -109,3 +111,25 @@ class MessageResponse(BaseModel):
 
 class DistrictsResponse(BaseModel):
     districts: list[str]
+
+
+class FinishedGameSummary(BaseModel):
+    id: uuid.UUID
+    room_id: str
+    room_type: str
+    finished_at: datetime
+    started_at: datetime | None
+    my_color: Literal["белый", "черный"]
+    result: Literal["win", "loss", "draw"]
+    reason: str | None
+    opponent_display: str
+    moves_count: int
+    time_control: int | None
+    increment: int | None
+
+
+class UserGamesListResponse(BaseModel):
+    items: list[FinishedGameSummary]
+    total: int
+    limit: int
+    offset: int

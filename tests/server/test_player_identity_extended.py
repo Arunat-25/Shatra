@@ -72,7 +72,9 @@ class TestListRoomsCreator:
             patch("backend.room_manager.scan_keys", new_callable=AsyncMock, return_value=["room:priv"]),
             patch("backend.room_manager.get_raw", new_callable=AsyncMock, return_value=raw),
         ):
-            assert await list_rooms() == {"rooms": []}
+            result = await list_rooms()
+            assert result["rooms"] == []
+            assert result["stats"]["active_games"] == 0
 
 
 @pytest.mark.asyncio

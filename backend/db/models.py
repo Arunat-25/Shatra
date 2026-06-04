@@ -3,8 +3,8 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKey, String, Text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -26,6 +26,7 @@ class User(Base):
     first_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     last_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     district: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow, onupdate=_utcnow
@@ -49,3 +50,55 @@ class RefreshToken(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
     user: Mapped[User] = relationship(back_populates="refresh_tokens")
+
+
+class FinishedGame(Base):
+    __tablename__ = "finished_games"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    room_id: Mapped[str] = mapped_column(String(8), index=True)
+    room_type: Mapped[str] = mapped_column(String(16))
+
+    white_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    black_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    white_client_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    black_client_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    white_is_anonymous: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    black_is_anonymous: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+
+    white_user: Mapped[User | None] = relationship(foreign_keys=[white_user_id])
+    black_user: Mapped[User | None] = relationship(foreign_keys=[black_user_id])
+
+    winner_color: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    reason: Mapped[str | None] = mapped_column(String(32), nullable=True)
+
+    time_control: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    increment: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    timer_white_final: Mapped[float | None] = mapped_column(Float, nullable=True)
+    timer_black_final: Mapped[float | None] = mapped_column(Float, nullable=True)
+
+    moves_count: Mapped[int] = mapped_column(Integer, default=0)
+    move_history: Mapped[list] = mapped_column(JSONB, default=list)
+    final_board: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    finished_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+
+class PresenceSession(Base):
+    __tablename__ = "presence_sessions"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    client_id: Mapped[str] = mapped_column(String(64), index=True)
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    is_anonymous: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    room_id: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    connected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, index=True)
+    disconnected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)

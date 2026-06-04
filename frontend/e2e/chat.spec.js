@@ -7,9 +7,11 @@ test('private invite shows QR code', async ({ page }) => {
   await page.getByRole('button', { name: /друг|friend|private|чакыр/i }).click();
   await page.locator('.btn-setup-create').click();
 
-  await expect(page).toHaveURL(/mode=private/);
+  await expect(page).toHaveURL(/\/[a-f0-9]{8}$/);
+  await expect(page).not.toHaveURL(/mode=private/);
   await expect(page.locator('.waiting-qr')).toBeVisible({ timeout: 15_000 });
   await expect(page.locator('.waiting-link-url')).toBeVisible();
+  await expect(page.locator('.waiting-link-url')).not.toContainText('mode=private');
 });
 
 test('PvP chat: guest sees host message', async ({ browser }) => {

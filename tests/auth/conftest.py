@@ -1,23 +1,13 @@
 """Фикстуры для тестов аутентификации."""
 
-import os
-
-os.environ.setdefault(
-    "DATABASE_URL",
-    "postgresql+asyncpg://shatra:shatra@localhost:5432/shatra",
-)
-os.environ.setdefault("JWT_SECRET", "test-secret")
-os.environ.setdefault("REDIS_HOST", "localhost")
-
 import psycopg2
 import pytest
 from fastapi.testclient import TestClient
 
-from main import app
+import tests.test_env  # noqa: F401
 
-SYNC_DB_URL = os.environ["DATABASE_URL"].replace(
-    "postgresql+asyncpg://", "postgresql://"
-)
+from main import app
+from tests.test_env import SYNC_DB_URL
 
 VALID_PASSWORD = "secret12"
 
@@ -34,7 +24,7 @@ def clean_auth_data():
     conn = psycopg2.connect(SYNC_DB_URL)
     conn.autocommit = True
     with conn.cursor() as cur:
-        cur.execute("TRUNCATE refresh_tokens, users CASCADE")
+        cur.execute("TRUNCATE finished_games, refresh_tokens, users CASCADE")
     conn.close()
     yield
 
