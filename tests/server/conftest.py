@@ -1,7 +1,5 @@
 """Fixtures for server tests that touch PostgreSQL finished_games."""
 
-import asyncio
-
 import psycopg2
 import pytest
 from fastapi.testclient import TestClient
@@ -41,13 +39,6 @@ def ensure_users_for_room(room: dict) -> None:
                 (uid_str, username, username.lower()),
             )
     conn.close()
-
-
-@pytest.fixture(scope="session", autouse=True)
-def ensure_finished_games_table():
-    from backend.db.session import create_all_tables
-
-    asyncio.run(create_all_tables())
 
 
 @pytest.fixture(autouse=True)
