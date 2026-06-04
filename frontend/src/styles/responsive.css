@@ -108,7 +108,8 @@
   }
 
   .lobby-left,
-  .lobby-right {
+  .lobby-right,
+  .lobby-chat {
     grid-column: 1;
     grid-row: auto;
     height: auto;
@@ -117,6 +118,7 @@
 
   .lobby-left { order: 1; }
   .lobby-right { order: 2; }
+  .lobby-chat { order: 3; }
 
   .lobby-left {
     padding: 32px 24px;
@@ -124,6 +126,11 @@
 
   .lobby-right {
     max-height: min(42vh, 380px);
+    padding: 22px 20px;
+  }
+
+  .lobby-chat {
+    max-height: min(40vh, 360px);
     padding: 22px 20px;
   }
 
@@ -149,7 +156,8 @@
     padding: 28px 22px;
   }
 
-  .lobby-right {
+  .lobby-right,
+  .lobby-chat {
     padding: 20px 18px;
   }
 
@@ -185,13 +193,14 @@
 @media (max-width: 540px) {
   .board { padding: 8px; border-radius: var(--radius-lg); }
 
-  .lobby-left, .lobby-right { padding: 24px 18px; }
+  .lobby-left, .lobby-right, .lobby-chat { padding: 24px 18px; }
   .app-shell--lobby .lobby-left {
     padding: 28px 18px;
   }
   .lobby-left h1 { font-size: 1.75rem; }
   .lobby-subtitle { margin-bottom: 24px; }
   .lobby-right { max-height: min(38vh, 340px); }
+  .lobby-chat { max-height: min(38vh, 340px); }
   .action-card { padding: 12px 14px; }
   .action-card__icon { width: 36px; height: 36px; }
 

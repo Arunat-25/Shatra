@@ -9,9 +9,11 @@ from typing import Any, Callable
 
 import redis
 
-REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
-REDIS_PORT = int(os.environ.get("REDIS_PORT", "6379"))
-REDIS_DB = int(os.environ.get("REDIS_DB", "1"))
+from backend.config import settings
+
+REDIS_HOST = settings.redis_host
+REDIS_PORT = settings.redis_port
+REDIS_DB = settings.redis_db
 
 
 def new_client_id() -> str:
@@ -23,6 +25,20 @@ def ws_path(room_id: str, client_id: str, access_token: str | None = None) -> st
     if access_token:
         path += f"&access_token={access_token}"
     return path
+
+
+def lobby_ws_path(client_id: str, access_token: str | None = None) -> str:
+    path = f"/ws/lobby/?client_id={client_id}"
+    if access_token:
+        path += f"&access_token={access_token}"
+    return path
+
+
+def read_lobby_chat_redis() -> list[dict]:
+    raw = redis_client().get("lobby_chat:messages")
+    if not raw:
+        return []
+    return json.loads(raw)
 
 
 def redis_client() -> redis.Redis:
@@ -69,6 +85,18 @@ def wait_chat(ws, *, text: str | None = None) -> dict:
 
 def wait_chat_history(ws) -> dict:
     return receive_until(ws, lambda m: m.get("type") == "chat_history")
+
+
+def wait_lobby_chat_history(ws) -> dict:
+    return receive_until(ws, lambda m: m.get("type") == "chat_history")
+
+
+def wait_lobby_chat(ws, *, text: str | None = None) -> dict:
+    return receive_until(
+        ws,
+        lambda m: m.get("type") == "chat"
+        and (text is None or m.get("text") == text),
+    )
 
 
 def wait_error_code(ws, code: str) -> dict:

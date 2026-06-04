@@ -32,7 +32,7 @@ export default function Game() {
   );
   const { message, messageType, showMessage } = useMessage();
 
-  const { send, wsReconnecting, stateRef } = useGameWebSocket(
+  const { send, wsReconnecting, wsConnected, stateRef } = useGameWebSocket(
     roomId,
     modeAi,
     { myColorRef, state, dispatch, handleServerMessage, showMessage, navigate },
@@ -156,6 +156,7 @@ export default function Game() {
           state={state}
           modeAi={modeAi}
           wsReconnecting={wsReconnecting}
+          wsConnected={wsConnected}
           message={message}
           messageType={messageType}
           actionsBar={sidebarActions}

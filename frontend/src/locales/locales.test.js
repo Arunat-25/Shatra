@@ -108,6 +108,10 @@ const REQUIRED_KEYS = [
   'chat.show',
   'lobby.onlineCount',
   'lobby.activeGamesCount',
+  'lobbyChat.title',
+  'lobbyChat.empty',
+  'lobbyChat.placeholder',
+  'lobbyChat.cooldownHint',
   'auth.gamesTitle',
   'game.qrLabel',
 ];

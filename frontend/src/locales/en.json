@@ -187,6 +187,13 @@
     "onlineCount": "Online: {{count}}",
     "activeGamesCount": "Games in progress: {{count}}"
   },
+  "lobbyChat": {
+    "title": "Lobby chat",
+    "empty": "No messages yet",
+    "placeholder": "Message to lobby…",
+    "send": "Send",
+    "cooldownHint": "You can send one message every 3 seconds"
+  },
   "setup": {
     "title": "Game settings",
     "colorLabel": "Piece color",

@@ -1,5 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { expectChatMessage, sendChatMessage, waitForGameBoard } from './helpers.js';
+import {
+  expectChatMessage,
+  sendChatMessage,
+  waitForGameBoard,
+  waitForGameChatReady,
+} from './helpers.js';
 
 test('private invite shows QR code', async ({ page }) => {
   await page.goto('/');
@@ -30,6 +35,8 @@ test('PvP chat: guest sees host message', async ({ browser }) => {
 
   await waitForGameBoard(hostPage);
   await waitForGameBoard(guestPage);
+  await waitForGameChatReady(hostPage);
+  await waitForGameChatReady(guestPage);
 
   await sendChatMessage(hostPage, 'playwright hello');
   await expectChatMessage(hostPage, 'playwright hello');
@@ -38,7 +45,9 @@ test('PvP chat: guest sees host message', async ({ browser }) => {
   await hostPage.getByRole('button', { name: /скрыть|hide/i }).click();
   await sendChatMessage(guestPage, 'hidden from host');
 
-  await expect(hostPage.locator('.game-chat-text', { hasText: 'hidden from host' })).toHaveCount(0);
+  await expect(
+    hostPage.locator('.room-left .game-chat-text', { hasText: 'hidden from host' }),
+  ).toHaveCount(0);
   await expectChatMessage(guestPage, 'hidden from host');
 
   await hostContext.close();

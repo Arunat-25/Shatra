@@ -8,6 +8,7 @@ export default function GameDesktopLayout({
   state,
   modeAi,
   wsReconnecting,
+  wsConnected,
   message,
   messageType,
   actionsBar,
@@ -54,7 +55,7 @@ export default function GameDesktopLayout({
           <GameChat
             messages={state.chatMessages}
             onSend={onSendChat}
-            disabled={wsReconnecting || state.opponentDisconnected}
+            disabled={!wsConnected || wsReconnecting || state.opponentDisconnected}
             chatHidden={chatHidden}
             onToggleHidden={onToggleChatHidden}
             roomId={roomId}

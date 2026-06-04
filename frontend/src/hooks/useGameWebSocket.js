@@ -93,7 +93,12 @@ export default function useGameWebSocket(roomId, modeAi, {
     showMessage(message, MSG_ERROR);
   }, [navigate, showMessage]);
 
-  const { send } = useWebSocket(roomId, handleWsMessage, handleWsError, handleWsStatus);
+  const { send, wsConnected } = useWebSocket(
+    roomId,
+    handleWsMessage,
+    handleWsError,
+    handleWsStatus,
+  );
 
-  return { send, wsReconnecting, stateRef };
+  return { send, wsReconnecting, wsConnected, stateRef };
 }

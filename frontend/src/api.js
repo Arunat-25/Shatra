@@ -74,6 +74,14 @@ export function getWsUrl(roomId) {
   return `${protocol}//${window.location.host}/ws/${roomId}/?${params.toString()}`;
 }
 
+export function getLobbyWsUrl() {
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const params = new URLSearchParams({ client_id: getClientId() });
+  const token = getAccessToken();
+  if (token) params.set('access_token', token);
+  return `${protocol}//${window.location.host}/ws/lobby/?${params.toString()}`;
+}
+
 // ===== REST API =====
 
 export function createRoom(

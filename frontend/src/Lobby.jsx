@@ -6,6 +6,7 @@ import useRoomPolling from './hooks/useRoomPolling';
 import RoomCard from './components/RoomCard';
 import GameEmblem from './components/GameEmblem';
 import GameSetupPicker from './components/GameSetupPicker';
+import LobbyChat from './components/LobbyChat';
 import { ROOM_PUBLIC, ROOM_PRIVATE, ROOM_AI, POLL_INTERVAL } from './constants';
 export default function Lobby() {
   const { t } = useTranslation();
@@ -184,6 +185,8 @@ export default function Lobby() {
           )}
         </div>
       </div>
+
+      <LobbyChat />
     </div>
     </div>
   );

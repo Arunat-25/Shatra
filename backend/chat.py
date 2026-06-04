@@ -8,7 +8,8 @@ from fastapi import WebSocket
 
 from backend.message_codes import ws_error
 from backend.player_identity import display_name
-from backend.state import get_room, redis_client, set_room
+from backend import state
+from backend.state import get_room, set_room
 from backend.ws_manager import manager
 
 CHAT_MAX_LENGTH = 200
@@ -47,22 +48,22 @@ def _too_soon(room_data: dict, client_id: str, now: float) -> bool:
     return (now - last_ts) < CHAT_MIN_INTERVAL
 
 
-def sanitize_chat_text(raw: str) -> str | None:
+def sanitize_chat_text(raw: str, max_length: int = CHAT_MAX_LENGTH) -> str | None:
     text = html.unescape(raw or "").strip()
     text = _TAG_RE.sub("", text)
     text = " ".join(text.split())
     if not text:
         return None
-    return text[:CHAT_MAX_LENGTH]
+    return text[:max_length]
 
 
 async def _check_rate_limit(room_id: str, client_id: str) -> bool:
-    if redis_client is None:
+    if state.redis_client is None:
         return True
     key = f"chat_rate:{room_id}:{client_id}"
-    count = await redis_client.incr(key)
+    count = await state.redis_client.incr(key)
     if count == 1:
-        await redis_client.expire(key, CHAT_RATE_WINDOW)
+        await state.redis_client.expire(key, CHAT_RATE_WINDOW)
     return count <= CHAT_RATE_LIMIT
 
 

@@ -27,7 +27,8 @@ def configure_test_env() -> None:
     os.environ.setdefault("JWT_SECRET", "test-secret")
     os.environ.setdefault("REDIS_HOST", "localhost")
     os.environ.setdefault("REDIS_PORT", "6379")
-    os.environ.setdefault("REDIS_DB", "1")
+    # Перебиваем .env (часто redis_db=0), чтобы pytest и приложение делили одну DB.
+    os.environ["REDIS_DB"] = "1"
 
 
 configure_test_env()

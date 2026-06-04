@@ -54,10 +54,13 @@ def ensure_finished_games_table():
 def reset_ws_manager_connections():
     """Isolate unit tests from live WS rooms left by integration tests."""
     from backend.ws_manager import manager
+    from backend.lobby_chat import lobby_chat_manager
 
     manager.connections.clear()
+    lobby_chat_manager.connections.clear()
     yield
     manager.connections.clear()
+    lobby_chat_manager.connections.clear()
 
 
 @pytest.fixture(autouse=True)

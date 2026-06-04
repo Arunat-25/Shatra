@@ -187,6 +187,13 @@
     "onlineCount": "Онлайн: {{count}}",
     "activeGamesCount": "Идут партии: {{count}}"
   },
+  "lobbyChat": {
+    "title": "Общий чат",
+    "empty": "Пока нет сообщений",
+    "placeholder": "Сообщение в общий чат…",
+    "send": "Отпр.",
+    "cooldownHint": "Можно писать раз в 3 секунды"
+  },
   "setup": {
     "title": "Настройки игры",
     "colorLabel": "Цвет фигур",

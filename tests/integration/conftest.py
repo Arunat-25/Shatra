@@ -14,6 +14,16 @@ from tests.integration.helpers import flush_redis, new_client_id
 from tests.test_env import SYNC_DB_URL
 
 
+def _reset_lobby_chat_sync() -> None:
+    """Сброс без asyncio.run — иначе redis_client привязывается к закрытому loop."""
+    import backend.lobby_chat as lobby_chat_mod
+    from backend.lobby_chat import lobby_chat_manager
+
+    lobby_chat_manager.connections.clear()
+    lobby_chat_mod._memory_messages = []
+    flush_redis()
+
+
 def pytest_configure(config):
     config.addinivalue_line(
         "markers", "integration: full-stack tests with Redis and PostgreSQL"
@@ -28,7 +38,7 @@ def client():
 
 @pytest.fixture(autouse=True)
 def clean_db_and_redis():
-    flush_redis()
+    _reset_lobby_chat_sync()
     conn = psycopg2.connect(SYNC_DB_URL)
     conn.autocommit = True
     with conn.cursor() as cur:
@@ -37,7 +47,7 @@ def clean_db_and_redis():
         )
     conn.close()
     yield
-    flush_redis()
+    _reset_lobby_chat_sync()
 
 
 @pytest.fixture

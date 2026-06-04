@@ -19,6 +19,7 @@ from datetime import datetime, timezone
 from backend.room_manager import create_room, list_rooms, join_room
 from backend.presence import touch_lobby_presence, count_online_for_lobby, end_lobby_sessions
 from backend.session import websocket_endpoint
+from backend.session.lobby_ws import lobby_websocket_endpoint
 from backend.state import init_redis, close_redis, get_room
 from backend.db.session import init_db, close_db
 from backend.auth.router import router as auth_router
@@ -140,6 +141,11 @@ async def room_status_api(room_id: str):
 
 
 # === WebSocket ===
+
+@app.websocket("/ws/lobby/")
+async def lobby_ws_endpoint(websocket: WebSocket):
+    await lobby_websocket_endpoint(websocket)
+
 
 @app.websocket("/ws/{room_id}/")
 async def ws_endpoint(websocket: WebSocket, room_id: str):

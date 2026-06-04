@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { getWsUrl } from '../api';
 import {
   classifyClose,
@@ -8,6 +8,7 @@ import {
 } from '../wsReconnect';
 
 export default function useWebSocket(roomId, onMessage, onError, onStatus) {
+  const [wsConnected, setWsConnected] = useState(false);
   const wsRef = useRef(null);
   const intentionalCloseRef = useRef(false);
   const reconnectTimerRef = useRef(null);
@@ -46,6 +47,7 @@ export default function useWebSocket(roomId, onMessage, onError, onStatus) {
     }
 
     intentionalCloseRef.current = false;
+    setWsConnected(false);
     const url = getWsUrl(roomId);
     const ws = new WebSocket(url);
     wsRef.current = ws;
@@ -60,6 +62,7 @@ export default function useWebSocket(roomId, onMessage, onError, onStatus) {
     };
 
     ws.onopen = () => {
+      setWsConnected(true);
       reconnectAttemptsRef.current = 0;
       reconnectWarningShownRef.current = false;
       clearReconnectTimer();
@@ -68,6 +71,7 @@ export default function useWebSocket(roomId, onMessage, onError, onStatus) {
     };
 
     ws.onclose = (event) => {
+      setWsConnected(false);
       if (intentionalCloseRef.current) {
         return;
       }
@@ -157,5 +161,5 @@ export default function useWebSocket(roomId, onMessage, onError, onStatus) {
     wsRef.current?.close();
   }, [clearReconnectTimer]);
 
-  return { send, close, retryConnect, wsRef, intentionalCloseRef };
+  return { send, close, retryConnect, wsRef, intentionalCloseRef, wsConnected };
 }

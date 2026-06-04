@@ -187,6 +187,13 @@
     "onlineCount": "Улустын тоозы: {{count}}",
     "activeGamesCount": "Ӧдӱп jаткан ойындардыҥ тоозы: {{count}}"
   },
+  "lobbyChat": {
+    "title": "Улап чат",
+    "empty": "Ээ мында биле јок",
+    "placeholder": "Улап чатка јаз…",
+    "send": "Јӱӱр",
+    "cooldownHint": "3 секундта бир јазыны јеткилер"
+  },
   "setup": {
     "title": "Ойыныҥ кӧрӱмдери",
     "colorLabel": "Таштардыҥ ӧҥи",
