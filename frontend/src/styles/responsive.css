@@ -32,6 +32,7 @@
     --app-chrome-panel-pad-block: 4px;
     --app-chrome-panel-pad-inline: 6px;
     --app-chrome-control-height: 32px;
+    --app-chrome-font-size: 0.82rem;
   }
 
   .app-top-end {
@@ -52,11 +53,9 @@
 
   .app-auth-nav__link {
     padding: 0 10px;
-    font-size: 0.82rem;
   }
 
   .tutorial-tab {
-    font-size: 0.82rem;
     padding: 0 10px;
   }
 
@@ -136,6 +135,12 @@
   }
 
   .lobby-left h1 { font-size: 2rem; }
+
+  html.app-shell--game-nav-compact .app-shell--lobby .lobby-emblem,
+  html.app-shell--game-nav-compact .app-shell--lobby .lobby-left h1,
+  html.app-shell--game-nav-compact .app-shell--lobby .lobby-subtitle {
+    max-width: 100%;
+  }
 }
 
 /* Узкое окно на «широком» лобби: две колонки, но меньше отступы */
@@ -174,10 +179,13 @@
   .game-header .turn-indicator { font-size: 0.72rem; padding: 4px 10px; }
   .game-header .player-id { display: none; }
 
-  .waiting-content { padding: 36px 28px; }
-  .waiting-content--invite { padding: 32px 20px 28px; }
-  .waiting-link-row { flex-direction: row; align-items: flex-start; }
-  .waiting-invite-heading { letter-spacing: 0.08em; }
+  .waiting-content { padding: 24px 18px; }
+  .waiting-content--invite { padding: 18px 14px 16px; }
+  .waiting-invite-share { flex-direction: column; align-items: center; }
+  .waiting-invite-link-block { width: 100%; }
+  .waiting-link-row { flex-direction: column; align-items: stretch; }
+  .waiting-invite-share .btn-copy-icon { width: 100%; height: 40px; }
+  .waiting-invite-heading { font-size: 1.25rem; letter-spacing: 0.05em; }
 
   .keyboard-hint { display: none; }
 }

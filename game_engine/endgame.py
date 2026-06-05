@@ -60,3 +60,9 @@ def add_to_history(position_history: dict, positions: dict):
     """Добавляет позицию в историю для обнаружения повторений."""
     pos_key = str(sorted(positions.items()))
     position_history[pos_key] = position_history.get(pos_key, 0) + 1
+
+
+def record_position(position_history: dict | None, positions: dict) -> None:
+    """Записать позицию после хода (для ничьей по троекратному повтору)."""
+    if position_history is not None:
+        add_to_history(position_history, positions)

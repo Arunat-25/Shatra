@@ -165,6 +165,10 @@
   --app-chrome-bar-height: calc(
     var(--app-chrome-panel-pad-block) * 2 + var(--app-chrome-control-height)
   );
+  --app-chrome-font-family: inherit;
+  --app-chrome-font-size: 0.9rem;
+  --app-chrome-font-weight: 500;
+  --app-chrome-letter-spacing: normal;
 }
 
 /* Контент ниже фиксированных «Обучение» (слева) и навигации с языком (справа) */
@@ -202,6 +206,11 @@
   opacity: 0.9;
 }
 
+.app-chrome-nav-tabs {
+  gap: 4px;
+}
+
+.app-chrome-nav-tabs,
 .app-tutorial-tab,
 .app-locale-nav,
 .app-auth-nav {
@@ -257,7 +266,10 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.85rem;
+  font-family: var(--app-chrome-font-family);
+  font-size: var(--app-chrome-font-size);
+  font-weight: var(--app-chrome-font-weight);
+  letter-spacing: var(--app-chrome-letter-spacing);
   color: var(--text-muted);
   padding: 0 4px 0 6px;
 }
@@ -269,8 +281,10 @@
   box-sizing: border-box;
   height: var(--app-chrome-control-height);
   padding: 0 14px;
-  font-size: 0.9rem;
-  font-weight: 500;
+  font-family: var(--app-chrome-font-family);
+  font-size: var(--app-chrome-font-size);
+  font-weight: var(--app-chrome-font-weight);
+  letter-spacing: var(--app-chrome-letter-spacing);
   line-height: 1;
   color: var(--text-primary);
   text-decoration: none;
@@ -316,9 +330,10 @@
   box-sizing: border-box;
   height: var(--app-chrome-control-height);
   padding: 0 14px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  letter-spacing: normal;
+  font-family: var(--app-chrome-font-family);
+  font-size: var(--app-chrome-font-size);
+  font-weight: var(--app-chrome-font-weight);
+  letter-spacing: var(--app-chrome-letter-spacing);
   line-height: 1;
   color: var(--text-primary);
   background: transparent;
@@ -336,7 +351,7 @@
 
 .tutorial-tab.is-active {
   color: var(--text-primary);
-  font-weight: 500;
+  font-weight: var(--app-chrome-font-weight);
 }
 
 .tutorial-tab:focus-visible {
@@ -354,7 +369,10 @@
   align-items: center;
   gap: 4px;
   height: var(--app-chrome-control-height);
-  font-size: 0.75rem;
+  font-family: var(--app-chrome-font-family);
+  font-size: var(--app-chrome-font-size);
+  font-weight: var(--app-chrome-font-weight);
+  letter-spacing: var(--app-chrome-letter-spacing);
 }
 
 .locale-switcher__item {
@@ -444,4 +462,272 @@
 
 .profile-games-load-more {
   margin-top: 8px;
+}
+
+.bug-report-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.bug-report-modal {
+  max-width: 480px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+}
+
+.bug-report-textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 1rem;
+  font-family: inherit;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.bug-report-preview {
+  display: block;
+  max-width: 100%;
+  max-height: 200px;
+  margin-top: 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.bug-report-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.bug-report-success {
+  text-align: center;
+  color: var(--gold);
+  font-size: 1rem;
+  padding: 16px 0;
+}
+
+.bug-report-counter {
+  margin: 6px 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+.bug-report-counter--over {
+  color: var(--color-accent, #c2410c);
+}
+
+.bug-report-hint {
+  margin: 4px 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* Compact mobile nav: hamburger + drawer (game, lobby, etc.) */
+.app-top-start--compact {
+  gap: 0;
+}
+
+html.app-shell--game-nav-compact {
+  --auth-nav-inset-top: max(4px, env(safe-area-inset-top));
+  --auth-nav-inset-start: 6px;
+}
+
+.app-nav-menu-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--app-chrome-bar-height);
+  height: var(--app-chrome-bar-height);
+  min-width: var(--app-chrome-bar-height);
+  min-height: var(--app-chrome-bar-height);
+  padding: 0;
+  box-sizing: border-box;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+}
+
+html.app-shell--game-nav-compact .app-nav-menu-toggle {
+  width: 28px;
+  height: 20px;
+  min-width: 28px;
+  min-height: 20px;
+  padding: 0 4px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  box-shadow: none;
+  color: var(--text-muted);
+}
+
+html.app-shell--game-nav-compact .app-nav-menu-toggle svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2.25;
+}
+
+.app-nav-menu-toggle:hover {
+  background: var(--bg-surface-hover);
+}
+
+html.app-shell--game-nav-compact .app-nav-menu-toggle:hover {
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--text-primary);
+}
+
+.app-nav-menu-toggle:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.app-nav-menu-toggle[aria-expanded='true'] {
+  background: var(--bg-surface-hover);
+  color: var(--gold);
+}
+
+.app-nav-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1050;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
+.app-nav-drawer {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: min(280px, 85vw);
+  max-height: 100%;
+  overflow-y: auto;
+  padding: max(12px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  background: var(--bg-elevated);
+  border-right: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-lg);
+  animation: slideInLeft 0.22s var(--ease-out);
+}
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-100%);
+    opacity: 0.6;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.app-nav-drawer__brand {
+  font-family: var(--font-display, inherit);
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  color: var(--gold);
+  text-decoration: none;
+  padding: 8px 4px 12px;
+}
+
+.app-nav-drawer__brand:hover {
+  color: var(--gold-bright);
+}
+
+.app-nav-drawer__section {
+  padding: 4px 0;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.app-nav-drawer__section:first-of-type {
+  border-top: none;
+}
+
+.app-nav-drawer__link {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: var(--app-chrome-control-height);
+  padding: 8px 4px;
+  font-family: var(--app-chrome-font-family);
+  font-size: var(--app-chrome-font-size);
+  font-weight: var(--app-chrome-font-weight);
+  letter-spacing: var(--app-chrome-letter-spacing);
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+.app-nav-drawer__link:hover {
+  background: var(--bg-surface-hover);
+}
+
+.app-nav-drawer__section .tutorial-tab {
+  width: 100%;
+  justify-content: flex-start;
+  padding: 8px 4px;
+  height: auto;
+  min-height: var(--app-chrome-control-height);
+}
+
+.app-nav-drawer__section--locale .locale-switcher {
+  padding: 8px 4px;
+}
+
+.app-nav-drawer__section--account .app-auth-nav--drawer {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  height: auto;
+  min-height: 0;
+  padding: 8px 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  animation: none;
+}
+
+.app-nav-drawer__section--account .app-auth-nav--drawer .app-auth-nav__username {
+  max-width: none;
+  padding: 8px 4px 4px;
+}
+
+.app-nav-drawer__section--account .app-auth-nav--drawer .app-auth-nav__link,
+.app-nav-drawer__section--account .app-auth-nav--drawer .app-auth-nav__icon-btn {
+  justify-content: flex-start;
+  width: 100%;
+  height: auto;
+  min-height: var(--app-chrome-control-height);
+  padding: 8px 4px;
+}
+
+.app-nav-drawer__section--account .app-auth-nav--drawer .app-auth-nav__icon-btn {
+  width: 100%;
+}
+
+html.app-shell--game-nav-compact .app-top-end {
+  display: none;
 }

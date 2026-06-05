@@ -39,6 +39,7 @@ async def create_room(request: CreateRoomRequest, user: User | None = None) -> d
         increment=request.increment,
         creator_client_id=request.creator_client_id,
         creator_color_preference=request.color_preference,
+        ai_difficulty="strong" if request.type == "ai" else "easy",
     )
     if user:
         room.creator_user_id = str(user.id)

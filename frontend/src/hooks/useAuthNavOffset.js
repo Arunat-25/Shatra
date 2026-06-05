@@ -2,8 +2,17 @@ import { useLayoutEffect, useRef } from 'react';
 
 const DEFAULT_CHROME_OFFSET = 72;
 
-/** Measures fixed top chrome (left + right) and sets --app-top-chrome-offset on :root. */
-export default function useAuthNavOffset(deps = [], topStartRef = null, topEndRef = null) {
+/**
+ * Measures fixed top chrome and sets --app-top-chrome-offset on :root.
+ * When menuToggleRef is provided (compact game nav), only the toggle button is measured.
+ */
+export default function useAuthNavOffset(
+  deps = [],
+  topStartRef = null,
+  topEndRef = null,
+  menuToggleRef = null,
+  compactMode = false,
+) {
   const navRef = useRef(null);
 
   useLayoutEffect(() => {
@@ -11,18 +20,23 @@ export default function useAuthNavOffset(deps = [], topStartRef = null, topEndRe
 
     const update = () => {
       const nav = navRef.current;
-      const topStart = topStartRef?.current;
-      const topEnd = topEndRef?.current;
+      const menuToggle = menuToggleRef?.current;
       let chromeBottom = 0;
 
-      if (topEnd) {
-        chromeBottom = Math.max(chromeBottom, topEnd.getBoundingClientRect().bottom);
-      }
-      if (topStart) {
-        chromeBottom = Math.max(chromeBottom, topStart.getBoundingClientRect().bottom);
+      if (compactMode && menuToggle) {
+        chromeBottom = menuToggle.getBoundingClientRect().bottom;
+      } else {
+        const topEnd = topEndRef?.current;
+        const topStart = topStartRef?.current;
+        if (topEnd) {
+          chromeBottom = Math.max(chromeBottom, topEnd.getBoundingClientRect().bottom);
+        }
+        if (topStart) {
+          chromeBottom = Math.max(chromeBottom, topStart.getBoundingClientRect().bottom);
+        }
       }
 
-      const gap = 8;
+      const gap = compactMode ? 0 : 8;
       const offset =
         chromeBottom > 0 ? Math.ceil(chromeBottom + gap) : DEFAULT_CHROME_OFFSET;
 
@@ -39,8 +53,12 @@ export default function useAuthNavOffset(deps = [], topStartRef = null, topEndRe
     update();
     const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(update) : null;
     if (navRef.current) ro?.observe(navRef.current);
-    if (topStartRef?.current) ro?.observe(topStartRef.current);
-    if (topEndRef?.current) ro?.observe(topEndRef.current);
+    if (compactMode && menuToggleRef?.current) {
+      ro?.observe(menuToggleRef.current);
+    } else {
+      if (topStartRef?.current) ro?.observe(topStartRef.current);
+      if (topEndRef?.current) ro?.observe(topEndRef.current);
+    }
     window.addEventListener('resize', update);
 
     return () => {

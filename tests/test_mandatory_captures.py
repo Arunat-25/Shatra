@@ -80,6 +80,43 @@ def test_biy_and_batyr_capture_other_piece_blocked():
     assert code == "MANDATORY_CAPTURE_OTHER_PIECE"
 
 
+def test_biy_only_capture_no_pending_after_opponent_move():
+    """После хода соперника бий не обязан брать — pending не ставится, ИИ может отступить."""
+    from backend.board_utils import get_starting_board
+    from game_engine.game_logic import logic
+    from game_engine.models import GameEvent
+    from backend.ai_trained import get_best_move as strong_move
+
+    moves = [
+        ("белый", 39, 32), ("черный", 24, 31), ("белый", 44, 38), ("черный", 23, 24),
+        ("белый", 40, 39), ("черный", 18, 26), ("белый", 32, 25), ("черный", 12, 18),
+        ("белый", 25, 27), ("черный", 21, 33), ("белый", 39, 27), ("черный", 20, 34),
+        ("белый", 42, 26), ("белый", 26, 12), ("черный", 13, 20), ("белый", 12, 28),
+        ("черный", 22, 34), ("белый", 41, 27), ("черный", 14, 21), ("белый", 53, 33),
+        ("черный", 9, 14), ("белый", 46, 39), ("черный", 18, 25), ("белый", 47, 41),
+        ("черный", 11, 18), ("белый", 38, 37), ("черный", 8, 12), ("белый", 37, 36),
+        ("черный", 18, 26),
+    ]
+    board = get_starting_board()
+    pending = None
+    for color, f, t in moves:
+        result = logic.handle_event(
+            GameEvent(
+                positions=board,
+                mover_color=color,
+                from_pos=f,
+                to_pos=t,
+                position_for_mandatory_capture=pending,
+            ),
+            position_history={},
+        )
+        board = result.updated_positions
+        pending = result.position_for_mandatory_capture
+
+    assert result.position_for_mandatory_capture is None
+    assert strong_move(board, "белый", depth=5) == (33, 32)
+
+
 def test_three_attackers_biy_must_capture_not_walk():
     board = empty_board()
     board[35] = "белый батыр"

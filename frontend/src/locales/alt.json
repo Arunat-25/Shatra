@@ -7,7 +7,28 @@
     "admin": "Админ",
     "logout": "Чыгар",
     "account": "Аккаунт",
-    "tutorial": "Ӧйрӱнӱ"
+    "tutorial": "Ӧйрӱнӱ",
+    "reportBug": "Кемчиликти билдири",
+    "openMenu": "Меню",
+    "closeMenu": "Менюны чыгар"
+  },
+  "bugReport": {
+    "title": "Кемчиликти билдири",
+    "subtitle": "Мӱнӱздӱ темдени јазып, скриншот кошкон болот.",
+    "description": "Темдени",
+    "screenshot": "Скриншот (мӱндӱ эмес)",
+    "submit": "Јӱндӱр",
+    "submitting": "Јӱндӱрүлӱдӱ…",
+    "success": "Ајыны! Билдирӱ јеткизилди.",
+    "failed": "Билдирӱнӱ јеткизилген жок.",
+    "tooLarge": "Файл ӱн јети (максимум 3 МБ).",
+    "invalidScreenshot": "PNG, JPEG, WebP гана болот.",
+    "close": "Јаб",
+    "descriptionTooShort": "Темдени 10 символдон кем болбосын.",
+    "descriptionTooLong": "Темдени ӱн узун (максимум 5000 символ).",
+    "invalidScreenshotServer": "Сүрөт форматы туура эмес.",
+    "charCount": "{{count}} / {{max}}",
+    "minCharsHint": "Јеткизүү үчүн кеминде {{min}} символ"
   },
   "locale": {
     "ru": "RU",
@@ -21,7 +42,6 @@
     "prev": "Назад",
     "tryAgain": "Ещё раз",
     "passTurn": "Передать ход",
-    "backToSections": "К разделам",
     "section1": {
       "label": "Раздел 1",
       "title": "Знакомство с доской и ходы",
@@ -484,6 +504,12 @@
       "2": "2 анонима",
       "all": "Все"
     },
+    "bugReports": "Кемчилик билдирӱлӱ",
+    "bugReportsTotal": "Бардыгы: {{count}}",
+    "bugReportsEmpty": "Азырынча билдирӱ јок",
+    "bugReportsAnonymous": "Аноним",
+    "bugReportsPage": "Бӱк:",
+    "bugReportsUserAgent": "Браузер:",
     "chartEmpty": "Талапкы периодта јок",
     "charts": {
       "registrations": "Время боюнча регистрациялар",

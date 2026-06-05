@@ -3,7 +3,7 @@ import copy
 
 from game_engine.board import Board
 from game_engine.models import GameEventResult
-from game_engine.endgame import is_game_over
+from game_engine.endgame import is_game_over, record_position
 from game_engine.message_codes import (
     TURN_NOW,
     MOVE_PASSED,
@@ -27,6 +27,35 @@ from game_engine.dictionaries import shatra_and_biy_possible_captures
 
 PROMOTION_FOR_WHITE = {1, 2, 3}
 PROMOTION_FOR_BLACK = {60, 61, 62}
+
+
+def _check_game_end(
+    cells: dict,
+    position_history: dict | None,
+    moves_with_two_biys: int,
+    *,
+    record: bool = True,
+):
+    if record:
+        record_position(position_history, cells)
+    return is_game_over(Board(cells), position_history, moves_with_two_biys)
+
+
+def _chain_capture_after_turn(board: Board, next_player: str) -> Optional[int]:
+    """
+    Клетка для продолжения цепочки после смены хода.
+    Если взять может только бий — pending не ставим: бий может отступить без взятия.
+    """
+    mandatory_captures = get_all_mandatory_captures(board, next_player)
+    if not mandatory_captures:
+        return None
+    has_non_biy_attacker = any(
+        board.get_piece_object(f) and board.get_piece_object(f).get_type() != "бий"
+        for f, _ in mandatory_captures
+    )
+    if not has_non_biy_attacker:
+        return None
+    return mandatory_captures[0][0]
 
 
 def _promote_shatra(cells: dict, cell: int, color: str) -> bool:
@@ -173,8 +202,7 @@ def process_move(
                 )
             piece_kind = "батыр"
 
-    next_board = Board(new_cells)
-    over, winner_color, draw_reason = is_game_over(next_board, position_history, moves_with_two_biys)
+    over, winner_color, draw_reason = _check_game_end(new_cells, position_history, moves_with_two_biys)
     if over:
         return _game_over_result(
             new_cells,
@@ -195,7 +223,7 @@ def process_move(
                         break
         else:
             can_continue_chain = batyr_can_continue_capture(
-                next_board, to_cell, current_color, new_batyr_captures,
+                Board(new_cells), to_cell, current_color, new_batyr_captures,
             )
 
     can_pass_turn = piece_kind == "бий" and has_captured
@@ -213,7 +241,9 @@ def process_move(
 
     if has_captured and not can_continue_chain:
         next_player = _opponent(current_color)
-        over, winner_color, draw_reason = is_game_over(next_board, position_history, moves_with_two_biys)
+        over, winner_color, draw_reason = _check_game_end(
+            new_cells, position_history, moves_with_two_biys, record=False,
+        )
         return _finish_move(
             positions=new_cells,
             mover_color=current_color,
@@ -230,13 +260,13 @@ def process_move(
         )
 
     next_player = _opponent(current_color)
-    over, winner_color, draw_reason = is_game_over(next_board, position_history, moves_with_two_biys)
+    over, winner_color, draw_reason = _check_game_end(
+        new_cells, position_history, moves_with_two_biys, record=False,
+    )
 
     chain_capture_pos = None
     if next_player and not over:
-        mandatory_captures = get_all_mandatory_captures(Board(new_cells), next_player)
-        if mandatory_captures:
-            chain_capture_pos = mandatory_captures[0][0]
+        chain_capture_pos = _chain_capture_after_turn(Board(new_cells), next_player)
 
     return _finish_move(
         positions=new_cells,
@@ -300,7 +330,7 @@ def _process_chain_shatra_biy(
     board = Board(new_cells)
     piece_kind = piece.get_type()
 
-    over, winner_color, draw_reason = is_game_over(board, position_history, moves_with_two_biys)
+    over, winner_color, draw_reason = _check_game_end(new_cells, position_history, moves_with_two_biys)
     if over:
         return _game_over_result(
             new_cells,
@@ -365,7 +395,7 @@ def _process_chain_batyr(
     )
     board = Board(new_cells)
 
-    over, winner_color, draw_reason = is_game_over(board, position_history, moves_with_two_biys)
+    over, winner_color, draw_reason = _check_game_end(new_cells, position_history, moves_with_two_biys)
     if over:
         return _game_over_result(
             new_cells,

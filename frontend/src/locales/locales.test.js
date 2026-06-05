@@ -27,6 +27,8 @@ const REQUIRED_KEYS = [
   'nav.profile',
   'nav.logout',
   'nav.tutorial',
+  'nav.openMenu',
+  'nav.closeMenu',
   'tutorial.pageTitle',
   'tutorial.section1.title',
   'tutorial.section1.step1.text',

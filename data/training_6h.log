@@ -1,0 +1,20 @@
+Training: 12 generations × 25 games/gen = 300 games, workers=11, max_plies=1000
+Initial fitness: 0.400
+=== RESTART 2026-06-05T00:37:46+07:00 workers=11 ===
+Training: 12 generations × 25 games/gen = 300 games, workers=11, max_plies=1000
+Initial fitness: 0.640
+Training: 12 generations × 25 games/gen = 300 games, workers=11, max_plies=1000
+Initial fitness: 0.420
+Gen 1/12: fitness=0.480 best=0.480 (1199.0s)
+Gen 2/12: fitness=0.620 best=0.620 (1329.3s)
+Gen 3/12: fitness=0.620 best=0.620 (1999.5s)
+Gen 4/12: fitness=0.660 best=0.660 (974.7s)
+Gen 5/12: fitness=0.700 best=0.700 (2833.1s)
+Gen 6/12: fitness=0.740 best=0.740 (3028.2s)
+Gen 7/12: fitness=0.740 best=0.740 (2224.3s)
+Gen 8/12: fitness=0.740 best=0.740 (1725.8s)
+Gen 9/12: fitness=0.740 best=0.740 (2249.3s)
+Gen 10/12: fitness=0.740 best=0.740 (1525.9s)
+Gen 11/12: fitness=0.740 best=0.740 (1617.8s)
+Gen 12/12: fitness=0.740 best=0.740 (1514.2s)
+Saved weights to /home/arunat/coding/Shatra/data/ai_trained_weights.json

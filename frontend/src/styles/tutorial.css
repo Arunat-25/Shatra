@@ -231,20 +231,6 @@ body:has(.app-shell--tutorial-lesson) #root {
   box-sizing: border-box;
 }
 
-.tutorial-lesson__back {
-  display: inline-block;
-  margin: 0 0 14px;
-  font-size: 0.88rem;
-  font-weight: 500;
-  color: var(--text-muted);
-  text-decoration: none;
-  transition: color var(--duration-fast) var(--ease-out);
-}
-
-.tutorial-lesson__back:hover {
-  color: var(--gold);
-}
-
 .tutorial-lesson__text {
   margin: 0 0 18px;
   font-size: 1rem;
@@ -390,62 +376,146 @@ body:has(.app-shell--tutorial-lesson) #root {
   }
 }
 
-/* Узкий экран: панель под доской, доска по центру */
-@media (max-width: 1100px) {
+/* Мобильный урок: доска на весь экран, текст снизу (как в игре) */
+@media (max-width: 1319px) {
+  .app-shell--tutorial-lesson .app-main {
+    overflow: hidden;
+    height: 100%;
+    max-height: 100%;
+  }
+
   .tutorial-lesson {
-    height: auto;
+    --tutorial-panel-height: min(38dvh, 260px);
+    display: grid;
+    grid-template-rows: 1fr var(--tutorial-panel-height);
+    height: 100%;
+    max-height: 100%;
     min-height: 0;
-    padding-top: 10px;
-    padding-bottom: 20px;
-    overflow: auto;
+    padding: 0 6px;
+    overflow: hidden;
   }
 
   .tutorial-lesson__stage {
+    grid-row: 1;
+    min-height: 0;
     width: 100%;
-    max-width: 560px;
-    height: auto;
+    max-width: none;
+    height: 100%;
+    max-height: 100%;
+    overflow: hidden;
   }
 
-  .tutorial-lesson .room-board-wrap,
-  .tutorial-lesson .room-board {
-    height: auto;
-    max-height: none;
-    overflow: visible;
+  .tutorial-lesson .room-board-wrap {
+    flex: 1 1 0;
+    width: 100%;
+    max-width: 100%;
+    height: 100%;
+    max-height: 100%;
+    overflow: hidden;
   }
 
   .tutorial-lesson .room-board {
-    container-type: normal;
+    width: 100%;
+    max-width: 100%;
+    height: 100%;
+    max-height: 100%;
+    container-type: size;
+    container-name: tutorial-board-slot;
+    overflow: hidden;
   }
 
   .tutorial-lesson .room-board .board {
-    max-height: none;
-    --cell-size: clamp(30px, min(5.0vw, 6.0vh), 54px);
-    --reserve-cell-size: calc(var(--cell-size) * 0.86);
+    flex: 0 1 auto;
+    width: 100%;
+    max-width: 560px;
+    height: 100%;
+    max-height: 100%;
+    padding: 3px;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    --board-unit: min(
+      calc((100dvh - var(--app-top-chrome-offset, 24px) - var(--tutorial-panel-height) - 24px) / 13.6),
+      calc((100cqw - 20px) / 7)
+    );
+    --cell-size: var(--board-unit);
+    --reserve-cell-size: calc(var(--board-unit) * 0.86);
   }
 
   .tutorial-lesson .room-board .board .board-content {
-    width: fit-content;
-    height: fit-content;
+    width: 100%;
+    height: 100%;
   }
 
   .tutorial-lesson__panel {
     position: static;
     top: auto;
     left: auto;
-    width: min(400px, calc(100% - 32px));
+    z-index: auto;
+    grid-row: 2;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
     min-width: 0;
-    margin: 14px auto 0;
-    max-height: none;
-    overflow: visible;
+    max-width: none;
+    height: var(--tutorial-panel-height);
+    min-height: var(--tutorial-panel-height);
+    max-height: var(--tutorial-panel-height);
+    margin: 0;
+    overflow: hidden;
+    padding: 10px 12px max(8px, env(safe-area-inset-bottom));
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    box-shadow: var(--shadow-sm);
+    box-sizing: border-box;
+  }
+
+  .tutorial-lesson__panel-body {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .tutorial-lesson__panel-nav {
+    flex-shrink: 0;
+    padding-top: 8px;
+  }
+
+  .tutorial-lesson__text {
+    margin: 0 0 10px;
+    font-size: 0.88rem;
+    line-height: 1.45;
+  }
+
+  .tutorial-lesson__instruction {
+    margin: 0 0 10px;
+    font-size: 0.8rem;
+    padding: 6px 8px;
+  }
+
+  .tutorial-lesson__nav {
+    gap: 8px;
+  }
+
+  .tutorial-lesson__prev,
+  .tutorial-lesson__next,
+  .tutorial-lesson__again {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+  }
+
+  .tutorial-lesson__pass {
+    margin-bottom: 8px;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+  }
+
+  .tutorial-lesson__again {
+    margin-bottom: 8px;
   }
 }
 
-@media (max-width: 1319px) {
-  .tutorial-lesson .room-board .board {
-    padding: 3px;
-    border-radius: var(--radius-lg);
-    --cell-size: clamp(28px, min(4.8vw, 5.8vh), 50px);
-  }
+html.app-shell--game-nav-compact .app-shell--tutorial-lesson .app-main {
+  padding-top: var(--app-top-chrome-offset, 24px);
 }
 
 @media (min-width: 1320px) {

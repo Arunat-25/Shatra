@@ -95,10 +95,11 @@ async def _process_client_message_locked(
 
     prev_mover = game["mover"]
     prev_board = _norm_board_keys(game.get("board", {}))
+    position_history = game.setdefault("position_history", {})
     result = logic.handle_event(
         event,
         batyr_captured_this_turn=game.get("pending_batyr_captures"),
-        position_history=game.get("position_history", {}),
+        position_history=position_history,
         moves_with_two_biys=game.get("moves_with_two_biys", 0),
     )
 

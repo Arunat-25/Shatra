@@ -96,7 +96,7 @@ export default function WaitingScreen({
   }
 
   return (
-    <div className="waiting-screen">
+    <div className={`waiting-screen ${showInviteLink ? 'waiting-screen--invite' : ''}`}>
       <div className={`waiting-content ${showInviteLink ? 'waiting-content--invite' : ''}`}>
         {joiningError ? (
           <div className="waiting-error">

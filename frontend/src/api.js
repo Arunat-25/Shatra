@@ -82,15 +82,19 @@ export function createRoom(
   increment = null,
   colorPreference = 'random',
 ) {
+  const body = {
+    type,
+    time_control: timeControl,
+    increment,
+    color_preference: colorPreference,
+    creator_client_id: getClientId(),
+  };
+  if (type === 'ai') {
+    body.ai_difficulty = 'strong';
+  }
   return request(`${API_BASE}/rooms`, {
     method: 'POST',
-    body: JSON.stringify({
-      type,
-      time_control: timeControl,
-      increment,
-      color_preference: colorPreference,
-      creator_client_id: getClientId(),
-    }),
+    body: JSON.stringify(body),
   });
 }
 

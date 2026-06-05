@@ -53,5 +53,10 @@ describe('GameViewport', () => {
     );
     expect(container.querySelector('.opponent-disconnected-overlay')).toBeNull();
     expect(container.querySelector('.opponent-disconnect-status--board-edge')).toBeTruthy();
+    expect(container.querySelector('.game-viewport-column')).toBeTruthy();
+    expect(container.querySelector('.game-viewport-fold')).toBeTruthy();
+    expect(container.querySelector('.game-viewport-below-fold')).toBeTruthy();
+    expect(container.querySelector('.game-viewport-actions')).toBeNull();
+    expect(container.querySelector('.game-viewport-below-fold')?.closest('.game-viewport-first')).toBeNull();
   });
 });

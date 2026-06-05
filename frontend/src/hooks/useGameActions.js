@@ -76,7 +76,7 @@ export default function useGameActions({
   const playAgain = useCallback(async () => {
     try {
       if (modeAi) {
-        const data = await createRoom(ROOM_AI, null, null);
+        const data = await createRoom(ROOM_AI, null, null, 'random');
         navigate(`/${data.room_id}?mode=ai`, { replace: true });
         return;
       }

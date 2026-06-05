@@ -1,0 +1,13 @@
+{
+  "piece_shatra": 100,
+  "piece_batyr": 361,
+  "piece_biy": 10709,
+  "biy_loss_penalty": 820000,
+  "hanging_penalty": 360,
+  "promotion_bonus": 2601,
+  "promotion_progress_weight": 14,
+  "position_scale": 3.1,
+  "forced_trap_bonus": 15501,
+  "chain_capture_bonus": 8500,
+  "sacrifice_setup_bonus": 5200
+}

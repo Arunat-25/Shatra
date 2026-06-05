@@ -7,7 +7,28 @@
     "admin": "Admin",
     "logout": "Log out",
     "account": "Account",
-    "tutorial": "Tutorial"
+    "tutorial": "Tutorial",
+    "reportBug": "Report a bug",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu"
+  },
+  "bugReport": {
+    "title": "Report a bug",
+    "subtitle": "Describe the issue. You can attach a screenshot.",
+    "description": "Description",
+    "screenshot": "Screenshot (optional)",
+    "submit": "Submit",
+    "submitting": "Sending…",
+    "success": "Thank you! Your report was sent.",
+    "failed": "Could not send the report.",
+    "tooLarge": "File is too large (max 3 MB).",
+    "invalidScreenshot": "Only PNG, JPEG, and WebP are allowed.",
+    "close": "Close",
+    "descriptionTooShort": "Description must be at least 10 characters.",
+    "descriptionTooLong": "Description is too long (max 5000 characters).",
+    "invalidScreenshotServer": "Invalid image format.",
+    "charCount": "{{count}} / {{max}}",
+    "minCharsHint": "At least {{min}} characters required to submit"
   },
   "locale": {
     "ru": "RU",
@@ -21,7 +42,6 @@
     "prev": "Back",
     "tryAgain": "Try again",
     "passTurn": "Pass turn",
-    "backToSections": "Back to sections",
     "section1": {
       "label": "Section 1",
       "title": "Introduction to the board and moves",
@@ -484,6 +504,12 @@
       "2": "2 anonymous",
       "all": "All"
     },
+    "bugReports": "Bug reports",
+    "bugReportsTotal": "Total: {{count}}",
+    "bugReportsEmpty": "No reports yet",
+    "bugReportsAnonymous": "Anonymous",
+    "bugReportsPage": "Page:",
+    "bugReportsUserAgent": "Browser:",
     "chartEmpty": "No data for this period",
     "charts": {
       "registrations": "Registrations over time",

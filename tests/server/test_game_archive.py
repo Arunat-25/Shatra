@@ -714,7 +714,7 @@ class TestArchiveCriticalEdgeCases:
         }
 
         with (
-            patch("backend.session.ai.get_best_move", return_value=None),
+            patch("backend.session.ai.get_ai_move", return_value=None),
             patch("backend.session.ai.set_game", side_effect=st.set_game),
             patch("backend.session.ai.manager.send_to_room", AsyncMock()),
             patch("backend.game_archive.get_game", side_effect=st.get_game),
@@ -723,7 +723,9 @@ class TestArchiveCriticalEdgeCases:
         ):
             from backend.session.ai import handle_ai_move
 
-            await handle_ai_move(st.room_id, st.game, max_recursion=1)
+            await handle_ai_move(
+                st.room_id, st.game, max_retries=1, room_data=st.room,
+            )
 
         row = (await _fetch_games())[0]
         assert row.room_type == "ai"

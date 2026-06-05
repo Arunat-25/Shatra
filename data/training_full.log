@@ -1,0 +1,5 @@
+Training: 5 generations × 20 games/gen = 100 games, workers=11, max_plies=1000
+Initial fitness: 0.500
+Gen 1/5: fitness=0.825 best=0.825 (1298.8s)
+Gen 2/5: fitness=0.825 best=0.825 (2254.1s)
+Gen 3/5: fitness=0.825 best=0.825 (628.0s)

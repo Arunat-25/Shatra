@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -7,6 +7,8 @@ import {
   fetchOnlinePeriodStats,
   fetchOnlineSeries,
   fetchOnlineStats,
+  fetchBugReportScreenshotBlob,
+  fetchBugReports,
   fetchRegistrationSeries,
   fetchRegistrationStats,
 } from '../api/admin';
@@ -68,6 +70,10 @@ export default function Admin() {
   const [gamesSeries, setGamesSeries] = useState(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [bugReports, setBugReports] = useState(null);
+  const [expandedBugId, setExpandedBugId] = useState(null);
+  const [screenshotUrls, setScreenshotUrls] = useState({});
+  const screenshotUrlsRef = useRef({});
 
   const chartEmpty = t('admin.chartEmpty');
 
@@ -130,12 +136,55 @@ export default function Admin() {
     }
   }, [onlineAtLocal, t]);
 
+  const loadBugReports = useCallback(async () => {
+    setBusy(true);
+    setError('');
+    try {
+      const data = await fetchBugReports({ limit: 50 });
+      setBugReports(data);
+    } catch (err) {
+      setError(resolveApiErrorMessage(err instanceof ApiError ? err.message : err, t));
+    } finally {
+      setBusy(false);
+    }
+  }, [t]);
+
   useEffect(() => {
     if (!loading && user?.is_admin) {
       loadRegistrationsAndGames();
       loadOnlinePeriodStats();
+      loadBugReports();
     }
-  }, [loading, user, loadRegistrationsAndGames, loadOnlinePeriodStats]);
+  }, [loading, user, loadRegistrationsAndGames, loadOnlinePeriodStats, loadBugReports]);
+
+  useEffect(() => {
+    if (!expandedBugId || !bugReports?.items) return undefined;
+    const item = bugReports.items.find((r) => r.id === expandedBugId);
+    if (!item?.has_screenshot || screenshotUrlsRef.current[expandedBugId]) {
+      return undefined;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const blob = await fetchBugReportScreenshotBlob(expandedBugId);
+        if (cancelled) return;
+        const url = URL.createObjectURL(blob);
+        screenshotUrlsRef.current[expandedBugId] = url;
+        setScreenshotUrls((prev) => ({ ...prev, [expandedBugId]: url }));
+      } catch (err) {
+        if (!cancelled) {
+          setError(resolveApiErrorMessage(err instanceof ApiError ? err.message : err, t));
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [expandedBugId, bugReports, t]);
+
+  useEffect(() => () => {
+    Object.values(screenshotUrlsRef.current).forEach((url) => URL.revokeObjectURL(url));
+  }, []);
 
   const gamesPieByRoom = useMemo(() => {
     if (!games?.by_room_type) return [];
@@ -330,6 +379,77 @@ export default function Admin() {
                 <AdminPieChart data={gamesPieByAnon} emptyLabel={chartEmpty} />
               </div>
             </div>
+          </>
+        )}
+      </section>
+
+      <section className="admin-section">
+        <h2>{t('admin.bugReports')}</h2>
+        <div className="admin-controls">
+          <button type="button" className="admin-btn" onClick={loadBugReports} disabled={busy}>
+            {t('admin.refresh')}
+          </button>
+        </div>
+        {bugReports && (
+          <>
+            <p className="admin-hint">{t('admin.bugReportsTotal', { count: bugReports.total })}</p>
+            {bugReports.items.length === 0 ? (
+              <p className="admin-chart-empty">{t('admin.bugReportsEmpty')}</p>
+            ) : (
+              <div className="admin-bug-reports">
+                {bugReports.items.map((report) => {
+                  const expanded = expandedBugId === report.id;
+                  const preview = report.description.length > 120
+                    ? `${report.description.slice(0, 120)}…`
+                    : report.description;
+                  const reporter = report.username || report.client_id || t('admin.bugReportsAnonymous');
+                  return (
+                    <div key={report.id} className="admin-bug-report">
+                      <button
+                        type="button"
+                        className="admin-bug-report__header"
+                        onClick={() => setExpandedBugId(expanded ? null : report.id)}
+                        aria-expanded={expanded}
+                      >
+                        <span className="admin-bug-report__date">
+                          {new Date(report.created_at).toLocaleString()}
+                        </span>
+                        <span className="admin-bug-report__reporter">{reporter}</span>
+                        <span className="admin-bug-report__preview">{preview}</span>
+                      </button>
+                      {expanded && (
+                        <div className="admin-bug-report__body">
+                          <p className="admin-bug-report__description">{report.description}</p>
+                          {report.page_url && (
+                            <p className="admin-bug-report__meta">
+                              <span>{t('admin.bugReportsPage')}</span>
+                              {' '}
+                              <a href={report.page_url} target="_blank" rel="noreferrer">
+                                {report.page_url}
+                              </a>
+                            </p>
+                          )}
+                          {report.user_agent && (
+                            <p className="admin-bug-report__meta">
+                              <span>{t('admin.bugReportsUserAgent')}</span>
+                              {' '}
+                              {report.user_agent}
+                            </p>
+                          )}
+                          {report.has_screenshot && screenshotUrls[report.id] && (
+                            <img
+                              src={screenshotUrls[report.id]}
+                              alt=""
+                              className="admin-bug-report__screenshot"
+                            />
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </>
         )}
       </section>

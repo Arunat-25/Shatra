@@ -19,9 +19,10 @@ describe('WaitingScreen QR', () => {
   });
 
   it('renders QR when showInviteLink is true', async () => {
-    render(
+    const { container } = render(
       <WaitingScreen roomId="abc12345" showInviteLink modeAi={false} />,
     );
+    expect(container.querySelector('.waiting-screen--invite')).toBeTruthy();
     const img = await screen.findByAltText(/qr|приглаш/i);
     expect(img.getAttribute('src')).toBe('data:image/png;base64,qr');
   });

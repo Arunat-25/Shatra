@@ -1,3 +1,4 @@
+import React from 'react';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
 import { COLOR_WHITE, COLOR_BLACK } from '../constants';
@@ -41,7 +42,7 @@ export default function PlayerBar({
         isSelf ? 'game-player-bar--self' : 'game-player-bar--opponent',
       ].filter(Boolean).join(' ')}
     >
-      <div className="game-player-bar__left">
+      <div className="game-player-bar__info">
         <span
           className={['game-player-bar__nick', isSelf ? 'game-player-bar__nick--self' : ''].filter(Boolean).join(' ')}
           title={nickname}

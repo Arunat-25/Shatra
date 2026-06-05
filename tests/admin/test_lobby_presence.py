@@ -45,6 +45,17 @@ def _admin_online(client, headers: dict, at: datetime | None = None) -> dict:
     return r.json()
 
 
+def _admin_online_period(client, headers: dict, period: str = "24h") -> dict:
+    r = client.get(f"/api/admin/stats/online/period?period={period}", headers=headers)
+    assert r.status_code == 200, r.text
+    return r.json()
+
+
+def _leave_lobby(client, client_id: str) -> None:
+    r = client.post(f"/rooms/presence/leave?client_id={client_id}")
+    assert r.status_code == 200, r.text
+
+
 class TestLobbyPresenceOnline:
     def test_lobby_poll_counts_anonymous_online(self, client, admin_headers):
         client_id = "lobby-anon-1"
@@ -121,3 +132,64 @@ class TestLobbyPresenceOnline:
 
         body = _admin_online(client, admin_headers)
         assert body["total_unique"] == 0
+
+
+class TestAnonymousDeviceIdentity:
+    """Один client_id = одно устройство; повторные визиты не раздувают счётчик в админке."""
+
+    def test_revisit_same_client_id_online_snapshot_counts_once(self, client, admin_headers):
+        client_id = "device-anon-stable"
+        _poll_lobby(client, client_id)
+        _leave_lobby(client, client_id)
+        _poll_lobby(client, client_id)
+
+        body = _admin_online(client, admin_headers)
+        assert body["total_unique"] == 1
+        assert body["anonymous_unique"] == 1
+        assert body["registered_unique"] == 0
+        assert "at" in body
+
+        session_rows = db_scalar(
+            "SELECT COUNT(*) FROM presence_sessions WHERE client_id = %s",
+            (client_id,),
+        )
+        assert session_rows >= 2
+
+    def test_revisit_same_client_id_period_stats_counts_once(self, client, admin_headers):
+        client_id = "device-anon-period"
+        _poll_lobby(client, client_id)
+        _leave_lobby(client, client_id)
+        _poll_lobby(client, client_id)
+
+        body = _admin_online_period(client, admin_headers)
+        assert body["total_unique"] == 1
+        assert body["anonymous_unique"] == 1
+        assert body["registered_unique"] == 0
+        assert "from" in body
+        assert "to" in body
+
+    def test_two_different_client_ids_count_as_two_anonymous(self, client, admin_headers):
+        _poll_lobby(client, "device-a")
+        _poll_lobby(client, "device-b")
+
+        snapshot = _admin_online(client, admin_headers)
+        period = _admin_online_period(client, admin_headers)
+
+        assert snapshot["anonymous_unique"] == 2
+        assert snapshot["total_unique"] == 2
+        assert period["anonymous_unique"] == 2
+        assert period["total_unique"] == 2
+
+    def test_admin_online_api_fields_match_admin_ui(self, client, admin_headers):
+        """Поля ответа API совпадают с тем, что читает Admin.jsx (StatCard)."""
+        _poll_lobby(client, "admin-ui-fields")
+
+        period = _admin_online_period(client, admin_headers)
+        snapshot = _admin_online(client, admin_headers)
+
+        for key in ("total_unique", "anonymous_unique", "registered_unique"):
+            assert isinstance(period[key], int)
+            assert isinstance(snapshot[key], int)
+
+        assert period["registered_unique"] + period["anonymous_unique"] >= period["total_unique"] - 1
+        assert snapshot["registered_unique"] + snapshot["anonymous_unique"] >= snapshot["total_unique"] - 1

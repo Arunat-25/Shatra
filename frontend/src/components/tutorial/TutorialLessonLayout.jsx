@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import BoardGrid from '../../BoardGrid';
 
@@ -23,7 +22,6 @@ export default function TutorialLessonLayout({
   instruction = null,
   showPassTurn = false,
   onPassTurn,
-  sectionsHref = '/tutorial',
 }) {
   const { t } = useTranslation();
 
@@ -52,48 +50,49 @@ export default function TutorialLessonLayout({
         </div>
       </div>
       <aside className="tutorial-lesson__panel">
-        <Link to={sectionsHref} className="tutorial-lesson__back">
-          {t('tutorial.backToSections')}
-        </Link>
-        <p className="tutorial-lesson__text">{text}</p>
-        {instruction && (
-          <p className="tutorial-lesson__instruction">{instruction}</p>
-        )}
-        {showTryAgain && onTryAgain && (
-          <button
-            type="button"
-            className="tutorial-lesson__again"
-            onClick={onTryAgain}
-          >
-            {t('tutorial.tryAgain')}
-          </button>
-        )}
-        {showPassTurn && onPassTurn && (
-          <button
-            type="button"
-            className="tutorial-lesson__pass"
-            onClick={onPassTurn}
-          >
-            {t('tutorial.passTurn')}
-          </button>
-        )}
-        <div className="tutorial-lesson__nav">
-          <button
-            type="button"
-            className="tutorial-lesson__prev"
-            onClick={onBack}
-            disabled={!canGoBack}
-          >
-            {t('tutorial.prev')}
-          </button>
-          <button
-            type="button"
-            className="tutorial-lesson__next"
-            onClick={onNext}
-            disabled={!canProceed}
-          >
-            {t('tutorial.next')}
-          </button>
+        <div className="tutorial-lesson__panel-body">
+          <p className="tutorial-lesson__text">{text}</p>
+          {instruction && (
+            <p className="tutorial-lesson__instruction">{instruction}</p>
+          )}
+          {showTryAgain && onTryAgain && (
+            <button
+              type="button"
+              className="tutorial-lesson__again"
+              onClick={onTryAgain}
+            >
+              {t('tutorial.tryAgain')}
+            </button>
+          )}
+          {showPassTurn && onPassTurn && (
+            <button
+              type="button"
+              className="tutorial-lesson__pass"
+              onClick={onPassTurn}
+            >
+              {t('tutorial.passTurn')}
+            </button>
+          )}
+        </div>
+        <div className="tutorial-lesson__panel-nav">
+          <div className="tutorial-lesson__nav">
+            <button
+              type="button"
+              className="tutorial-lesson__prev"
+              onClick={onBack}
+              disabled={!canGoBack}
+            >
+              {t('tutorial.prev')}
+            </button>
+            <button
+              type="button"
+              className="tutorial-lesson__next"
+              onClick={onNext}
+              disabled={!canProceed}
+            >
+              {t('tutorial.next')}
+            </button>
+          </div>
         </div>
       </aside>
     </div>

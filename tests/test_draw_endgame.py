@@ -43,6 +43,19 @@ def test_two_biys_not_draw_before_third_move():
     assert reason is None
 
 
+def test_process_move_records_position_history():
+    board = empty_board()
+    board[10] = "черный бий"
+    board[53] = "белый бий"
+    history: dict = {}
+    result = process_move(
+        board, "черный", 10, 11, position_history=history, moves_with_two_biys=0,
+    )
+    assert result.updated_positions is not None
+    assert len(history) == 1
+    assert max(history.values()) == 1
+
+
 def test_three_quiet_moves_with_two_biys_triggers_draw():
     board = empty_board()
     board[10] = "черный бий"

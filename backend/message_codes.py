@@ -21,6 +21,15 @@ AUTH_USERNAME_TAKEN_REGISTER = "auth.username_taken_register"
 AUTH_USERNAME_TAKEN_PROFILE = "auth.username_taken_profile"
 ADMIN_FORBIDDEN = "admin.forbidden"
 
+# Bug reports
+BUG_REPORT_DESCRIPTION_REQUIRED = "bug_report.description_required"
+BUG_REPORT_DESCRIPTION_TOO_SHORT = "bug_report.description_too_short"
+BUG_REPORT_DESCRIPTION_TOO_LONG = "bug_report.description_too_long"
+BUG_REPORT_INVALID_SCREENSHOT = "bug_report.invalid_screenshot"
+BUG_REPORT_SCREENSHOT_TOO_LARGE = "bug_report.screenshot_too_large"
+BUG_REPORT_NOT_FOUND = "bug_report.not_found"
+BUG_REPORT_NO_SCREENSHOT = "bug_report.no_screenshot"
+
 # Draw / rematch / control
 DRAW_BOT_DECLINED = "draw.bot_declined"
 DRAW_ALREADY_OFFERED = "draw.already_offered"

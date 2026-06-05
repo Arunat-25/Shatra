@@ -1,10 +1,16 @@
-import { useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import useAuthNavOffset from '../hooks/useAuthNavOffset';
+import useEscapeKey from '../hooks/useEscapeKey';
+import useMediaQuery from '../hooks/useMediaQuery';
 import LocaleSwitcher from './LocaleSwitcher';
+import HomeTab from './HomeTab';
 import TutorialTab from './TutorialTab';
+import BugReportModal from './BugReportModal';
+
+const COMPACT_MOBILE_NAV_QUERY = '(max-width: 1319px)';
 
 function IconProfile() {
   return (
@@ -25,35 +31,67 @@ function IconLogout() {
   );
 }
 
+function IconMenu() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+      <line x1="4" y1="12" x2="20" y2="12" />
+    </svg>
+  );
+}
+
 export default function AuthNav() {
   const { pathname } = useLocation();
   const { t } = useTranslation();
   const { user, isAuthenticated, loading, logout } = useAuth();
   const topStartRef = useRef(null);
   const topEndRef = useRef(null);
+  const menuToggleRef = useRef(null);
+  const isMobileLayout = useMediaQuery(COMPACT_MOBILE_NAV_QUERY);
+  const compactMobileNav = isMobileLayout;
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [bugReportOpen, setBugReportOpen] = useState(false);
+
+  const closeMenu = useCallback(() => setMenuOpen(false), []);
+  useEscapeKey(menuOpen, closeMenu);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('app-shell--game-nav-compact', compactMobileNav);
+    return () => document.documentElement.classList.remove('app-shell--game-nav-compact');
+  }, [compactMobileNav]);
+
+  useEffect(() => {
+    if (!compactMobileNav) setMenuOpen(false);
+  }, [compactMobileNav, pathname]);
+
   const navRef = useAuthNavOffset(
-    [loading, isAuthenticated, pathname, user?.username],
+    [loading, isAuthenticated, pathname, user?.username, compactMobileNav, menuOpen],
     topStartRef,
     topEndRef,
+    menuToggleRef,
+    compactMobileNav,
   );
+
   const onLoginPage = pathname === '/login';
   const onRegisterPage = pathname === '/register';
   const onProfilePage = pathname === '/profile';
   const onAdminPage = pathname === '/admin';
 
-  const topTools = (
-    <div ref={topStartRef} className="app-top-start">
-      <Link to="/" className="app-brand" aria-label={t('nav.home')}>
-        {t('lobby.title')}
-      </Link>
-      <div className="app-tutorial-tab">
-        <TutorialTab />
-      </div>
-    </div>
-  );
+  const handleLogout = () => {
+    closeMenu();
+    logout();
+  };
 
-  const accountNav = (
-    <nav ref={navRef} className="app-auth-nav" aria-label={t('nav.account')}>
+  const openBugReport = () => {
+    closeMenu();
+    setBugReportOpen(true);
+  };
+
+  const accountNav = (inDrawer = false) => (
+    <nav
+      ref={inDrawer ? null : navRef}
+      className={`app-auth-nav${inDrawer ? ' app-auth-nav--drawer' : ''}`}
+      aria-label={t('nav.account')}
+    >
       {loading ? (
         <span className="app-auth-nav__placeholder" aria-hidden />
       ) : isAuthenticated ? (
@@ -67,19 +105,20 @@ export default function AuthNav() {
               className="app-auth-nav__icon-btn"
               aria-label={t('nav.profile')}
               title={t('nav.profile')}
+              onClick={inDrawer ? closeMenu : undefined}
             >
               <IconProfile />
             </Link>
           )}
           {user.is_admin && !onAdminPage && (
-            <Link to="/admin" className="app-auth-nav__link">
+            <Link to="/admin" className="app-auth-nav__link" onClick={inDrawer ? closeMenu : undefined}>
               {t('nav.admin')}
             </Link>
           )}
           <button
             type="button"
             className="app-auth-nav__icon-btn"
-            onClick={() => logout()}
+            onClick={inDrawer ? handleLogout : () => logout()}
             aria-label={t('nav.logout')}
             title={t('nav.logout')}
           >
@@ -89,12 +128,16 @@ export default function AuthNav() {
       ) : (
         <>
           {!onLoginPage && (
-            <Link to="/login" className="app-auth-nav__link">
+            <Link to="/login" className="app-auth-nav__link" onClick={inDrawer ? closeMenu : undefined}>
               {t('nav.login')}
             </Link>
           )}
           {!onRegisterPage && (
-            <Link to="/register" className="app-auth-nav__link app-auth-nav__link--primary">
+            <Link
+              to="/register"
+              className="app-auth-nav__link app-auth-nav__link--primary"
+              onClick={inDrawer ? closeMenu : undefined}
+            >
               {t('nav.register')}
             </Link>
           )}
@@ -103,15 +146,86 @@ export default function AuthNav() {
     </nav>
   );
 
+  const topTools = compactMobileNav ? (
+    <div ref={topStartRef} className="app-top-start app-top-start--compact">
+      <button
+        ref={menuToggleRef}
+        type="button"
+        className="app-nav-menu-toggle"
+        aria-expanded={menuOpen}
+        aria-controls="app-nav-drawer"
+        aria-label={menuOpen ? t('nav.closeMenu') : t('nav.openMenu')}
+        onClick={() => setMenuOpen((open) => !open)}
+      >
+        <IconMenu />
+      </button>
+    </div>
+  ) : (
+    <div ref={topStartRef} className="app-top-start">
+      <Link to="/" className="app-brand" aria-label={t('nav.home')}>
+        {t('lobby.title')}
+      </Link>
+      <div className="app-chrome-nav-tabs">
+        <HomeTab />
+        <TutorialTab />
+      </div>
+    </div>
+  );
+
+  const drawer = compactMobileNav && menuOpen ? (
+    <div className="app-nav-drawer-backdrop" onClick={closeMenu} role="presentation">
+      <nav
+        id="app-nav-drawer"
+        className="app-nav-drawer"
+        aria-label={t('nav.openMenu')}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <Link to="/" className="app-nav-drawer__brand" onClick={closeMenu}>
+          {t('lobby.title')}
+        </Link>
+        <div className="app-nav-drawer__section">
+          <HomeTab onNavigate={closeMenu} />
+        </div>
+        <div className="app-nav-drawer__section">
+          <TutorialTab onNavigate={closeMenu} />
+        </div>
+        <div className="app-nav-drawer__section">
+          <button type="button" className="app-nav-drawer__link" onClick={openBugReport}>
+            {t('nav.reportBug')}
+          </button>
+        </div>
+        <div className="app-nav-drawer__section app-nav-drawer__section--locale">
+          <LocaleSwitcher />
+        </div>
+        <div className="app-nav-drawer__section app-nav-drawer__section--account">
+          {accountNav(true)}
+        </div>
+      </nav>
+    </div>
+  ) : null;
+
   return (
     <>
       {topTools}
-      <div ref={topEndRef} className="app-top-end">
-        <div className="app-locale-nav">
-          <LocaleSwitcher />
+      {!compactMobileNav && (
+        <div ref={topEndRef} className="app-top-end">
+          <div className="app-auth-nav">
+            <button
+              type="button"
+              className="app-auth-nav__link"
+              onClick={() => setBugReportOpen(true)}
+            >
+              {t('nav.reportBug')}
+            </button>
+          </div>
+          <div className="app-locale-nav">
+            <LocaleSwitcher />
+          </div>
+          {accountNav(false)}
         </div>
-        {accountNav}
-      </div>
+      )}
+      {drawer}
+      <BugReportModal open={bugReportOpen} onClose={() => setBugReportOpen(false)} />
     </>
   );
 }

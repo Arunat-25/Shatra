@@ -1,3 +1,5 @@
+import { passTurnColor } from '../game/passTurn';
+
 export function positionLabel(num) {
   return `position${num}`;
 }
@@ -22,7 +24,14 @@ export function buildMovePayload(gameState, from, to) {
 }
 
 export function buildPassPayload(gameState) {
-  return buildMovePayload(gameState, 0, 0);
+  const mover = passTurnColor(gameState);
+  return {
+    move_from: positionLabel(0),
+    move_to: positionLabel(0),
+    movers_color: mover,
+    board: gameState.board,
+    position_for_mandatory_capture: 0,
+  };
 }
 
 export function buildResignPayload() {

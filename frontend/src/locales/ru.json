@@ -7,7 +7,28 @@
     "admin": "Админ",
     "logout": "Выйти",
     "account": "Аккаунт",
-    "tutorial": "Обучение"
+    "tutorial": "Обучение",
+    "reportBug": "Сообщить о баге",
+    "openMenu": "Меню",
+    "closeMenu": "Закрыть меню"
+  },
+  "bugReport": {
+    "title": "Сообщить о баге",
+    "subtitle": "Опишите проблему. Можно приложить скриншот.",
+    "description": "Описание",
+    "screenshot": "Скриншот (необязательно)",
+    "submit": "Отправить",
+    "submitting": "Отправка…",
+    "success": "Спасибо! Сообщение отправлено.",
+    "failed": "Не удалось отправить сообщение.",
+    "tooLarge": "Файл слишком большой (максимум 3 МБ).",
+    "invalidScreenshot": "Допустимы только PNG, JPEG и WebP.",
+    "close": "Закрыть",
+    "descriptionTooShort": "Описание должно быть не короче 10 символов.",
+    "descriptionTooLong": "Описание слишком длинное (максимум 5000 символов).",
+    "invalidScreenshotServer": "Недопустимый формат изображения.",
+    "charCount": "{{count}} / {{max}}",
+    "minCharsHint": "Минимум {{min}} символов для отправки"
   },
   "locale": {
     "ru": "RU",
@@ -21,7 +42,6 @@
     "prev": "Назад",
     "tryAgain": "Ещё раз",
     "passTurn": "Передать ход",
-    "backToSections": "К разделам",
     "section1": {
       "label": "Раздел 1",
       "title": "Знакомство с доской и ходы",
@@ -484,6 +504,12 @@
       "2": "2 анонима",
       "all": "Все"
     },
+    "bugReports": "Сообщения о багах",
+    "bugReportsTotal": "Всего: {{count}}",
+    "bugReportsEmpty": "Сообщений пока нет",
+    "bugReportsAnonymous": "Аноним",
+    "bugReportsPage": "Страница:",
+    "bugReportsUserAgent": "Браузер:",
     "chartEmpty": "Нет данных за выбранный период",
     "charts": {
       "registrations": "Регистрации по времени",

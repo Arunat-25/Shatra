@@ -280,3 +280,48 @@ def test_biy_capture_with_optional_chain_can_pass_without_continuing():
     assert passed.message_code == MOVE_PASSED
     assert passed.movers_color == "черный"
     assert first.updated_positions[13] is None
+
+
+def test_white_six_capture_chain_continues_after_fifth_jump():
+    """25–29: после 27-15 обязательно 15-29 (шестое взятие в цепочке)."""
+    from backend.board_utils import get_starting_board
+
+    moves = [
+        ("белый", 39, 32), ("черный", 19, 25), ("белый", 40, 39), ("черный", 11, 19),
+        ("белый", 44, 38), ("черный", 23, 31), ("белый", 41, 34), ("черный", 22, 23),
+        ("белый", 47, 41), ("черный", 21, 22), ("белый", 32, 33), ("черный", 12, 11),
+        ("белый", 33, 32), ("черный", 19, 27), ("белый", 32, 33), ("черный", 13, 19),
+        ("белый", 33, 21), ("черный", 15, 27), ("белый", 34, 33), ("черный", 14, 21),
+        ("белый", 33, 32), ("черный", 27, 26), ("белый", 41, 34), ("черный", 25, 33),
+        ("белый", 39, 27), ("белый", 27, 13), ("белый", 13, 25), ("белый", 25, 27), ("белый", 27, 15),
+    ]
+    board = get_starting_board()
+    pending = None
+    for color, f, t in moves:
+        result = logic.handle_event(
+            GameEvent(
+                positions=board,
+                mover_color=color,
+                from_pos=f,
+                to_pos=t,
+                position_for_mandatory_capture=pending,
+            ),
+            position_history={},
+        )
+        board = result.updated_positions
+        pending = result.position_for_mandatory_capture
+
+    assert result.position_for_mandatory_capture == 15
+    sixth = logic.handle_event(
+        GameEvent(
+            positions=board,
+            mover_color="белый",
+            from_pos=15,
+            to_pos=29,
+            position_for_mandatory_capture=15,
+        ),
+        position_history={},
+    )
+    assert sixth.message_code == TURN_NOW
+    assert sixth.captured_positions == [22]
+    assert sixth.movers_color == "черный"

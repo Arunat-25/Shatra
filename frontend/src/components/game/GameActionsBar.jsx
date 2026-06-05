@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import GameControls from '../GameControls';
 import GameResultActions from '../GameResultActions';
+import { canShowPassTurn } from '../../game/passTurn';
 
 export default function GameActionsBar({
   slot,
@@ -39,7 +40,7 @@ export default function GameActionsBar({
         </>
       ) : (
         <GameControls
-          canPass={state.canPass}
+          canPass={canShowPassTurn(state)}
           onPass={actions.skipTurn}
           onOfferDraw={actions.offerDraw}
           onAcceptDraw={actions.acceptDraw}

@@ -23,6 +23,8 @@ from backend.state import init_redis, close_redis, get_room
 from backend.db.session import init_db, close_db
 from backend.auth.router import router as auth_router
 from backend.admin.router import router as admin_router
+from backend.bug_reports.router import admin_router as bug_reports_admin_router
+from backend.bug_reports.router import public_router as bug_reports_router
 
 
 @asynccontextmanager
@@ -87,6 +89,8 @@ if _images_dir.is_dir():
 
 app.include_router(auth_router, prefix="/api/auth")
 app.include_router(admin_router, prefix="/api/admin")
+app.include_router(bug_reports_router, prefix="/api/bug-reports")
+app.include_router(bug_reports_admin_router, prefix="/api/admin/bug-reports")
 @app.post("/rooms")
 async def create_room_api(
     request: CreateRoomRequest,

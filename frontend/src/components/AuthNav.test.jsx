@@ -1,0 +1,91 @@
+import React from 'react';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { fireEvent, render, screen, cleanup } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import AuthNav from './AuthNav';
+
+const matchMediaMock = vi.fn();
+
+vi.mock('../context/AuthContext', () => ({
+  useAuth: () => ({
+    user: null,
+    isAuthenticated: false,
+    loading: false,
+    logout: vi.fn(),
+  }),
+}));
+
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key) => key,
+    i18n: { language: 'ru', changeLanguage: vi.fn() },
+  }),
+}));
+
+vi.mock('./LocaleSwitcher', () => ({
+  default: () => <div data-testid="locale-switcher" />,
+}));
+
+vi.mock('./HomeTab', () => ({
+  default: () => <a href="/">nav.home</a>,
+}));
+
+vi.mock('./TutorialTab', () => ({
+  default: () => <a href="/tutorial">nav.tutorial</a>,
+}));
+
+function renderNav(pathname) {
+  return render(
+    <MemoryRouter initialEntries={[pathname]}>
+      <AuthNav />
+    </MemoryRouter>,
+  );
+}
+
+describe('AuthNav compact mobile nav', () => {
+  beforeEach(() => {
+    matchMediaMock.mockImplementation((query) => ({
+      matches: query.includes('1319px'),
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }));
+    window.matchMedia = matchMediaMock;
+    document.documentElement.classList.remove('app-shell--game-nav-compact');
+  });
+
+  afterEach(() => {
+    cleanup();
+    document.documentElement.classList.remove('app-shell--game-nav-compact');
+  });
+
+  it('shows only hamburger on game route in mobile layout', () => {
+    renderNav('/room123');
+    expect(screen.getByRole('button', { name: 'nav.openMenu' })).toBeTruthy();
+    expect(screen.queryByText('nav.home')).toBeNull();
+    expect(screen.queryByText('lobby.title')).toBeNull();
+    expect(document.documentElement.classList.contains('app-shell--game-nav-compact')).toBe(true);
+  });
+
+  it('shows home and tutorial in drawer on mobile', () => {
+    renderNav('/room123');
+    fireEvent.click(screen.getByRole('button', { name: 'nav.openMenu' }));
+    expect(screen.getByText('nav.home')).toBeTruthy();
+    expect(screen.getByText('nav.tutorial')).toBeTruthy();
+    expect(screen.getByText('lobby.title')).toBeTruthy();
+  });
+
+  it('shows full nav on desktop layout', () => {
+    matchMediaMock.mockImplementation((query) => ({
+      matches: false,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }));
+    renderNav('/');
+    expect(screen.queryByRole('button', { name: 'nav.openMenu' })).toBeNull();
+    expect(screen.getByText('lobby.title')).toBeTruthy();
+    expect(screen.getByText('nav.home')).toBeTruthy();
+    expect(screen.getByText('nav.tutorial')).toBeTruthy();
+  });
+});

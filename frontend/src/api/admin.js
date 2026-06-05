@@ -1,4 +1,6 @@
-import { authFetch } from './auth';
+import i18n from '../i18n';
+import { authFetch, getAccessToken } from './auth';
+import { ApiError } from './errors';
 
 export function fetchRegistrationStats(params = {}) {
   const qs = new URLSearchParams();
@@ -61,4 +63,28 @@ export function fetchGamesSeries(params = {}) {
   if (params.anonymous_players) qs.set('anonymous_players', params.anonymous_players);
   const query = qs.toString();
   return authFetch(`/api/admin/stats/games/series${query ? `?${query}` : ''}`);
+}
+
+export function fetchBugReports(params = {}) {
+  const qs = new URLSearchParams();
+  if (params.limit != null) qs.set('limit', String(params.limit));
+  if (params.offset != null) qs.set('offset', String(params.offset));
+  const query = qs.toString();
+  return authFetch(`/api/admin/bug-reports${query ? `?${query}` : ''}`);
+}
+
+export async function fetchBugReportScreenshotBlob(id) {
+  const headers = {};
+  const token = getAccessToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const response = await fetch(`/api/admin/bug-reports/${id}/screenshot`, { headers });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    const detail = err.detail;
+    const message = typeof detail === 'string'
+      ? detail
+      : i18n.t('errors.genericHttp', { status: response.status });
+    throw new ApiError(message, response.status);
+  }
+  return response.blob();
 }

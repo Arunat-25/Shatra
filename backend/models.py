@@ -5,6 +5,7 @@ from typing import Literal, Optional
 from pydantic import BaseModel
 
 RoomType = Literal["public", "private", "ai"]
+AiDifficulty = Literal["easy", "strong"]
 
 
 class Room(BaseModel):
@@ -23,6 +24,7 @@ class Room(BaseModel):
     creator_user_id: Optional[str] = None
     creator_username: Optional[str] = None
     creator_color_preference: str = "random"  # "белый" | "черный" | "random"
+    ai_difficulty: AiDifficulty = "strong"
     chat_messages: list[dict] = []
 
     def correct_timers_after_restart(
@@ -52,6 +54,7 @@ class CreateRoomRequest(BaseModel):
     increment: Optional[int] = None  # добавка времени за ход (сек)
     color_preference: ColorPreference = "random"
     creator_client_id: Optional[str] = None
+    ai_difficulty: AiDifficulty = "strong"
 
 
 class CreateRoomResponse(BaseModel):

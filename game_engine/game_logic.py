@@ -19,7 +19,8 @@ class GameLogic:
         position_history — история позиций для проверки трёхкратного повтора
         """
         _captured = batyr_captured_this_turn or []
-        _history = position_history or {}
+        # Important: must mutate the caller-provided dict (even if empty).
+        _history = position_history if position_history is not None else {}
 
         if data.position is not None and data.to_pos is None:
             return _get_hints(

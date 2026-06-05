@@ -86,6 +86,17 @@ class TestCreateRoom:
         assert room["time_control"] is None
         assert room.get("timer_white") is None
 
+    async def test_ai_room_always_uses_trained_ai(self):
+        stored = {}
+
+        async def fake_set_room(room_id, data):
+            stored[room_id] = data
+
+        request = CreateRoomRequest(type="ai", creator_client_id="c1", ai_difficulty="easy")
+        with patch("backend.room_manager.set_room", side_effect=fake_set_room):
+            result = await create_room(request)
+        assert stored[result["room_id"]]["ai_difficulty"] == "strong"
+
 
 @pytest.mark.asyncio
 class TestListRooms:
