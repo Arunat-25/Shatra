@@ -13,15 +13,26 @@ describe('canShowPassTurn', () => {
     expect(canShowPassTurn({ ...state, myColor: 'черный' })).toBe(false);
   });
 
-  it('after final biy capture shows for the capturer, not the next mover', () => {
-    const state = {
-      canPass: true,
-      myColor: 'белый',
-      moversColor: 'черный',
-      posForMandatoryCapture: null,
-    };
-    expect(canShowPassTurn(state)).toBe(true);
-    expect(canShowPassTurn({ ...state, myColor: 'черный' })).toBe(false);
+  it('hidden after single biy capture when chain cannot continue', () => {
+    expect(
+      canShowPassTurn({
+        canPass: false,
+        myColor: 'белый',
+        moversColor: 'черный',
+        posForMandatoryCapture: null,
+      }),
+    ).toBe(false);
+  });
+
+  it('hidden when canPass true but not in active chain cell', () => {
+    expect(
+      canShowPassTurn({
+        canPass: true,
+        myColor: 'белый',
+        moversColor: 'белый',
+        posForMandatoryCapture: null,
+      }),
+    ).toBe(false);
   });
 
   it('hidden when pass is not offered', () => {
@@ -43,9 +54,9 @@ describe('passTurnColor', () => {
     ).toBe('белый');
   });
 
-  it('uses opponent after chain ended', () => {
+  it('returns null when not in capture chain', () => {
     expect(
       passTurnColor({ moversColor: 'черный', posForMandatoryCapture: null }),
-    ).toBe('белый');
+    ).toBe(null);
   });
 });

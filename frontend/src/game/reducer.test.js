@@ -77,6 +77,7 @@ describe('gameReducer', () => {
     });
 
     expect(pending.capturedGhostPieces).toEqual({ 28: 'черная шатра' });
+    expect(pending.moveFrom).toBe(36);
 
     const finished = gameReducer(pending, {
       type: GAME_ACTIONS.MOVE_MADE,
@@ -88,5 +89,65 @@ describe('gameReducer', () => {
     });
 
     expect(finished.capturedGhostPieces).toEqual({});
+    expect(finished.moveFrom).toBe(null);
+  });
+
+  it('MOVE_MADE applies essential_positions from server payload', () => {
+    const state = { ...initialGameState, myColor: 'белый' };
+    const next = gameReducer(state, {
+      type: GAME_ACTIONS.MOVE_MADE,
+      payload: {
+        desk: { 19: 'белый бий' },
+        movers_color: 'белый',
+        position_for_mandatory_capture: 19,
+        essential_positions: [33, 35],
+        captured_pieces: [26],
+      },
+    });
+    expect(next.moveFrom).toBe(19);
+    expect(next.highlightedEssential).toEqual([33, 35]);
+    expect(next.highlightedCaptured).toEqual([26]);
+  });
+
+  it('MOVE_MADE chain does not select or highlight for opponent', () => {
+    const state = { ...initialGameState, myColor: 'черный' };
+    const next = gameReducer(state, {
+      type: GAME_ACTIONS.MOVE_MADE,
+      payload: {
+        desk: { 19: 'белый бий' },
+        movers_color: 'белый',
+        position_for_mandatory_capture: 19,
+        essential_positions: [33, 35],
+        captured_pieces: [26],
+      },
+    });
+    expect(next.moveFrom).toBe(null);
+    expect(next.highlightedEssential).toEqual([]);
+    expect(next.highlightedCaptured).toEqual([]);
+  });
+
+  it('MOVE_MADE without chain clears selection and highlights', () => {
+    const inChain = gameReducer(
+      { ...initialGameState, myColor: 'белый' },
+      {
+        type: GAME_ACTIONS.MOVE_MADE,
+        payload: {
+          desk: { 19: 'белый бий' },
+          movers_color: 'белый',
+          position_for_mandatory_capture: 19,
+          essential_positions: [33],
+        },
+      },
+    );
+    const next = gameReducer(inChain, {
+      type: GAME_ACTIONS.MOVE_MADE,
+      payload: {
+        desk: { 33: 'белый бий' },
+        position_for_mandatory_capture: null,
+      },
+    });
+    expect(next.moveFrom).toBe(null);
+    expect(next.highlightedEssential).toEqual([]);
+    expect(next.highlightedCaptured).toEqual([]);
   });
 });

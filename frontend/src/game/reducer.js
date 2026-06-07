@@ -203,11 +203,26 @@ export function gameReducer(state, action) {
     case GAME_ACTIONS.MOVE_MADE: {
       const newLastMove = lastMoveFromPayload(action.payload);
       const posForMandatoryCapture = action.payload.position_for_mandatory_capture || null;
+      const chainCell = posForMandatoryCapture != null ? Number(posForMandatoryCapture) : null;
+      const mover = action.payload.movers_color || state.moversColor;
+      const chainActiveForMe = chainCell != null && mover === state.myColor;
+      const essential = action.payload.essential_positions;
+      const captured = action.payload.captured_pieces;
       return updateBoardState(state, action.payload.desk, {
-        moversColor: action.payload.movers_color || state.moversColor,
+        moversColor: mover,
         posForMandatoryCapture,
         canPass: !!action.payload.opportunity_pass_the_move,
-        moveFrom: null,
+        moveFrom: chainActiveForMe ? chainCell : null,
+        highlightedEssential: essential?.length && chainActiveForMe
+          ? essential.map(Number)
+          : chainActiveForMe && chainCell
+            ? state.highlightedEssential
+            : [],
+        highlightedCaptured: captured?.length && chainActiveForMe
+          ? captured.map(Number)
+          : chainActiveForMe && chainCell
+            ? state.highlightedCaptured
+            : [],
         aiThinking: action.payload.aiThinking ?? false,
         viewingHistoryIndex: null,
         historyFrom: null,

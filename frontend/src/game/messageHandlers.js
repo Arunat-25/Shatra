@@ -83,13 +83,24 @@ export const messageHandlers = [
         dispatch({ type: GAME_ACTIONS.SET_MOVE_HISTORY, payload: d.move_history });
       }
       dispatch({ type: GAME_ACTIONS.MOVE_MADE, payload: { ...d, aiThinking } });
+      if (d.essential_positions?.length && d.movers_color === myColor) {
+        dispatch({
+          type: GAME_ACTIONS.HIGHLIGHTS,
+          payload: {
+            essential: d.essential_positions || [],
+            captured: d.captured_pieces || [],
+          },
+        });
+      }
       if (d.game_over) return null;
       return msg(d, 'info');
     },
   },
   {
     check: (d) => d.essential_positions !== undefined && !d.message_code && !d.message,
-    handle: (d, dispatch) => {
+    handle: (d, dispatch, _modeAi, getMyColor) => {
+      const myColor = getMyColor?.() || null;
+      if (d.movers_color != null && d.movers_color !== myColor) return null;
       dispatch({
         type: GAME_ACTIONS.HIGHLIGHTS,
         payload: {

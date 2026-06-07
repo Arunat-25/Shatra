@@ -6,18 +6,14 @@ export function opponentColor(color) {
   return null;
 }
 
-/** Кнопка «Передать ход» только у игрока, который может передать ход бием. */
+/** Кнопка «Передать ход» только во время серии взятий бием (есть продолжение). */
 export function canShowPassTurn({ canPass, myColor, moversColor, posForMandatoryCapture }) {
   if (!canPass || !myColor || !moversColor) return false;
-  if (posForMandatoryCapture != null) {
-    return moversColor === myColor;
-  }
-  return moversColor !== myColor;
+  return posForMandatoryCapture != null && moversColor === myColor;
 }
 
-/** Цвет фигуры, которая может передать ход (после взятия бием). */
+/** Цвет игрока, который может передать ход (бий в серии взятий). */
 export function passTurnColor({ moversColor, posForMandatoryCapture }) {
-  if (!moversColor) return null;
-  if (posForMandatoryCapture != null) return moversColor;
-  return opponentColor(moversColor);
+  if (!moversColor || posForMandatoryCapture == null) return null;
+  return moversColor;
 }

@@ -105,6 +105,52 @@ describe('dispatchServerMessage', () => {
     expect(move.payload.aiThinking).toBe(true);
   });
 
+  it('capture continue dispatches highlights when essential_positions included', () => {
+    const { calls } = collectDispatches({
+      message_code: 'capture.continue',
+      desk: { '19': 'белый бий' },
+      movers_color: 'белый',
+      position_for_mandatory_capture: 19,
+      essential_positions: [33],
+      captured_pieces: [26],
+      game_over: false,
+    });
+    expect(calls.some((c) => c.type === GAME_ACTIONS.MOVE_MADE)).toBe(true);
+    expect(calls).toContainEqual({
+      type: GAME_ACTIONS.HIGHLIGHTS,
+      payload: { essential: [33], captured: [26] },
+    });
+  });
+
+  it('capture continue does not dispatch highlights to opponent', () => {
+    const { calls } = collectDispatches(
+      {
+        message_code: 'capture.continue',
+        desk: { '19': 'белый бий' },
+        movers_color: 'белый',
+        position_for_mandatory_capture: 19,
+        essential_positions: [33],
+        captured_pieces: [26],
+        game_over: false,
+      },
+      false,
+      'черный',
+    );
+    expect(calls.some((c) => c.type === GAME_ACTIONS.HIGHLIGHTS)).toBe(false);
+  });
+
+  it('hint-only message does not dispatch highlights to opponent', () => {
+    const { calls } = collectDispatches(
+      {
+        essential_positions: [33, 35],
+        movers_color: 'белый',
+      },
+      false,
+      'черный',
+    );
+    expect(calls.some((c) => c.type === GAME_ACTIONS.HIGHLIGHTS)).toBe(false);
+  });
+
   it('server error returns localized text from message_code', () => {
     const { msg } = collectDispatches({ status: 'error', message_code: 'move.impossible' });
     expect(msg.type).toBe('error');

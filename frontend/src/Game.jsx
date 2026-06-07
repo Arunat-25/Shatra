@@ -15,6 +15,8 @@ import GameActionsBar from './components/game/GameActionsBar';
 import GameViewport from './components/game/GameViewport';
 import GameDesktopLayout from './components/game/GameDesktopLayout';
 import { MSG_ERROR } from './constants';
+import { buildHintPayload } from './utils/wsPayloads';
+import { shouldRequestChainHints } from './game/chainCaptureHints';
 import { getClientId } from './api';
 import { formatGameOverMessage, getBoardSideOrder } from './utils';
 
@@ -82,6 +84,21 @@ export default function Game() {
     navigate(`/${roomId}${qs ? `?${qs}` : ''}`, { replace: true });
   }, [roomId, searchParams, navigate]);
 
+  useEffect(() => {
+    if (!shouldRequestChainHints(state)) return;
+    send(buildHintPayload(state, Number(state.posForMandatoryCapture)));
+  }, [
+    state.posForMandatoryCapture,
+    state.moversColor,
+    state.myColor,
+    state.highlightedEssential.length,
+    state.board,
+    state.waiting,
+    state.gameOver,
+    state.viewingHistoryIndex,
+    send,
+  ]);
+
   const isBoardBlocked =
     state.gameOver || state.aiThinking || state.opponentDisconnected || wsReconnecting;
 
@@ -99,7 +116,7 @@ export default function Game() {
     handleCellClick(positionNum);
   }, [state.viewingHistoryIndex, handleCellClick]);
 
-  useEscapeKey(state.moveFrom !== null, deselectPiece);
+  useEscapeKey(state.moveFrom !== null && state.posForMandatoryCapture == null, deselectPiece);
   useEscapeKey(state.viewingHistoryIndex !== null, () => {
     dispatch({ type: GAME_ACTIONS.EXIT_HISTORY });
   });
