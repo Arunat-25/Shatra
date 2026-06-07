@@ -1,5 +1,6 @@
 import { Component } from 'react';
 import { withTranslation } from 'react-i18next';
+import { Sentry } from '../observability/sentry';
 
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -9,6 +10,10 @@ class ErrorBoundary extends Component {
 
   static getDerivedStateFromError(error) {
     return { hasError: true, error };
+  }
+
+  componentDidCatch(error, info) {
+    Sentry.captureException(error, { contexts: { react: info } });
   }
 
   componentDidMount() {

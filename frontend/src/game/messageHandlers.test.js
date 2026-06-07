@@ -2,6 +2,12 @@ import { describe, expect, it, vi } from 'vitest';
 import { dispatchServerMessage } from './messageHandlers';
 import { GAME_ACTIONS } from './actions';
 
+const trackGameEventMock = vi.hoisted(() => vi.fn());
+
+vi.mock('../observability/events', () => ({
+  trackGameEvent: trackGameEventMock,
+}));
+
 function collectDispatches(payload, modeAi = false, myColor = 'белый') {
   const calls = [];
   const dispatch = (action) => calls.push(action);
@@ -16,12 +22,17 @@ function collectDispatches(payload, modeAi = false, myColor = 'белый') {
 
 describe('dispatchServerMessage', () => {
   it('game_over dispatches GAME_OVER', () => {
+    trackGameEventMock.mockClear();
     const { calls } = collectDispatches({
       game_over: true,
       winner_color: 'белый',
       reason: 'resign',
     });
     expect(calls.some((c) => c.type === GAME_ACTIONS.GAME_OVER)).toBe(true);
+    expect(trackGameEventMock).toHaveBeenCalledWith(
+      'game_over',
+      expect.objectContaining({ reason: 'resign', winnerColor: 'белый' }),
+    );
   });
 
   it('timer_tick updates clocks', () => {
@@ -168,6 +179,7 @@ describe('dispatchServerMessage', () => {
   });
 
   it('game_started includes players_info dispatch', () => {
+    trackGameEventMock.mockClear();
     const info = [{ client_id: 'c1', display_name: 'u' }];
     const { calls } = collectDispatches({
       status: 'game_started',
@@ -179,5 +191,9 @@ describe('dispatchServerMessage', () => {
     expect(calls.some(
       (c) => c.type === GAME_ACTIONS.SET_PLAYERS_INFO && c.payload === info,
     )).toBe(true);
+    expect(trackGameEventMock).toHaveBeenCalledWith(
+      'game_started',
+      expect.objectContaining({ moversColor: 'белый' }),
+    );
   });
 });

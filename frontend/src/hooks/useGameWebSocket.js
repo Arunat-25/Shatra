@@ -4,6 +4,7 @@ import useWebSocket from './useWebSocket';
 import { GAME_ACTIONS } from './useGameReducer';
 import { MSG_ERROR, MSG_WARNING } from '../constants';
 import { resolveWsErrorMessage } from '../i18n/resolveMessage';
+import { trackGameEvent } from '../observability/events';
 
 const ROOM_ERROR_TYPES = new Set([
   'room_full',
@@ -34,9 +35,12 @@ export default function useGameWebSocket(roomId, modeAi, {
     dispatchRef.current = dispatch;
   });
 
+  const joinedRef = useRef(false);
+
   useEffect(() => {
     myColorRef.current = null;
     dispatch({ type: GAME_ACTIONS.RESET_GAME });
+    joinedRef.current = false;
   }, [roomId, modeAi, dispatch]);
 
   const handleWsMessage = useCallback((data) => {
@@ -60,9 +64,13 @@ export default function useGameWebSocket(roomId, modeAi, {
     }
     if (statusInfo.type === 'connected') {
       setWsReconnecting(false);
+      if (!joinedRef.current) {
+        joinedRef.current = true;
+        trackGameEvent('game_joined', { roomId, modeAi });
+      }
       showMessage(t('game.connectionRestored'));
     }
-  }, [showMessage, t]);
+  }, [showMessage, t, roomId, modeAi]);
 
   const handleWsError = useCallback((errorInfo) => {
     const error = typeof errorInfo === 'string'
@@ -79,6 +87,7 @@ export default function useGameWebSocket(roomId, modeAi, {
 
     if (ROOM_ERROR_TYPES.has(error.type)) {
       setWsReconnecting(false);
+      trackGameEvent('ws_fatal_close', { roomId, type: error.type });
       dispatchRef.current({ type: GAME_ACTIONS.SET_JOINING_ERROR, payload: message });
       const delay = error.type === 'reconnect_failed' ? 4000 : 2000;
       setTimeout(() => navigate('/'), delay);
@@ -91,7 +100,7 @@ export default function useGameWebSocket(roomId, modeAi, {
     }
 
     showMessage(message, MSG_ERROR);
-  }, [navigate, showMessage]);
+  }, [navigate, showMessage, roomId]);
 
   const { send } = useWebSocket(roomId, handleWsMessage, handleWsError, handleWsStatus);
 

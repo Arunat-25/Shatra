@@ -8,6 +8,8 @@ import {
   scheduleTokenRefresh,
   setTokens,
 } from '../api/auth';
+import { getClientId } from '../api';
+import { setObservabilityUser } from '../observability/events';
 
 const AuthContext = createContext(null);
 
@@ -40,6 +42,10 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     loadUser();
   }, [loadUser]);
+
+  useEffect(() => {
+    setObservabilityUser(user, getClientId());
+  }, [user]);
 
   const login = useCallback(async (username, password) => {
     const data = await apiLogin(username, password);

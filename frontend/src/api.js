@@ -1,6 +1,7 @@
 import { getAccessToken } from './api/auth';
 import i18n from './i18n';
 import { ApiError } from './api/errors';
+import { trackApiError } from './observability/events';
 
 export { ApiError };
 
@@ -40,7 +41,11 @@ async function request(resource, options = {}) {
     } catch (error) {
       clearTimeout(timeoutId);
       if (attempt === MAX_RETRIES) {
-        if (error instanceof ApiError) throw error;
+        if (error instanceof ApiError) {
+          trackApiError(resource, error.status, attempt);
+          throw error;
+        }
+        trackApiError(resource, error.name === 'AbortError' ? 'timeout' : 'network', attempt);
         if (error.name === 'AbortError') throw new ApiError(i18n.t('errors.serverNoResponse'));
         throw new ApiError(i18n.t('errors.serverUnavailable'));
       }

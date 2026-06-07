@@ -2,8 +2,11 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
+import { initSentry } from './observability/sentry';
 import './i18n';
 import './index.css';
+
+initSentry();
 
 const root = createRoot(document.getElementById('root'));
 root.render(

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { getWsUrl } from '../api';
+import { trackWsEvent } from '../observability/events';
 import {
   classifyClose,
   getReconnectDelay,
@@ -64,15 +65,18 @@ export default function useWebSocket(roomId, onMessage, onError, onStatus) {
       reconnectWarningShownRef.current = false;
       clearReconnectTimer();
       flushOutboundQueue();
+      trackWsEvent('ws_connect', { roomId });
       onStatusRef.current?.({ type: 'connected' });
     };
 
     ws.onclose = (event) => {
       if (intentionalCloseRef.current) {
+        trackWsEvent('ws_disconnect', { roomId, intentional: true });
         return;
       }
 
       const closeInfo = classifyClose(event);
+      trackWsEvent('ws_disconnect', { roomId, code: event.code, reason: closeInfo.type });
 
       if (!closeInfo.recoverable) {
         outboundQueueRef.current = [];
@@ -88,6 +92,7 @@ export default function useWebSocket(roomId, onMessage, onError, onStatus) {
 
       if (shouldStopReconnecting(reconnectAttemptsRef.current)) {
         outboundQueueRef.current = [];
+        trackWsEvent('ws_reconnect_failed', { roomId, attempts: reconnectAttemptsRef.current });
         onErrorRef.current?.({
           type: 'reconnect_failed',
           recoverable: false,

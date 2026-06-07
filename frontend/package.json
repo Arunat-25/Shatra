@@ -13,6 +13,7 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@sentry/react": "^9.47.1",
     "i18next": "^26.3.0",
     "prop-types": "^15.8.1",
     "qrcode": "^1.5.4",

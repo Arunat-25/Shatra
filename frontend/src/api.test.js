@@ -4,8 +4,14 @@ const { getAccessTokenMock } = vi.hoisted(() => ({
   getAccessTokenMock: vi.fn(),
 }));
 
+const trackApiErrorMock = vi.hoisted(() => vi.fn());
+
 vi.mock('./api/auth', () => ({
   getAccessToken: getAccessTokenMock,
+}));
+
+vi.mock('./observability/events', () => ({
+  trackApiError: (...args) => trackApiErrorMock(...args),
 }));
 
 vi.mock('./i18n', () => ({
@@ -78,6 +84,17 @@ describe('listRooms', () => {
     expect(fetch).toHaveBeenCalledWith(
       '/rooms?client_id=client-abc',
       expect.objectContaining({ headers: expect.any(Object) }),
+    );
+  });
+
+  it('tracks api error after retries exhausted', async () => {
+    trackApiErrorMock.mockClear();
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network down')));
+    await expect(listRooms()).rejects.toThrow();
+    expect(trackApiErrorMock).toHaveBeenCalledWith(
+      '/rooms?client_id=client-abc',
+      'network',
+      2,
     );
   });
 });

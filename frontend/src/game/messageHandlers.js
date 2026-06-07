@@ -1,6 +1,7 @@
 import { GAME_ACTIONS } from './actions';
 import i18n from '../i18n';
 import { resolveMessage } from '../i18n/resolveMessage';
+import { trackGameEvent } from '../observability/events';
 
 function t(key, opts) {
   return i18n.t(key, opts);
@@ -65,6 +66,10 @@ export const messageHandlers = [
   {
     check: (d) => d.game_over,
     handle: (d, dispatch) => {
+      trackGameEvent('game_over', {
+        reason: d.reason,
+        winnerColor: d.winner_color,
+      });
       dispatch({ type: GAME_ACTIONS.GAME_OVER, payload: d });
       return null;
     },
@@ -106,6 +111,7 @@ export const messageHandlers = [
       if (d.move_history) {
         dispatch({ type: GAME_ACTIONS.SET_MOVE_HISTORY, payload: d.move_history });
       }
+      trackGameEvent('game_started', { modeAi, moversColor: d.movers_color });
       dispatch({ type: GAME_ACTIONS.GAME_STARTED, payload: { ...d, aiThinking } });
       return { text: t('game.gameStarted'), type: 'info' };
     },
