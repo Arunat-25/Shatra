@@ -14,6 +14,15 @@ function isDrawResult(payload) {
   return !winner;
 }
 
+function isRealMove(payload) {
+  const from = payload?.from_pos;
+  const to = payload?.to_pos;
+  if (from == null || to == null) return false;
+  const f = Number(from);
+  const t = Number(to);
+  return f > 0 && t > 0 && f !== t;
+}
+
 export function playForAction(action, prevState, getMyColor) {
   if (vol() <= 0 || !action?.type) return;
 
@@ -26,7 +35,8 @@ export function playForAction(action, prevState, getMyColor) {
       break;
 
     case GAME_ACTIONS.MOVE_MADE: {
-      const captured = action.payload?.captured_pieces;
+      if (!isRealMove(action.payload)) break;
+      const captured = action.payload?.captured_positions;
       if (Array.isArray(captured) && captured.length > 0) {
         sounds.playCapture(v);
       } else {
@@ -53,10 +63,6 @@ export function playForAction(action, prevState, getMyColor) {
 
     case GAME_ACTIONS.GAME_CANCELLED:
       sounds.playDraw(v);
-      break;
-
-    case GAME_ACTIONS.SET_MOVE_FROM:
-      sounds.playSelect(v);
       break;
 
     case GAME_ACTIONS.CHAT_MESSAGE: {

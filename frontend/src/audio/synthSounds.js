@@ -52,8 +52,53 @@ function playSequence(notes, volume) {
   }
 }
 
+/** Short wooden board tap: low thump + filtered contact click. */
+function playBoardTap({ volume, intensity = 1, pitch = 1 }) {
+  const vol = volume ?? getEffectiveVolume();
+  if (vol <= 0) return;
+
+  const audio = getAudioContext();
+  if (!audio) return;
+
+  const now = audio.currentTime;
+  const amp = 0.24 * intensity * vol;
+
+  const thump = audio.createOscillator();
+  const thumpGain = audio.createGain();
+  thump.type = 'sine';
+  thump.frequency.setValueAtTime(165 * pitch, now);
+  thump.frequency.exponentialRampToValueAtTime(Math.max(72 * pitch, 1), now + 0.045);
+  thumpGain.gain.setValueAtTime(0.0001, now);
+  thumpGain.gain.exponentialRampToValueAtTime(Math.max(amp, 0.0001), now + 0.004);
+  thumpGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.075);
+  thump.connect(thumpGain);
+  thumpGain.connect(audio.destination);
+  thump.start(now);
+  thump.stop(now + 0.09);
+
+  const clickLen = Math.floor(audio.sampleRate * 0.018);
+  const clickBuffer = audio.createBuffer(1, clickLen, audio.sampleRate);
+  const clickData = clickBuffer.getChannelData(0);
+  for (let i = 0; i < clickLen; i += 1) {
+    clickData[i] = (Math.random() * 2 - 1) * (1 - i / clickLen) ** 1.6;
+  }
+  const click = audio.createBufferSource();
+  click.buffer = clickBuffer;
+  const filter = audio.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.value = 950 * pitch;
+  filter.Q.value = 0.9;
+  const clickGain = audio.createGain();
+  clickGain.gain.setValueAtTime(0.14 * intensity * vol, now);
+  clickGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.014);
+  click.connect(filter);
+  filter.connect(clickGain);
+  clickGain.connect(audio.destination);
+  click.start(now);
+}
+
 export function playMove(volume) {
-  playTone({ frequency: 520, duration: 0.05, peakGain: 0.1, volume });
+  playBoardTap({ volume, intensity: 1, pitch: 1 });
 }
 
 export function playCapture(volume) {
@@ -90,7 +135,7 @@ export function playDraw(volume) {
 }
 
 export function playSelect(volume) {
-  playTone({ frequency: 680, duration: 0.03, peakGain: 0.06, volume });
+  playBoardTap({ volume, intensity: 0.45, pitch: 1.18 });
 }
 
 export function playError(volume) {
@@ -109,5 +154,21 @@ export function playDrawOffer(volume) {
 }
 
 export function playLowTime(volume) {
-  playTone({ frequency: 740, duration: 0.06, type: 'triangle', peakGain: 0.11, volume });
+  playSequence([
+    {
+      frequency: 932,
+      frequencyEnd: 740,
+      duration: 0.18,
+      type: 'square',
+      peakGain: 0.13,
+      gap: 80,
+    },
+    {
+      frequency: 622,
+      frequencyEnd: 494,
+      duration: 0.24,
+      type: 'square',
+      peakGain: 0.11,
+    },
+  ], volume);
 }

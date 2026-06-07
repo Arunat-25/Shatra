@@ -37,10 +37,6 @@ export function playDraw(volume) {
   void play('draw', volume, synth.playDraw);
 }
 
-export function playSelect(volume) {
-  void play('select', volume, synth.playSelect);
-}
-
 export function playError(volume) {
   void play('error', volume, synth.playError);
 }
@@ -54,7 +50,9 @@ export function playDrawOffer(volume) {
 }
 
 export function playLowTime(volume) {
-  void play('lowTime', volume, synth.playLowTime);
+  const v = vol(volume);
+  if (v <= 0) return;
+  synth.playLowTime(v);
 }
 
 export { preloadGameSounds } from './sampleSounds';

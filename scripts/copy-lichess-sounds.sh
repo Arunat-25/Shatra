@@ -7,7 +7,6 @@ DEST="$ROOT/frontend/public/sounds/piano"
 BASE="https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/piano"
 
 FILES=(
-  Move.ogg
   Capture.ogg
   Victory.ogg
   Defeat.ogg
@@ -15,7 +14,6 @@ FILES=(
   GenericNotify.ogg
   NewChallenge.ogg
   NewPM.ogg
-  LowTime.ogg
 )
 
 mkdir -p "$DEST"

@@ -1,4 +1,4 @@
-/** Lichess lila piano set — paths under /sounds/piano/ */
+/** Game sound files under /sounds/piano/ */
 export const SOUND_SET = 'piano';
 
 export const SOUND_BASE = `/sounds/${SOUND_SET}`;
@@ -9,14 +9,12 @@ export const SOUND_BASE = `/sounds/${SOUND_SET}`;
 export const SOUND_MANIFEST = {
   move: { files: ['Move.ogg'] },
   capture: { files: ['Capture.ogg'] },
-  gameStart: { files: ['NewChallenge.ogg'] },
-  win: { files: ['Victory.ogg'] },
-  loss: { files: ['Defeat.ogg'] },
-  draw: { files: ['Draw.ogg'] },
-  select: { files: ['Move.ogg'], gain: 0.45 },
+  gameStart: { files: ['GameEvent.ogg'] },
+  win: { files: ['GameEvent.ogg'] },
+  loss: { files: ['GameEvent.ogg'] },
+  draw: { files: ['GameEvent.ogg'] },
   chat: { files: ['GenericNotify.ogg'] },
-  drawOffer: { files: ['NewPM.ogg'] },
-  lowTime: { files: ['LowTime.ogg'] },
+  drawOffer: { files: ['GenericNotify.ogg'] },
 };
 
 /** All unique filenames to preload. */

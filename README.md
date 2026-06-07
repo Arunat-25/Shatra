@@ -20,6 +20,22 @@ docker compose up --build -d
 
 Перед первым запуском задайте `JWT_SECRET` в `.env` (см. ниже).
 
+### Доступ через интернет (Cloudflare Tunnel)
+
+Для короткого теста с друзьями из другой сети — без деплоя и без своего домена:
+
+```bash
+# Установите cloudflared: https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/
+./scripts/tunnel-quick.sh
+```
+
+Скрипт поднимает Docker и выводит публичный URL вида `https://....trycloudflare.com`.  
+Отправьте эту ссылку — WebSocket и API работают через тот же хост автоматически.
+
+Ограничения quick tunnel: URL меняется при каждом перезапуске, ноутбук должен быть включён, терминал с туннелем не закрывать.
+
+Если туннель не открывается (ошибка 530), в сети может блокироваться QUIC — скрипт использует `--protocol http2` для обхода.
+
 ## Локальная разработка
 
 ```bash

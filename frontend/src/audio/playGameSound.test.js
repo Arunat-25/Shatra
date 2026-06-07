@@ -34,7 +34,7 @@ describe('playGameSound', () => {
 
   it('plays move on MOVE_MADE without captures', () => {
     playForAction(
-      { type: GAME_ACTIONS.MOVE_MADE, payload: { desk: {} } },
+      { type: GAME_ACTIONS.MOVE_MADE, payload: { desk: {}, from_pos: 11, to_pos: 19 } },
       { myColor: 'белый' },
       () => 'белый',
     );
@@ -42,17 +42,30 @@ describe('playGameSound', () => {
     expect(sounds.playCapture).not.toHaveBeenCalled();
   });
 
-  it('plays capture when captured_pieces present', () => {
+  it('plays capture when captured_positions present', () => {
     playForAction(
       {
         type: GAME_ACTIONS.MOVE_MADE,
-        payload: { desk: {}, captured_pieces: [1] },
+        payload: { desk: {}, from_pos: 11, to_pos: 19, captured_positions: [19] },
       },
       { myColor: 'белый' },
       () => 'белый',
     );
     expect(sounds.playCapture).toHaveBeenCalled();
     expect(sounds.playMove).not.toHaveBeenCalled();
+  });
+
+  it('skips move sound for hint responses without from_pos/to_pos', () => {
+    playForAction(
+      {
+        type: GAME_ACTIONS.MOVE_MADE,
+        payload: { desk: {}, essential_positions: [19], captured_pieces: [28] },
+      },
+      { myColor: 'белый' },
+      () => 'белый',
+    );
+    expect(sounds.playMove).not.toHaveBeenCalled();
+    expect(sounds.playCapture).not.toHaveBeenCalled();
   });
 
   it('plays win when winner matches my color', () => {
