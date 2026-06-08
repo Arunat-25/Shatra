@@ -8,7 +8,7 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from 'recharts';
-import { getAdminChartColors } from './adminChartTheme';
+import { getAdminChartColors, getAdminChartTooltipStyle } from './adminChartTheme';
 
 const PIE_COLORS = ['#c9a227', '#6b9bd1', '#c97b6b', '#7bc96f', '#a78bfa'];
 
@@ -38,14 +38,7 @@ export default function AdminPieChart({ data, emptyLabel }) {
               <Cell key={entry.name} fill={PIE_COLORS[index % PIE_COLORS.length]} />
             ))}
           </Pie>
-          <Tooltip
-            contentStyle={{
-              background: 'var(--surface, #1a1a1a)',
-              border: `1px solid ${colors.grid}`,
-              borderRadius: 8,
-              fontSize: 12,
-            }}
-          />
+          <Tooltip contentStyle={getAdminChartTooltipStyle(colors)} />
           <Legend wrapperStyle={{ fontSize: 11 }} />
         </PieChart>
       </ResponsiveContainer>

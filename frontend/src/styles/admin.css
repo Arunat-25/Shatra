@@ -1,4 +1,6 @@
 .admin-page {
+  --admin-panel-bg: var(--bg-elevated);
+  --admin-card-bg: var(--bg-surface);
   max-width: 960px;
   margin: 0 auto;
   padding: 1.5rem 1rem 3rem;
@@ -19,18 +21,14 @@
 
 .admin-subtitle {
   margin: 0;
-  color: var(--text-muted, #888);
-}
-
-.admin-link {
-  color: var(--accent, #c9a227);
-  text-decoration: none;
+  color: var(--text-muted);
 }
 
 .admin-section {
-  background: var(--surface, rgba(255, 255, 255, 0.04));
-  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  background: var(--admin-panel-bg);
+  border: 1px solid var(--border-subtle);
   border-radius: 12px;
+  box-shadow: var(--shadow-sm);
   padding: 1.25rem;
   margin-bottom: 1rem;
 }
@@ -49,7 +47,7 @@
 .admin-hint {
   margin: 0 0 0.75rem;
   font-size: 0.85rem;
-  color: var(--text-muted, #888);
+  color: var(--text-muted);
 }
 
 .admin-controls {
@@ -72,8 +70,8 @@
   min-width: 10rem;
   padding: 0.45rem 0.6rem;
   border-radius: 8px;
-  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
-  background: var(--input-bg, rgba(0, 0, 0, 0.2));
+  border: 1px solid var(--border-medium);
+  background: var(--bg-elevated);
   color: inherit;
 }
 
@@ -81,8 +79,8 @@
   padding: 0.5rem 1rem;
   border-radius: 8px;
   border: none;
-  background: var(--accent, #c9a227);
-  color: #111;
+  background: var(--gold);
+  color: var(--bg-deep);
   cursor: pointer;
   font-weight: 600;
 }
@@ -98,13 +96,14 @@
   gap: 0.25rem;
   padding: 0.75rem 1rem;
   border-radius: 10px;
-  background: rgba(0, 0, 0, 0.15);
+  background: var(--admin-card-bg);
+  border: 1px solid var(--border-subtle);
   min-width: 8rem;
 }
 
 .admin-stat-card__label {
   font-size: 0.8rem;
-  color: var(--text-muted, #888);
+  color: var(--text-muted);
 }
 
 .admin-stat-card__value {
@@ -128,15 +127,16 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 0.35rem 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .admin-error {
   padding: 0.75rem 1rem;
   margin-bottom: 1rem;
   border-radius: 8px;
-  background: rgba(180, 40, 40, 0.15);
-  color: #ffb4b4;
+  background: rgba(170, 43, 16, 0.08);
+  border: 1px solid rgba(170, 43, 16, 0.2);
+  color: var(--danger);
 }
 
 .admin-chart {
@@ -152,7 +152,7 @@
 .admin-chart-empty {
   margin: 1rem 0;
   font-size: 0.9rem;
-  color: var(--text-muted, #888);
+  color: var(--text-muted);
   text-align: center;
 }
 
@@ -167,7 +167,7 @@
   margin: 0 0 0.5rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: var(--text-muted, #888);
+  color: var(--text-muted);
 }
 
 .admin-bug-reports {
@@ -179,7 +179,8 @@
 
 .admin-bug-report {
   border-radius: 10px;
-  background: rgba(0, 0, 0, 0.15);
+  background: var(--admin-card-bg);
+  border: 1px solid var(--border-subtle);
   overflow: hidden;
 }
 
@@ -198,13 +199,13 @@
 }
 
 .admin-bug-report__header:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--bg-surface-hover);
 }
 
 .admin-bug-report__date,
 .admin-bug-report__reporter {
   font-size: 0.85rem;
-  color: var(--text-muted, #888);
+  color: var(--text-muted);
 }
 
 .admin-bug-report__preview {
@@ -216,7 +217,7 @@
 
 .admin-bug-report__body {
   padding: 0 1rem 1rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid var(--border-subtle);
 }
 
 .admin-bug-report__description {
@@ -228,12 +229,12 @@
 .admin-bug-report__meta {
   margin: 0.35rem 0;
   font-size: 0.8rem;
-  color: var(--text-muted, #888);
+  color: var(--text-muted);
   word-break: break-word;
 }
 
 .admin-bug-report__meta a {
-  color: var(--accent, #c9a227);
+  color: var(--gold);
 }
 
 .admin-bug-report__screenshot {
@@ -242,7 +243,7 @@
   max-height: 420px;
   margin-top: 0.75rem;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
 }
 
 @media (max-width: 640px) {

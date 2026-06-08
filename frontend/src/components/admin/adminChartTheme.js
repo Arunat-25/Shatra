@@ -1,26 +1,40 @@
 /** Read chart colors from CSS variables (admin page). */
 export function getAdminChartColors() {
+  const gridFallback = 'rgba(154, 102, 0, 0.14)';
+  const textFallback = '#271200';
   if (typeof document === 'undefined') {
     return {
-      accent: '#c9a227',
-      muted: '#888888',
-      line2: '#6b9bd1',
-      line3: '#c97b6b',
-      grid: 'rgba(255,255,255,0.08)',
-      text: '#cccccc',
+      accent: '#9A6600',
+      muted: 'rgba(39, 18, 0, 0.50)',
+      line2: '#106E68',
+      line3: '#AA2B10',
+      grid: gridFallback,
+      text: textFallback,
     };
   }
   const root = document.documentElement;
   const style = getComputedStyle(root);
-  const accent = style.getPropertyValue('--accent').trim() || '#c9a227';
-  const muted = style.getPropertyValue('--text-muted').trim() || '#888888';
+  const accent = style.getPropertyValue('--gold').trim() || '#9A6600';
+  const muted = style.getPropertyValue('--text-muted').trim() || 'rgba(39, 18, 0, 0.50)';
+  const text = style.getPropertyValue('--text-primary').trim() || textFallback;
+  const borderSubtle = style.getPropertyValue('--border-subtle').trim();
   return {
     accent,
     muted,
-    line2: '#6b9bd1',
-    line3: '#c97b6b',
-    grid: 'rgba(255, 255, 255, 0.08)',
-    text: style.getPropertyValue('--text').trim() || '#e8e8e8',
+    line2: '#106E68',
+    line3: '#AA2B10',
+    grid: borderSubtle || gridFallback,
+    text,
+  };
+}
+
+export function getAdminChartTooltipStyle(colors) {
+  return {
+    background: 'var(--bg-elevated, #FAF5E8)',
+    border: `1px solid ${colors.grid}`,
+    borderRadius: 8,
+    fontSize: 12,
+    color: colors.text,
   };
 }
 

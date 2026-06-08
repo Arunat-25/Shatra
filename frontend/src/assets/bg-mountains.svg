@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="sky" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#dce8f0"/>
+      <stop offset="35%" stop-color="#e8dcc8"/>
+      <stop offset="72%" stop-color="#f0e8d3"/>
+      <stop offset="100%" stop-color="#e6d4b8"/>
+    </linearGradient>
+    <linearGradient id="sunGlow" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#f5d78e" stop-opacity="0.55"/>
+      <stop offset="45%" stop-color="#f0e8d3" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#f0e8d3" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="farPeak" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#7a96a8"/>
+      <stop offset="100%" stop-color="#5c7384"/>
+    </linearGradient>
+    <linearGradient id="midPeak" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#4a6670"/>
+      <stop offset="100%" stop-color="#2f4a52"/>
+    </linearGradient>
+    <linearGradient id="nearPeak" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#3d5c56"/>
+      <stop offset="100%" stop-color="#1e3834"/>
+    </linearGradient>
+    <linearGradient id="foreground" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2a4540"/>
+      <stop offset="100%" stop-color="#152622"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1920" height="1080" fill="url(#sky)"/>
+  <ellipse cx="960" cy="120" rx="520" ry="280" fill="url(#sunGlow)"/>
+
+  <!-- distant range -->
+  <path fill="url(#farPeak)" opacity="0.72"
+    d="M0,620 L180,420 L320,500 L480,340 L640,460 L820,300 L980,420 L1140,280 L1280,390 L1460,260 L1620,380 L1780,320 L1920,400 L1920,1080 L0,1080 Z"/>
+
+  <!-- snow caps -->
+  <path fill="#eef4f8" opacity="0.55"
+    d="M440,360 L480,340 L520,365 L500,385 Z
+       M800,320 L820,300 L850,318 L830,338 Z
+       M1120,300 L1140,280 L1175,305 L1155,325 Z
+       M1440,280 L1460,260 L1495,285 L1475,305 Z"/>
+
+  <!-- middle range -->
+  <path fill="url(#midPeak)" opacity="0.88"
+    d="M0,760 L120,620 L280,700 L420,540 L560,660 L720,500 L900,640 L1060,480 L1220,600 L1380,520 L1540,660 L1700,580 L1920,700 L1920,1080 L0,1080 Z"/>
+
+  <path fill="#e8eef2" opacity="0.45"
+    d="M400,560 L420,540 L455,565 L435,585 Z
+       M700,520 L720,500 L755,525 L735,545 Z
+       M1040,500 L1060,480 L1095,505 L1075,525 Z"/>
+
+  <!-- near hills -->
+  <path fill="url(#nearPeak)"
+    d="M0,900 L200,720 L360,820 L520,680 L700,800 L880,660 L1080,790 L1260,700 L1440,820 L1620,740 L1820,860 L1920,820 L1920,1080 L0,1080 Z"/>
+
+  <path fill="url(#foreground)" opacity="0.92"
+    d="M0,980 L240,860 L420,940 L600,820 L780,920 L980,840 L1180,930 L1360,850 L1540,940 L1720,880 L1920,960 L1920,1080 L0,1080 Z"/>
+</svg>

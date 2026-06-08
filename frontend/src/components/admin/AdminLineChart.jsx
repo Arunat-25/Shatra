@@ -9,7 +9,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { formatBucketLabel, getAdminChartColors } from './adminChartTheme';
+import { formatBucketLabel, getAdminChartColors, getAdminChartTooltipStyle } from './adminChartTheme';
 
 export default function AdminLineChart({ buckets, granularity, emptyLabel }) {
   const colors = getAdminChartColors();
@@ -39,12 +39,7 @@ export default function AdminLineChart({ buckets, granularity, emptyLabel }) {
             width={36}
           />
           <Tooltip
-            contentStyle={{
-              background: 'var(--surface, #1a1a1a)',
-              border: '1px solid var(--border, rgba(255,255,255,0.12))',
-              borderRadius: 8,
-              fontSize: 12,
-            }}
+            contentStyle={getAdminChartTooltipStyle(colors)}
             labelStyle={{ color: colors.text }}
           />
           <Line

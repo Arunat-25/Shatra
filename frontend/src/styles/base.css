@@ -17,9 +17,9 @@ html::before {
   inset: 0;
   z-index: 0;
   background-color: var(--bg-base);
-  background-image: url('../assets/bg-altai-scene.jpg');
+  background-image: url('../assets/bg-mountains.svg');
   background-size: cover;
-  background-position: center center;
+  background-position: center bottom;
   background-repeat: no-repeat;
   pointer-events: none;
 }

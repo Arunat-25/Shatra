@@ -76,23 +76,6 @@
   color: var(--text-primary);
 }
 
-.tutorial-page__footer {
-  margin: 28px 0 0;
-  text-align: center;
-}
-
-.tutorial-back-link {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--text-muted);
-  text-decoration: none;
-  transition: color var(--duration-fast) var(--ease-out);
-}
-
-.tutorial-back-link:hover {
-  color: var(--gold);
-}
-
 a.tutorial-section-card {
   text-decoration: none;
   color: inherit;

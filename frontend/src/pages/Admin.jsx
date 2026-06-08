@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   fetchGamesSeries,
@@ -225,7 +225,6 @@ export default function Admin() {
           <h1>{t('admin.title')}</h1>
           <p className="admin-subtitle">{t('admin.subtitle')}</p>
         </div>
-        <Link to="/" className="admin-link">{t('auth.toHome')}</Link>
       </header>
 
       {error && (

@@ -11,7 +11,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { formatBucketLabel, getAdminChartColors } from './adminChartTheme';
+import { formatBucketLabel, getAdminChartColors, getAdminChartTooltipStyle } from './adminChartTheme';
 
 export default function AdminMultiLineChart({ buckets, granularity, emptyLabel }) {
   const { t } = useTranslation();
@@ -38,12 +38,8 @@ export default function AdminMultiLineChart({ buckets, granularity, emptyLabel }
           />
           <YAxis allowDecimals={false} tick={{ fill: colors.muted, fontSize: 11 }} width={36} />
           <Tooltip
-            contentStyle={{
-              background: 'var(--surface, #1a1a1a)',
-              border: '1px solid var(--border, rgba(255,255,255,0.12))',
-              borderRadius: 8,
-              fontSize: 12,
-            }}
+            contentStyle={getAdminChartTooltipStyle(colors)}
+            labelStyle={{ color: colors.text }}
           />
           <Legend wrapperStyle={{ fontSize: 12 }} />
           <Line

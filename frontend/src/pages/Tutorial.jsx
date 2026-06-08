@@ -35,11 +35,6 @@ export default function Tutorial() {
             );
           })}
         </ul>
-        <p className="tutorial-page__footer">
-          <Link to="/" className="tutorial-back-link">
-            {t('tutorial.backToLobby')}
-          </Link>
-        </p>
       </div>
     </div>
   );
