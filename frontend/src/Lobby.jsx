@@ -6,6 +6,7 @@ import useRoomPolling from './hooks/useRoomPolling';
 import RoomCard from './components/RoomCard';
 import GameEmblem from './components/GameEmblem';
 import GameSetupPicker from './components/GameSetupPicker';
+import RatingGainBlockedNotice from './components/RatingGainBlockedNotice';
 import { ROOM_PUBLIC, ROOM_PRIVATE, ROOM_AI, POLL_INTERVAL } from './constants';
 export default function Lobby() {
   const { t } = useTranslation();
@@ -114,6 +115,8 @@ export default function Lobby() {
               {t('lobby.activeGamesCount', { count: stats.active_games ?? 0 })}
             </p>
           )}
+
+          <RatingGainBlockedNotice />
 
           {showSetup ? (
             <GameSetupPicker

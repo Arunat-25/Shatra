@@ -3,13 +3,17 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime, timezone
 
 import pytest
 
-from backend.db.models import FinishedGame
+from backend.db.models import FinishedGame, User
+from backend.db.session import get_session_factory
 from backend.rating.elo import rating_deltas
-from backend.rating.service import is_rated_match, score_for_color
+from backend.rating.service import apply_rating, is_rated_match, score_for_color
+from tests.rating.conftest import create_test_user
 
+_APPLY_AT = datetime(2026, 6, 8, 12, 0, tzinfo=timezone.utc)
 
 def _side(user_id=None, is_anonymous=False):
     return {
@@ -103,6 +107,10 @@ class TestScoreForColor:
     def test_draw_always_half_point(self, my_color, winner_color, reason):
         assert score_for_color(my_color, winner_color, reason) == 0.5
 
+    def test_draw_agreed_ignores_winner_color(self):
+        assert score_for_color("белый", "белый", "draw_agreed") == 0.5
+        assert score_for_color("черный", "белый", "draw_agreed") == 0.5
+
 
 class TestServiceToEloIntegration:
     """End-to-end: game result → score → rating_deltas."""
@@ -195,3 +203,178 @@ class TestPlayersInfoWithRatingResult:
         assert by_id["w"]["rating_delta"] == 10
         assert by_id["b"]["rating"] == 1590
         assert by_id["b"]["rating_delta"] == -10
+
+    def test_unrated_returns_no_delta(self):
+        from backend.rating.service import players_info_with_rating_result
+
+        room = {
+            "players": {"w": "белый"},
+            "player_meta": {
+                "w": {"username": "alice", "is_anonymous": False, "rating": 1500},
+            },
+        }
+        record = FinishedGame(room_id="r1", room_type="public", is_rated=False)
+        info = players_info_with_rating_result(room, record)
+        assert "rating_delta" not in info[0]
+
+    def test_missing_client_id_skips_delta(self):
+        from backend.rating.service import players_info_with_rating_result
+
+        room = {
+            "players": {"w": "белый", "b": "черный"},
+            "player_meta": {
+                "w": {"username": "alice", "is_anonymous": False, "rating": 1500},
+                "b": {"username": "bob", "is_anonymous": False, "rating": 1600},
+            },
+        }
+        record = FinishedGame(
+            room_id="r1",
+            room_type="public",
+            is_rated=True,
+            black_client_id="b",
+            white_rating_delta=10,
+            black_rating_delta=-10,
+        )
+        info = players_info_with_rating_result(room, record)
+        by_id = {p["client_id"]: p for p in info}
+        assert "rating_delta" not in by_id["w"]
+        assert by_id["b"]["rating_delta"] == -10
+
+    def test_stale_room_rating_plus_delta(self):
+        from backend.rating.service import players_info_with_rating_result
+
+        room = {
+            "players": {"w": "белый"},
+            "player_meta": {
+                "w": {"username": "alice", "is_anonymous": False, "rating": 1500},
+            },
+        }
+        record = FinishedGame(
+            room_id="r1",
+            room_type="public",
+            is_rated=True,
+            white_client_id="w",
+            white_rating_delta=10,
+            black_rating_delta=-10,
+        )
+        info = players_info_with_rating_result(room, record)
+        assert info[0]["rating"] == 1510
+        assert info[0]["rating_delta"] == 10
+
+
+@pytest.mark.asyncio
+class TestApplyRating:
+    async def test_updates_both_users_and_record(self):
+        white_id = await create_test_user()
+        black_id = await create_test_user()
+        factory = get_session_factory()
+        async with factory() as session:
+            white = await session.get(User, white_id)
+            black = await session.get(User, black_id)
+            white.rated_games_count = 50
+            black.rated_games_count = 50
+            await session.commit()
+
+        record = FinishedGame(room_id="apply1", room_type="public")
+        factory = get_session_factory()
+        async with factory() as session:
+            session.add(record)
+            await session.flush()
+            await apply_rating(
+                session,
+                record,
+                white_user_id=white_id,
+                black_user_id=black_id,
+                score_white=1.0,
+                moves_count=20,
+                finished_at=_APPLY_AT,
+            )
+            await session.commit()
+
+        async with factory() as session:
+            white = await session.get(User, white_id)
+            black = await session.get(User, black_id)
+            assert white.rating == 1210
+            assert black.rating == 1190
+            assert white.rated_games_count == 51
+            assert black.rated_games_count == 51
+        assert record.is_rated is True
+        assert record.white_rating_delta == 10
+        assert record.black_rating_delta == -10
+
+    async def test_missing_white_user_no_op(self):
+        black_id = await create_test_user()
+        record = FinishedGame(room_id="apply2", room_type="public")
+        factory = get_session_factory()
+        async with factory() as session:
+            session.add(record)
+            await session.flush()
+            await apply_rating(
+                session,
+                record,
+                white_user_id=uuid.uuid4(),
+                black_user_id=black_id,
+                score_white=1.0,
+                moves_count=20,
+                finished_at=_APPLY_AT,
+            )
+            await session.commit()
+
+        async with factory() as session:
+            black = await session.get(User, black_id)
+            assert black.rating == 1200
+            assert black.rated_games_count == 0
+        assert record.is_rated is False
+
+    async def test_missing_black_user_no_op(self):
+        white_id = await create_test_user()
+        record = FinishedGame(room_id="apply3", room_type="public")
+        factory = get_session_factory()
+        async with factory() as session:
+            session.add(record)
+            await session.flush()
+            await apply_rating(
+                session,
+                record,
+                white_user_id=white_id,
+                black_user_id=uuid.uuid4(),
+                score_white=1.0,
+                moves_count=20,
+                finished_at=_APPLY_AT,
+            )
+            await session.commit()
+
+        async with factory() as session:
+            white = await session.get(User, white_id)
+            assert white.rating == 1200
+            assert white.rated_games_count == 0
+        assert record.is_rated is False
+
+    async def test_draw_increments_games_count(self):
+        white_id = await create_test_user()
+        black_id = await create_test_user()
+        record = FinishedGame(room_id="apply4", room_type="public")
+        factory = get_session_factory()
+        async with factory() as session:
+            session.add(record)
+            await session.flush()
+            await apply_rating(
+                session,
+                record,
+                white_user_id=white_id,
+                black_user_id=black_id,
+                score_white=0.5,
+                moves_count=20,
+                finished_at=_APPLY_AT,
+            )
+            await session.commit()
+
+        async with factory() as session:
+            white = await session.get(User, white_id)
+            black = await session.get(User, black_id)
+            assert white.rating == 1200
+            assert black.rating == 1200
+            assert white.rated_games_count == 1
+            assert black.rated_games_count == 1
+        assert record.white_rating_delta == 0
+        assert record.black_rating_delta == 0

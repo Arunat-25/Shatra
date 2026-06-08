@@ -89,6 +89,61 @@ async def test_refresh_player_ratings_in_room():
 
 
 @pytest.mark.asyncio
+async def test_refresh_pvp_ratings_skips_ai_room():
+    from backend.player_identity import refresh_pvp_ratings_for_room
+
+    room = {
+        "type": "ai",
+        "player_meta": {
+            "c1": {
+                "user_id": str(uuid.uuid4()),
+                "username": "solo",
+                "is_anonymous": False,
+                "rating": 1500,
+            },
+        },
+    }
+    snapshot = {k: dict(v) for k, v in room["player_meta"].items()}
+    await refresh_pvp_ratings_for_room(room)
+    assert room["player_meta"] == snapshot
+
+
+@pytest.mark.asyncio
+async def test_refresh_pvp_ratings_for_room_loads_db():
+    from backend.db.models import User
+    from backend.db.session import get_session_factory
+    from backend.player_identity import refresh_pvp_ratings_for_room
+
+    uid = uuid.uuid4()
+    factory = get_session_factory()
+    async with factory() as session:
+        session.add(
+            User(
+                id=uid,
+                username=f"refresh_{uid.hex[:8]}",
+                username_normalized=f"refresh_{uid.hex[:8]}",
+                password_hash="hash",
+                rating=1711,
+            )
+        )
+        await session.commit()
+
+    room = {
+        "type": "public",
+        "player_meta": {
+            "c1": {
+                "user_id": str(uid),
+                "username": "alice",
+                "is_anonymous": False,
+                "rating": 1200,
+            },
+        },
+    }
+    await refresh_pvp_ratings_for_room(room)
+    assert room["player_meta"]["c1"]["rating"] == 1711
+
+
+@pytest.mark.asyncio
 async def test_create_room_with_user_sets_creator():
     user = MagicMock()
     user.id = "11111111-1111-1111-1111-111111111111"

@@ -29,6 +29,9 @@ class User(Base):
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     rating: Mapped[int] = mapped_column(Integer, default=1200, server_default="1200")
     rated_games_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    rating_gain_blocked_until: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow, onupdate=_utcnow
@@ -93,6 +96,9 @@ class FinishedGame(Base):
     is_rated: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     white_rating_delta: Mapped[int | None] = mapped_column(Integer, nullable=True)
     black_rating_delta: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    loser_rated_games_before: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    white_gain_capped: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    black_gain_capped: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
 
 
 class PresenceSession(Base):

@@ -38,4 +38,23 @@ describe('WaitingScreen QR', () => {
     expect(screen.queryByAltText(/qr|приглаш/i)).toBeNull();
     expect(screen.getByText(/ожидание|waiting/i)).toBeTruthy();
   });
+
+  it('shows opponent rating while waiting', () => {
+    render(
+      <WaitingScreen
+        roomId="abc12345"
+        showInviteLink={false}
+        modeAi={false}
+        opponent={{
+          client_id: 'other',
+          color: 'чёрный',
+          username: 'rival',
+          is_anonymous: false,
+          rating: 1320,
+        }}
+      />,
+    );
+    expect(screen.getByText('rival')).toBeTruthy();
+    expect(screen.getByText('1320')).toBeTruthy();
+  });
 });

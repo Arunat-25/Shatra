@@ -205,7 +205,9 @@
     "noTimer": "Без таймера",
     "closeError": "Закрыть",
     "onlineCount": "Онлайн: {{count}}",
-    "activeGamesCount": "Идут партии: {{count}}"
+    "activeGamesCount": "Идут партии: {{count}}",
+    "ratingGainBlockedTitle": "Начисление рейтинга временно отключено",
+    "ratingGainBlockedUntil": "До {{until}} вам не будет начисляться Elo из‑за подозрения на буст рейтинга. Штрафы за поражения по-прежнему применяются."
   },
   "setup": {
     "title": "Настройки игры",

@@ -9,6 +9,8 @@ import pytest
 from backend.rating.elo import (
     DEFAULT_RATING,
     ELO_SCALE,
+    INTERMEDIATE_GAMES_THRESHOLD,
+    K_INTERMEDIATE,
     K_MASTER,
     K_NOVICE,
     K_STANDARD,
@@ -30,25 +32,29 @@ class TestKFactor:
         ("rating", "games", "expected_k"),
         [
             (1500, 0, K_NOVICE),
-            (1500, 29, K_NOVICE),
-            (800, 29, K_NOVICE),
-            (3000, 29, K_NOVICE),
-            (1500, 30, K_STANDARD),
-            (2399, 30, K_STANDARD),
-            (2399, 999, K_STANDARD),
-            (2400, 30, K_MASTER),
+            (1500, 9, K_NOVICE),
+            (800, 9, K_NOVICE),
+            (3000, 9, K_NOVICE),
+            (1500, 10, K_INTERMEDIATE),
+            (1500, 19, K_INTERMEDIATE),
+            (1500, 20, K_STANDARD),
+            (1999, 20, K_STANDARD),
+            (1999, 999, K_STANDARD),
+            (2000, 20, K_MASTER),
             (2400, 0, K_NOVICE),  # novice rule first
             (2600, 100, K_MASTER),
-            (2500, 10, K_NOVICE),  # novice beats master threshold
+            (2500, 9, K_NOVICE),  # novice beats master threshold
         ],
     )
     def test_k_factor_table(self, rating, games, expected_k):
         assert k_factor(rating, games) == expected_k
 
     def test_threshold_constants(self):
-        assert NOVICE_GAMES_THRESHOLD == 30
-        assert MASTER_RATING_THRESHOLD == 2400
+        assert NOVICE_GAMES_THRESHOLD == 10
+        assert INTERMEDIATE_GAMES_THRESHOLD == 20
+        assert MASTER_RATING_THRESHOLD == 2000
         assert K_NOVICE == 40
+        assert K_INTERMEDIATE == 30
         assert K_STANDARD == 20
         assert K_MASTER == 10
 
@@ -124,12 +130,12 @@ class TestRatingDeltasGolden:
     def test_equal_novice_win_doubles_swing(self):
         # K=40 → ±20
         assert rating_deltas(1500, 1500, 0, 0, 1.0) == (20, -20)
-        assert rating_deltas(1500, 1500, 10, 10, 0.0) == (-20, 20)
+        assert rating_deltas(1500, 1500, 5, 5, 0.0) == (-20, 20)
 
     def test_equal_master_win_halves_swing(self):
         # K=10 → ±5
-        assert rating_deltas(2450, 2450, 50, 50, 1.0) == (5, -5)
-        assert rating_deltas(2450, 2450, 50, 50, 0.0) == (-5, 5)
+        assert rating_deltas(2050, 2050, 50, 50, 1.0) == (5, -5)
+        assert rating_deltas(2050, 2050, 50, 50, 0.0) == (-5, 5)
 
     def test_upset_400_points_underdog_wins(self):
         # 1400 beats 1800, K=20 both, E_A=1/11
@@ -168,9 +174,9 @@ class TestRatingDeltasGolden:
 
     def test_novice_vs_standard_asymmetric_deltas(self):
         # A novice K=40, B standard K=20, equal rating, A wins
-        assert rating_deltas(1500, 1500, 10, 50, 1.0) == (20, -10)
-        assert rating_deltas(1500, 1500, 10, 50, 0.0) == (-20, 10)
-        assert rating_deltas(1500, 1500, 10, 50, 0.5) == (0, 0)
+        assert rating_deltas(1500, 1500, 5, 50, 1.0) == (20, -10)
+        assert rating_deltas(1500, 1500, 5, 50, 0.0) == (-20, 10)
+        assert rating_deltas(1500, 1500, 5, 50, 0.5) == (0, 0)
 
     def test_novice_vs_master_massive_upset(self):
         # Novice 1500 beats master 2500
@@ -206,19 +212,26 @@ class TestRatingDeltasGolden:
 
 
 class TestKFactorTransition:
-    def test_last_novice_game_vs_first_standard_same_match(self):
-        # Same ratings/outcome, but A at 29 games (K=40) vs 30 games (K=20)
-        win_novice, _ = rating_deltas(1500, 1500, 29, 50, 1.0)
-        win_standard, _ = rating_deltas(1500, 1500, 30, 50, 1.0)
+    def test_last_novice_game_vs_first_intermediate_same_match(self):
+        # A at 9 games (K=40) vs 10 games (K=30)
+        win_novice, _ = rating_deltas(1500, 1500, 9, 50, 1.0)
+        win_intermediate, _ = rating_deltas(1500, 1500, 10, 50, 1.0)
         assert win_novice == 20
+        assert win_intermediate == 15
+
+    def test_last_intermediate_game_vs_first_standard_same_match(self):
+        # A at 19 games (K=30) vs 20 games (K=20), rating below master threshold
+        win_intermediate, _ = rating_deltas(1500, 1500, 19, 50, 1.0)
+        win_standard, _ = rating_deltas(1500, 1500, 20, 50, 1.0)
+        assert win_intermediate == 15
         assert win_standard == 10
 
-    def test_rating_at_2399_vs_2400_same_games(self):
-        # 30 games: 2399→K=20, 2400→K=10
-        _, loss_b_2399 = rating_deltas(2399, 2399, 30, 30, 0.0)
-        _, loss_b_2400 = rating_deltas(2400, 2400, 30, 30, 0.0)
-        assert loss_b_2399 == 10  # K=20, lose as equal
-        assert loss_b_2400 == 5   # K=10, lose as equal
+    def test_rating_at_1999_vs_2000_same_games(self):
+        # 20+ games: 1999→K=20, 2000→K=10
+        _, loss_b_1999 = rating_deltas(1999, 1999, 30, 30, 0.0)
+        _, loss_b_2000 = rating_deltas(2000, 2000, 30, 30, 0.0)
+        assert loss_b_1999 == 10  # K=20, lose as equal
+        assert loss_b_2000 == 5   # K=10, lose as equal
 
 
 # ---------------------------------------------------------------------------
@@ -299,7 +312,7 @@ class TestInvariants:
             assert da <= 0
 
     def test_draw_zero_when_equal_rating_same_k(self):
-        for r, g in [(1500, 5), (1500, 30), (2450, 100)]:
+        for r, g in [(1500, 5), (1500, 15), (2050, 100)]:
             da, db = rating_deltas(r, r, g, g, 0.5)
             assert da == 0
             assert db == 0
@@ -362,10 +375,15 @@ class TestRealisticScenarios:
             round(K_MASTER * (0.5 - expected_score(2580, 2600))),
         )
 
-    def test_29th_game_still_high_volatility(self):
-        da, _ = rating_deltas(1500, 1700, 29, 50, 1.0)
-        db, _ = rating_deltas(1500, 1700, 30, 50, 1.0)
-        assert da > db  # novice K still higher
+    def test_9th_game_still_high_volatility(self):
+        da, _ = rating_deltas(1500, 1700, 9, 50, 1.0)
+        db, _ = rating_deltas(1500, 1700, 10, 50, 1.0)
+        assert da > db  # K=40 vs K=30
+
+    def test_19th_game_still_higher_than_standard(self):
+        da, _ = rating_deltas(1500, 1700, 19, 50, 1.0)
+        db, _ = rating_deltas(1500, 1700, 20, 50, 1.0)
+        assert da > db  # K=30 vs K=20
 
     def test_public_pvp_typical_resign(self):
         # Two 1500 players, 50 rated games each, white (A) wins
@@ -379,7 +397,7 @@ class TestRealisticScenarios:
 
     def test_mixed_k_draw_slight_favorite(self):
         # Novice 1600 vs veteran 1550, draw
-        da, db = rating_deltas(1600, 1550, 10, 60, 0.5)
+        da, db = rating_deltas(1600, 1550, 5, 60, 0.5)
         e_a = expected_score(1600, 1550)
         assert da == round(K_NOVICE * (0.5 - e_a))
         assert db == round(K_STANDARD * (0.5 - (1 - e_a)))

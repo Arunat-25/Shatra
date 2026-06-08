@@ -116,6 +116,42 @@ class TestUserGamesApi:
         assert item["is_rated"] is True
         assert item["rating_delta"] == 10
 
+    def test_rating_delta_for_black_player(self, client, register_user):
+        white = register_user("black_delta_white")
+        black = register_user("black_delta_black")
+        white_id = uuid.UUID(white["user"]["id"])
+        black_id = uuid.UUID(black["user"]["id"])
+        headers = {"Authorization": f"Bearer {black['access_token']}"}
+        insert_finished_game(
+            room_id="rtd00002",
+            white_user_id=white_id,
+            black_user_id=black_id,
+            black_is_anonymous=False,
+            winner_color="белый",
+            reason="resign",
+            is_rated=True,
+            white_rating_delta=10,
+            black_rating_delta=-10,
+        )
+        item = client.get("/api/auth/me/games", headers=headers).json()["items"][0]
+        assert item["my_color"] == "черный"
+        assert item["rating_delta"] == -10
+
+    def test_unrated_game_rating_delta_null(self, client, register_user):
+        user = register_user("unrated_hist")
+        user_id = uuid.UUID(user["user"]["id"])
+        headers = {"Authorization": f"Bearer {user['access_token']}"}
+        insert_finished_game(
+            room_id="unr00001",
+            white_user_id=user_id,
+            black_is_anonymous=True,
+            winner_color="белый",
+            is_rated=False,
+        )
+        item = client.get("/api/auth/me/games", headers=headers).json()["items"][0]
+        assert item["is_rated"] is False
+        assert item["rating_delta"] is None
+
     def test_me_includes_rating(self, client, register_user, auth_headers):
         r = client.get("/api/auth/me", headers=auth_headers)
         assert r.status_code == 200

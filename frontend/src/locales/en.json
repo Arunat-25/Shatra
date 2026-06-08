@@ -205,7 +205,9 @@
     "noTimer": "No timer",
     "closeError": "Close",
     "onlineCount": "Online: {{count}}",
-    "activeGamesCount": "Games in progress: {{count}}"
+    "activeGamesCount": "Games in progress: {{count}}",
+    "ratingGainBlockedTitle": "Rating gains temporarily disabled",
+    "ratingGainBlockedUntil": "Until {{until}} you will not receive Elo due to suspected rating boosting. Loss penalties still apply."
   },
   "setup": {
     "title": "Game settings",

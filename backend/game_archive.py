@@ -154,6 +154,8 @@ async def archive_finished_game(room_id: str) -> uuid.UUID | None:
                     white_user_id=white["user_id"],
                     black_user_id=black["user_id"],
                     score_white=score_white,
+                    moves_count=len(move_history),
+                    finished_at=finished_at,
                 )
             await session.commit()
             await session.refresh(record)

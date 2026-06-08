@@ -242,4 +242,16 @@ describe('dispatchServerMessage', () => {
       expect.objectContaining({ moversColor: 'белый' }),
     );
   });
+
+  it('rating_update sets players_info', () => {
+    const players = [{ client_id: 'a', rating: 1210, rating_delta: 10 }];
+    const { calls } = collectDispatches({
+      type: 'rating_update',
+      players_info: players,
+    });
+    expect(calls).toContainEqual({
+      type: GAME_ACTIONS.SET_PLAYERS_INFO,
+      payload: players,
+    });
+  });
 });

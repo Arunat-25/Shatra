@@ -9,6 +9,7 @@ from backend.message_codes import ROOM_FULL, ROOM_GAME_STARTED, ROOM_NOT_FOUND
 from backend.db.models import User
 from backend.models import CreateRoomRequest, Room
 from backend.player_identity import meta_from_user
+from backend.rating.elo import DEFAULT_RATING
 from backend.observability.metrics import record_room_created
 from backend.state import get_room, set_room, scan_keys, get_raw, get_game
 
@@ -27,6 +28,18 @@ def _resolve_creator_username(room_data: dict) -> str | None:
     if meta.get("is_anonymous", True):
         return None
     return meta.get("username")
+
+
+def _resolve_creator_rating(room_data: dict) -> int | None:
+    """Elo for registered room creator; None for anonymous."""
+    creator_id = room_data.get("creator_client_id")
+    if not creator_id:
+        return None
+    meta = (room_data.get("player_meta") or {}).get(creator_id) or {}
+    if meta.get("is_anonymous", True):
+        return None
+    rating = meta.get("rating")
+    return DEFAULT_RATING if rating is None else rating
 
 
 async def create_room(request: CreateRoomRequest, user: User | None = None) -> dict:
@@ -94,6 +107,7 @@ async def list_rooms() -> dict:
                     "time_control": r.get("time_control"),
                     "increment": r.get("increment") or 0,
                     "creator_username": _resolve_creator_username(r),
+                    "creator_rating": _resolve_creator_rating(r),
                 })
     active_games = await count_active_games()
     return {

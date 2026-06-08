@@ -6,9 +6,11 @@ import math
 
 DEFAULT_RATING = 1200
 ELO_SCALE = 400
-NOVICE_GAMES_THRESHOLD = 30
-MASTER_RATING_THRESHOLD = 2400
+NOVICE_GAMES_THRESHOLD = 10
+INTERMEDIATE_GAMES_THRESHOLD = 20
+MASTER_RATING_THRESHOLD = 2000
 K_NOVICE = 40
+K_INTERMEDIATE = 30
 K_STANDARD = 20
 K_MASTER = 10
 
@@ -16,9 +18,11 @@ _VALID_SCORES = frozenset({0.0, 0.5, 1.0})
 
 
 def k_factor(rating: int, games_played: int) -> int:
-    """Return K-factor for a player (novice > master > standard)."""
+    """Return K-factor: novice → intermediate → master/standard by games and rating."""
     if games_played < NOVICE_GAMES_THRESHOLD:
         return K_NOVICE
+    if games_played < INTERMEDIATE_GAMES_THRESHOLD:
+        return K_INTERMEDIATE
     if rating >= MASTER_RATING_THRESHOLD:
         return K_MASTER
     return K_STANDARD

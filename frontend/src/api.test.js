@@ -18,7 +18,7 @@ vi.mock('./i18n', () => ({
   default: { t: (key) => key },
 }));
 
-import { getWsUrl, listRooms } from './api';
+import { getWsUrl, listRooms, createRoom } from './api';
 
 describe('getWsUrl', () => {
   beforeEach(() => {
@@ -96,5 +96,42 @@ describe('listRooms', () => {
       'network',
       2,
     );
+  });
+});
+
+describe('createRoom', () => {
+  beforeEach(() => {
+    vi.stubGlobal('localStorage', {
+      getItem: vi.fn(() => 'client-abc'),
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
+      clear: vi.fn(),
+    });
+    getAccessTokenMock.mockReturnValue(null);
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ room_id: 'room1', type: 'private' }),
+    }));
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    getAccessTokenMock.mockReset();
+  });
+
+  it('includes rated flag for private rated rooms', async () => {
+    await createRoom('private', null, 0, 'random', true);
+    const [, options] = fetch.mock.calls[0];
+    const body = JSON.parse(options.body);
+    expect(body.rated).toBe(true);
+    expect(body.type).toBe('private');
+  });
+
+  it('omits rated flag for public rooms', async () => {
+    await createRoom('public', null, 0, 'random', true);
+    const [, options] = fetch.mock.calls[0];
+    const body = JSON.parse(options.body);
+    expect(body.rated).toBeUndefined();
+    expect(body.type).toBe('public');
   });
 });

@@ -72,6 +72,7 @@ class RoomInfo(BaseModel):
     time_control: Optional[int] = None
     increment: int = 0
     creator_username: Optional[str] = None
+    creator_rating: Optional[int] = None
 
 
 class LobbyStats(BaseModel):

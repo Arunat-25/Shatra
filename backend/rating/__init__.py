@@ -3,6 +3,8 @@
 from backend.rating.elo import (
     DEFAULT_RATING,
     ELO_SCALE,
+    INTERMEDIATE_GAMES_THRESHOLD,
+    K_INTERMEDIATE,
     K_MASTER,
     K_NOVICE,
     K_STANDARD,
@@ -16,6 +18,8 @@ from backend.rating.elo import (
 __all__ = [
     "DEFAULT_RATING",
     "ELO_SCALE",
+    "INTERMEDIATE_GAMES_THRESHOLD",
+    "K_INTERMEDIATE",
     "K_MASTER",
     "K_NOVICE",
     "K_STANDARD",

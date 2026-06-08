@@ -1,7 +1,7 @@
 """Tests for persisting finished games to PostgreSQL."""
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -371,6 +371,268 @@ class TestArchiveRating:
 
         row = (await _fetch_games(st.room_id))[0]
         assert (row.white_rating_delta, row.black_rating_delta) == expected
+
+    async def test_rated_game_broadcasts_rating_update(self, archive_state):
+        st = archive_state
+        room, white_id, black_id = _both_registered_room(room_id=st.room_id)
+        room["player_meta"]["p-white"]["rating"] = 1500
+        room["player_meta"]["p-black"]["rating"] = 1500
+        st.room = room
+        ensure_users_for_room(st.room)
+        await _set_user_stats(white_id, 1500, 50)
+        await _set_user_stats(black_id, 1500, 50)
+
+        with (
+            patch(st.patch_targets()[0], side_effect=st.get_game),
+            patch(st.patch_targets()[1], side_effect=st.get_room),
+            patch(st.patch_targets()[2], side_effect=st.set_game),
+            patch("backend.ws_manager.manager.send_to_room", new_callable=AsyncMock) as send,
+        ):
+            await archive_finished_game(st.room_id)
+
+        rating_calls = [
+            c for c in send.call_args_list
+            if c.args[1].get("type") == "rating_update"
+        ]
+        assert len(rating_calls) == 1
+        payload = rating_calls[0].args[1]
+        by_id = {p["client_id"]: p for p in payload["players_info"]}
+        assert by_id["p-white"]["rating"] == 1510
+        assert by_id["p-white"]["rating_delta"] == 10
+        assert by_id["p-black"]["rating_delta"] == -10
+
+    async def test_unrated_game_no_rating_broadcast(self, archive_state):
+        st = archive_state
+        room, white_id, black_id = _both_registered_room(
+            room_id=st.room_id, type="private", rated=False
+        )
+        st.room = room
+        ensure_users_for_room(st.room)
+        await _set_user_stats(white_id, 1500, 50)
+        await _set_user_stats(black_id, 1500, 50)
+
+        with (
+            patch(st.patch_targets()[0], side_effect=st.get_game),
+            patch(st.patch_targets()[1], side_effect=st.get_room),
+            patch(st.patch_targets()[2], side_effect=st.set_game),
+            patch("backend.ws_manager.manager.send_to_room", new_callable=AsyncMock) as send,
+        ):
+            await archive_finished_game(st.room_id)
+
+        rating_calls = [
+            c for c in send.call_args_list
+            if c.args[1].get("type") == "rating_update"
+        ]
+        assert rating_calls == []
+
+    async def test_idempotent_archive_does_not_double_rating(self, archive_state):
+        st = archive_state
+        room, white_id, black_id = _both_registered_room(room_id=st.room_id)
+        st.room = room
+        ensure_users_for_room(st.room)
+        await _set_user_stats(white_id, 1500, 50)
+        await _set_user_stats(black_id, 1500, 50)
+
+        with (
+            patch(st.patch_targets()[0], side_effect=st.get_game),
+            patch(st.patch_targets()[1], side_effect=st.get_room),
+            patch(st.patch_targets()[2], side_effect=st.set_game),
+        ):
+            first = await archive_finished_game(st.room_id)
+            second = await archive_finished_game(st.room_id)
+
+        assert first is not None
+        assert second is None
+        assert await _get_user_stats(white_id) == (1510, 51)
+        assert await _get_user_stats(black_id) == (1490, 51)
+
+    async def test_master_k10_via_archive(self, archive_state):
+        st = archive_state
+        room, white_id, black_id = _both_registered_room(room_id=st.room_id)
+        st.room = room
+        ensure_users_for_room(st.room)
+        await _set_user_stats(white_id, 2050, 50)
+        await _set_user_stats(black_id, 2050, 50)
+
+        with (
+            patch(st.patch_targets()[0], side_effect=st.get_game),
+            patch(st.patch_targets()[1], side_effect=st.get_room),
+            patch(st.patch_targets()[2], side_effect=st.set_game),
+        ):
+            await archive_finished_game(st.room_id)
+
+        row = (await _fetch_games(st.room_id))[0]
+        assert row.white_rating_delta == 5
+        assert row.black_rating_delta == -5
+        assert await _get_user_stats(white_id) == (2055, 51)
+
+    async def test_novice_to_standard_k_transition(self, archive_state):
+        st = archive_state
+        room, white_id, black_id = _both_registered_room(room_id=st.room_id)
+        st.room = room
+        ensure_users_for_room(st.room)
+        await _set_user_stats(white_id, 1500, 9)
+        await _set_user_stats(black_id, 1500, 50)
+
+        with (
+            patch(st.patch_targets()[0], side_effect=st.get_game),
+            patch(st.patch_targets()[1], side_effect=st.get_room),
+            patch(st.patch_targets()[2], side_effect=st.set_game),
+        ):
+            await archive_finished_game(st.room_id)
+
+        row1 = (await _fetch_games(st.room_id))[0]
+        assert row1.white_rating_delta == 20  # K=40
+        assert (await _get_user_stats(white_id))[1] == 10
+
+        room2_id = "room-k2"
+        room2, _, _ = _both_registered_room(room_id=room2_id)
+        room2["player_meta"]["p-white"]["user_id"] = str(white_id)
+        room2["player_meta"]["p-black"]["user_id"] = str(black_id)
+        await _set_user_stats(white_id, 1500, 10)
+        await _set_user_stats(black_id, 1500, 50)
+        st2 = ArchiveState(room_id=room2_id, room=room2, game=_finished_game())
+
+        with (
+            patch(st2.patch_targets()[0], side_effect=st2.get_game),
+            patch(st2.patch_targets()[1], side_effect=st2.get_room),
+            patch(st2.patch_targets()[2], side_effect=st2.set_game),
+        ):
+            await archive_finished_game(room2_id)
+
+        row2 = (await _fetch_games(room2_id))[0]
+        assert row2.white_rating_delta == 15  # K=30 after 10th game
+        assert (await _get_user_stats(white_id)) == (1515, 11)
+
+        room3_id = "room-k3"
+        room3, _, _ = _both_registered_room(room_id=room3_id)
+        room3["player_meta"]["p-white"]["user_id"] = str(white_id)
+        room3["player_meta"]["p-black"]["user_id"] = str(black_id)
+        await _set_user_stats(white_id, 1500, 20)
+        await _set_user_stats(black_id, 1500, 50)
+        st3 = ArchiveState(room_id=room3_id, room=room3, game=_finished_game())
+
+        with (
+            patch(st3.patch_targets()[0], side_effect=st3.get_game),
+            patch(st3.patch_targets()[1], side_effect=st3.get_room),
+            patch(st3.patch_targets()[2], side_effect=st3.set_game),
+        ):
+            await archive_finished_game(room3_id)
+
+        row3 = (await _fetch_games(room3_id))[0]
+        assert row3.white_rating_delta == 10  # K=20 after 20th game
+        assert await _get_user_stats(white_id) == (1510, 21)
+
+
+@pytest.mark.asyncio
+class TestArchiveAntifraud:
+    async def _seed_pair_wins(self, winner_id, loser_id, count: int) -> None:
+        finished_at = datetime.now(timezone.utc) - timedelta(hours=2)
+        factory = get_session_factory()
+        async with factory() as session:
+            for _ in range(count):
+                session.add(
+                    FinishedGame(
+                        room_id=uuid.uuid4().hex[:8],
+                        room_type="public",
+                        white_user_id=winner_id,
+                        black_user_id=loser_id,
+                        winner_color="белый",
+                        is_rated=True,
+                        moves_count=12,
+                        loser_rated_games_before=10,
+                        white_rating_delta=10,
+                        black_rating_delta=-10,
+                        finished_at=finished_at,
+                    )
+                )
+            await session.commit()
+
+    async def test_fourth_win_over_same_opponent_caps_winner_gain(self, archive_state):
+        st = archive_state
+        room, white_id, black_id = _both_registered_room(room_id=st.room_id)
+        st.room = room
+        ensure_users_for_room(st.room)
+        await _set_user_stats(white_id, 1500, 50)
+        await _set_user_stats(black_id, 1500, 50)
+        await self._seed_pair_wins(white_id, black_id, 3)
+
+        with (
+            patch(st.patch_targets()[0], side_effect=st.get_game),
+            patch(st.patch_targets()[1], side_effect=st.get_room),
+            patch(st.patch_targets()[2], side_effect=st.set_game),
+        ):
+            await archive_finished_game(st.room_id)
+
+        row = (await _fetch_games(st.room_id))[0]
+        assert row.white_rating_delta == 0
+        assert row.black_rating_delta == -10
+        assert row.white_gain_capped is True
+        assert await _get_user_stats(white_id) == (1500, 51)
+        assert await _get_user_stats(black_id) == (1490, 51)
+
+    async def _seed_smurf_wins(self, winner_id, count: int) -> None:
+        finished_at = datetime.now(timezone.utc) - timedelta(hours=1)
+        factory = get_session_factory()
+        async with factory() as session:
+            for i in range(count):
+                session.add(
+                    FinishedGame(
+                        room_id=uuid.uuid4().hex[:8],
+                        room_type="public",
+                        white_user_id=winner_id,
+                        black_user_id=None,
+                        winner_color="белый",
+                        is_rated=True,
+                        moves_count=6,
+                        loser_rated_games_before=i,
+                        white_rating_delta=10,
+                        black_rating_delta=-10,
+                        finished_at=finished_at,
+                    )
+                )
+            await session.commit()
+
+    async def test_fourth_smurf_win_via_archive_sets_block(self, archive_state):
+        st = archive_state
+        room, white_id, black_id = _both_registered_room(room_id=st.room_id)
+        st.room = room
+        st.game = _finished_game(
+            winner_color="белый",
+            reason="resign",
+            move_history=[
+                {
+                    "move_number": 1,
+                    "mover": "белый",
+                    "from_pos": 53,
+                    "to_pos": 46,
+                    "desk": keys_int_to_str(get_starting_board()),
+                },
+            ],
+        )
+        ensure_users_for_room(st.room)
+        await _set_user_stats(white_id, 1500, 50)
+        await _set_user_stats(black_id, 1200, 1)
+        await self._seed_smurf_wins(white_id, 3)
+
+        with (
+            patch(st.patch_targets()[0], side_effect=st.get_game),
+            patch(st.patch_targets()[1], side_effect=st.get_room),
+            patch(st.patch_targets()[2], side_effect=st.set_game),
+        ):
+            await archive_finished_game(st.room_id)
+
+        row = (await _fetch_games(st.room_id))[0]
+        assert row.white_rating_delta == 0
+        assert row.white_gain_capped is True
+        assert row.loser_rated_games_before == 1
+        assert row.moves_count == 1
+
+        factory = get_session_factory()
+        async with factory() as session:
+            user = await session.get(User, white_id)
+            assert user is not None
+            assert user.rating_gain_blocked_until is not None
 
 
 @pytest.mark.asyncio

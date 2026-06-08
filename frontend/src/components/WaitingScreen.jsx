@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import QRCode from 'qrcode';
+import PlayerNick from './PlayerNick';
+import { playerNickname, playerRating } from '../utils/playerDisplay';
 
 function CopyIcon() {
   return (
@@ -42,10 +44,11 @@ export default function WaitingScreen({
   showInviteLink = false,
   joiningError,
   reconnectMessage,
-  opponentLabel,
+  opponent,
   onCopyFeedback,
 }) {
   const { t } = useTranslation();
+  const opponentRating = opponent ? playerRating(opponent) : null;
   const [copyStatus, setCopyStatus] = useState('');
   const [qrDataUrl, setQrDataUrl] = useState('');
 
@@ -146,8 +149,16 @@ export default function WaitingScreen({
             <h2 className="waiting-title">{t('game.waitingOpponent')}</h2>
             <p className="waiting-subtitle">{t('game.waitingLobby')}</p>
             <p className="waiting-hint">{t('game.waitingHint')}</p>
-            {opponentLabel && (
-              <p className="waiting-hint">{t('game.opponent')}: {opponentLabel}</p>
+            {opponent && (
+              <p className="waiting-hint waiting-opponent">
+                {t('game.opponent')}:{' '}
+                <PlayerNick
+                  nickname={playerNickname(opponent, opponent.color, t)}
+                  rating={opponentRating}
+                  showRating={opponentRating != null}
+                  className="waiting-opponent-nick"
+                />
+              </p>
             )}
             {reconnectMessage && <p className="waiting-hint">{reconnectMessage}</p>}
           </>

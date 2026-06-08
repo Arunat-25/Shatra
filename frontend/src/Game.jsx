@@ -130,11 +130,9 @@ export default function Game() {
     dispatch({ type: GAME_ACTIONS.EXIT_HISTORY });
   });
 
-  const opponentLabel = (() => {
+  const waitingOpponent = (() => {
     const myId = getClientId();
-    const opp = state.playersInfo?.find((p) => p.client_id !== myId);
-    if (!opp) return null;
-    return opp.is_anonymous ? t('lobby.anonymous') : `@${opp.username}`;
+    return state.playersInfo?.find((p) => p.client_id !== myId) ?? null;
   })();
 
   if (state.waiting) {
@@ -145,7 +143,7 @@ export default function Game() {
         showInviteLink={state.showInviteLink}
         joiningError={state.joiningError}
         reconnectMessage={wsReconnecting ? t('game.reconnecting') : ''}
-        opponentLabel={opponentLabel}
+        opponent={waitingOpponent}
         onCopyFeedback={(type, text) => showMessage(text, type === 'success' ? 'info' : MSG_ERROR)}
       />
     );

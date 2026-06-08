@@ -70,6 +70,40 @@ def _ensure_schema_patches() -> None:
             cur.execute(
                 "ALTER TABLE finished_games ADD COLUMN black_rating_delta INTEGER"
             )
+
+        cur.execute(
+            """
+            SELECT 1 FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'users'
+              AND column_name = 'rating_gain_blocked_until'
+            """
+        )
+        if cur.fetchone() is None:
+            cur.execute(
+                "ALTER TABLE users ADD COLUMN rating_gain_blocked_until TIMESTAMPTZ"
+            )
+
+        cur.execute(
+            """
+            SELECT 1 FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'finished_games'
+              AND column_name = 'loser_rated_games_before'
+            """
+        )
+        if cur.fetchone() is None:
+            cur.execute(
+                "ALTER TABLE finished_games ADD COLUMN loser_rated_games_before INTEGER"
+            )
+            cur.execute(
+                "ALTER TABLE finished_games ADD COLUMN white_gain_capped "
+                "BOOLEAN NOT NULL DEFAULT false"
+            )
+            cur.execute(
+                "ALTER TABLE finished_games ADD COLUMN black_gain_capped "
+                "BOOLEAN NOT NULL DEFAULT false"
+            )
     conn.close()
 
 

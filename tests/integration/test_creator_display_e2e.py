@@ -41,3 +41,4 @@ class TestCreatorDisplayE2E:
         match = [r for r in rooms if r["room_id"] == room_id]
         assert len(match) == 1
         assert match[0]["creator_username"] == user["username"]
+        assert match[0]["creator_rating"] == 1200

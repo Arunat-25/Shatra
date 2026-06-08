@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { formatTimeControlLabel } from '../utils';
+import PlayerNick from './PlayerNick';
 
 function formatCreatorDisplay(creatorUsername, t) {
   if (creatorUsername) return creatorUsername;
@@ -8,12 +9,10 @@ function formatCreatorDisplay(creatorUsername, t) {
 
 export default function RoomCard({ room, isJoining, onJoin }) {
   const { t } = useTranslation();
-  const { room_id, type, time_control, increment, creator_username } = room;
+  const { room_id, type, time_control, increment, creator_username, creator_rating } = room;
   const roomInfo = getRoomInfo(type, t);
   const timeLabel = formatTimeControlLabel(time_control, increment);
-  const primaryLabel = type === 'public'
-    ? formatCreatorDisplay(creator_username, t)
-    : roomInfo.label;
+  const creatorLabel = formatCreatorDisplay(creator_username, t);
 
   return (
     <div
@@ -37,7 +36,16 @@ export default function RoomCard({ room, isJoining, onJoin }) {
             {roomInfo.icon}
           </span>
           <span className="room-card-label" title={type === 'public' ? t('lobby.creator') : undefined}>
-            {primaryLabel}
+            {type === 'public' ? (
+              <PlayerNick
+                nickname={creatorLabel}
+                rating={creator_rating}
+                showRating={creator_rating != null}
+                className="room-card-player-nick"
+              />
+            ) : (
+              roomInfo.label
+            )}
           </span>
         </span>
       </div>

@@ -96,6 +96,7 @@ class UserPublic(BaseModel):
     is_admin: bool = False
     rating: int = 1200
     rated_games_count: int = 0
+    rating_gain_blocked_until: datetime | None = None
 
     model_config = {"from_attributes": True}
 
