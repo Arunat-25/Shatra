@@ -9,6 +9,8 @@ from datetime import datetime, timezone
 from backend.board_utils import keys_int_to_str
 from backend.db.models import FinishedGame
 from backend.db.session import get_session_factory
+from backend.observability.errors import capture_exception
+from backend.observability.metrics import record_archive_error, record_game_finished
 from backend.state import get_game, get_room, set_game
 
 logger = logging.getLogger(__name__)
@@ -110,6 +112,12 @@ async def archive_finished_game(room_id: str) -> uuid.UUID | None:
         move_history = filter_move_history(game)
         white = _side_for_color(room_data, "белый")
         black = _side_for_color(room_data, "черный")
+        finished_at = datetime.now(timezone.utc)
+        started_at = _parse_started_at(room_data)
+        plies = len(move_history)
+        duration_seconds = None
+        if started_at is not None:
+            duration_seconds = max(0.0, (finished_at - started_at).total_seconds())
 
         record = FinishedGame(
             room_id=room_id,
@@ -129,8 +137,8 @@ async def archive_finished_game(room_id: str) -> uuid.UUID | None:
             moves_count=len(move_history),
             move_history=move_history,
             final_board=keys_int_to_str(game.get("board") or {}),
-            started_at=_parse_started_at(room_data),
-            finished_at=datetime.now(timezone.utc),
+            started_at=started_at,
+            finished_at=finished_at,
         )
 
         factory = get_session_factory()
@@ -142,10 +150,18 @@ async def archive_finished_game(room_id: str) -> uuid.UUID | None:
 
         game["archived"] = True
         await set_game(room_id, game)
+        record_game_finished(
+            reason=reason or "unknown",
+            room_type=room_type,
+            plies=plies,
+            duration_seconds=duration_seconds,
+        )
         logger.info("Archived finished game %s for room %s", record_id, room_id)
         return record_id
     except Exception:
+        record_archive_error()
         logger.exception("Failed to archive game for room %s", room_id)
+        capture_exception()
         return None
 
 

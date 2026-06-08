@@ -25,3 +25,13 @@ frontend/dist/
 
 # Cursor (agent logs, local debug artifacts)
 .cursor/
+
+# AI training runtime artifacts
+data/*.log
+data/*.pid
+data/ai_trained_weights.before_*.json
+data/ai_trained_weights.after_*.json
+data/ai_trained_weights.smoke.json
+
+# Playwright
+frontend/test-results/

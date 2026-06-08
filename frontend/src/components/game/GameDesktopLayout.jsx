@@ -6,6 +6,7 @@ import OpponentDisconnectStatus from './OpponentDisconnectStatus';
 
 export default function GameDesktopLayout({
   state,
+  displayTimer,
   modeAi,
   wsReconnecting,
   message,
@@ -23,7 +24,7 @@ export default function GameDesktopLayout({
     <aside className="room-right">
       <div className="room-side-panel">
         <GameClock
-          timer={state.timer}
+          timer={displayTimer ?? state.timer}
           moversColor={state.moversColor}
           myColor={state.myColor}
           timeControl={state.timeControl}

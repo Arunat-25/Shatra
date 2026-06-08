@@ -87,11 +87,14 @@ class TestGameTimerCleanup:
         room_id = "t-timeout"
         state.game_timers[room_id] = asyncio.create_task(asyncio.sleep(9999))
 
-        with patch("backend.timers.get_game", new_callable=AsyncMock, return_value={"board": {}}):
-            with patch("backend.timers.set_game", new_callable=AsyncMock):
-                with patch("backend.timers.manager") as mgr:
-                    mgr.send_to_room = AsyncMock()
-                    await handle_timeout(room_id, "белый")
+        with (
+            patch("backend.timers.get_game", new_callable=AsyncMock, return_value={"board": {}}),
+            patch("backend.timers.get_room", new_callable=AsyncMock, return_value=None),
+            patch("backend.timers.set_game", new_callable=AsyncMock),
+        ):
+            with patch("backend.timers.manager") as mgr:
+                mgr.send_to_room = AsyncMock()
+                await handle_timeout(room_id, "белый")
 
         assert room_id not in state.game_timers
 
@@ -232,10 +235,11 @@ class TestRoomLockCleanup:
 
         with patch("backend.ws_manager.asyncio.sleep", new_callable=AsyncMock):
             with patch("backend.ws_manager.get_room", new_callable=AsyncMock, return_value=room):
-                with patch("backend.ws_manager.delete_game", new_callable=AsyncMock):
-                    with patch("backend.ws_manager.delete_room", new_callable=AsyncMock):
-                        with patch.object(manager, "connections", {}):
-                            await _delete_room_after_grace(room_id, 0.01)
+                with patch("backend.ws_manager.get_game", new_callable=AsyncMock, return_value=None):
+                    with patch("backend.ws_manager.delete_game", new_callable=AsyncMock):
+                        with patch("backend.ws_manager.delete_room", new_callable=AsyncMock):
+                            with patch.object(manager, "connections", {}):
+                                await _delete_room_after_grace(room_id, 0.01)
 
         assert room_id not in state._room_locks
 

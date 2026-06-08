@@ -201,13 +201,7 @@ class TestApplyIncrement:
         sample_room_data["timer_white"] = 100.0
         sample_room_data["timer_black"] = 100.0
 
-        with patch("backend.game_helpers.set_room", new_callable=AsyncMock) as mock_set:
-            with patch(
-                "backend.game_helpers.get_room",
-                new_callable=AsyncMock,
-                return_value=sample_room_data,
-            ):
-                await apply_increment("room", "белый")
+        await apply_increment(sample_room_data, "белый")
         assert sample_room_data["timer_white"] == 105.0
         assert sample_room_data["timer_black"] == 100.0
 
@@ -217,14 +211,8 @@ class TestApplyIncrement:
         sample_room_data["increment"] = 5
         sample_room_data["timer_white"] = 100.0
 
-        with patch("backend.game_helpers.set_room", new_callable=AsyncMock) as mock_set:
-            with patch(
-                "backend.game_helpers.get_room",
-                new_callable=AsyncMock,
-                return_value=sample_room_data,
-            ):
-                await apply_increment("room", "белый")
-        mock_set.assert_not_called()
+        await apply_increment(sample_room_data, "белый")
+        assert sample_room_data["timer_white"] == 100.0
 
 
 @pytest.mark.asyncio

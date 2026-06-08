@@ -32,7 +32,7 @@ class Room(BaseModel):
         mover: Optional[str] = None,
         game: Optional[dict] = None,
     ):
-        """Корректирует таймеры после рестарта: вычитает паузу только у стороны на ходе."""
+        """Persist elapsed thinking time into stored timers after server pause."""
         if self.last_tick is not None and self.game_started and mover:
             from backend.game_helpers import color_has_moved
 
@@ -43,6 +43,7 @@ class Room(BaseModel):
                 self.timer_white = max(0, self.timer_white - elapsed)
             elif mover == "черный" and self.timer_black is not None:
                 self.timer_black = max(0, self.timer_black - elapsed)
+            self.last_tick = time.time()
 
 
 ColorPreference = Literal["белый", "черный", "random"]

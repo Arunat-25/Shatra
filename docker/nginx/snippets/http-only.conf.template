@@ -1,0 +1,22 @@
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+
+upstream shatra_app {
+    server app:8000;
+}
+
+server {
+    listen 80;
+    server_name ${DOMAIN};
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        proxy_pass http://shatra_app;
+        include /etc/nginx/snippets/proxy-params.conf;
+    }
+}

@@ -28,6 +28,8 @@ rich==15.0.0
 rich-toolkit==0.19.7
 rignore==0.7.6
 sentry-sdk==2.57.0
+prometheus-client==0.22.1
+python-json-logger==3.3.0
 shellingham==1.5.4
 starlette==1.0.0
 typer==0.24.1

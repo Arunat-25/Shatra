@@ -70,4 +70,3 @@ def test_ai_defends_hanging_piece_over_equal_trade_regression():
     """
     board = _board_before_move_48()
     assert get_best_move(board, "черный", depth=6) == (9, 11)
-

@@ -80,4 +80,3 @@ def test_draw_by_threefold_repetition_regression_user_line():
     assert last is not None
     assert last.game_over
     assert last.draw_reason == "draw_repetition"
-

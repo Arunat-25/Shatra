@@ -1,5 +1,5 @@
 from typing import List, Tuple, Optional, Dict
-from game_engine.domain import parse_piece_name, Color, PieceType
+from game_engine.domain import parse_piece_name, PieceType
 from game_engine.pieces.base import Piece
 from game_engine.pieces.shatra import Shatra
 from game_engine.pieces.biy import Biy

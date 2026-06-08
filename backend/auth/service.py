@@ -1,5 +1,6 @@
 """Бизнес-логика аутентификации."""
 
+import logging
 import uuid
 from datetime import datetime, timezone
 
@@ -33,6 +34,8 @@ from backend.auth.schemas import (
 from backend.auth.constants import DISTRICTS
 from backend.config import settings
 from backend.db.models import RefreshToken, User
+
+logger = logging.getLogger(__name__)
 
 
 def _normalize_username(username: str) -> str:
@@ -79,6 +82,11 @@ async def login(db: AsyncSession, body: LoginRequest) -> TokenResponse:
     username_norm = _normalize_username(body.username)
     user = await db.scalar(select(User).where(User.username_normalized == username_norm))
     if not user or not verify_password(body.password, user.password_hash):
+        logger.warning(
+            "Login failed for username=%s",
+            username_norm,
+            extra={"username": username_norm},
+        )
         raise HTTPException(status_code=401, detail=AUTH_INVALID_CREDENTIALS)
     return await _issue_tokens(db, user)
 

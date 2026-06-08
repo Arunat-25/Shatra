@@ -2,6 +2,10 @@
 FROM node:22-alpine AS frontend
 WORKDIR /app/frontend
 
+ARG VITE_SENTRY_DSN=""
+ARG VITE_APP_VERSION="dev"
+ENV VITE_SENTRY_DSN=$VITE_SENTRY_DSN VITE_APP_VERSION=$VITE_APP_VERSION
+
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 
@@ -35,6 +39,6 @@ ENV REDIS_HOST=redis \
 EXPOSE 8000
 
 HEALTHCHECK --interval=10s --timeout=3s --retries=3 \
-  CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/')" || exit 1
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')" || exit 1
 
 ENTRYPOINT ["./scripts/docker-entrypoint.sh"]

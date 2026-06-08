@@ -77,11 +77,12 @@ class TestHandleTimeout:
         room_id = "timeout-room"
 
         with patch("backend.timers.get_game", new_callable=AsyncMock, return_value=game):
-            with patch("backend.timers.set_game", new_callable=AsyncMock) as set_game:
-                with patch("backend.timers.manager") as mgr:
-                    mgr.send_to_room = AsyncMock()
-                    with patch("backend.timers.stop_game_timer") as stop:
-                        await handle_timeout(room_id, "белый")
+            with patch("backend.timers.get_room", new_callable=AsyncMock, return_value=None):
+                with patch("backend.timers.set_game", new_callable=AsyncMock) as set_game:
+                    with patch("backend.timers.manager") as mgr:
+                        mgr.send_to_room = AsyncMock()
+                        with patch("backend.timers.stop_game_timer") as stop:
+                            await handle_timeout(room_id, "белый")
 
         assert game["game_over"] is True
         set_game.assert_called_once()

@@ -1,6 +1,7 @@
 """Сборка WS-ответов и обновление состояния игры после хода."""
 
 import hashlib
+import time
 
 from game_engine.models import GameEvent
 from backend.player_identity import build_players_info
@@ -10,6 +11,15 @@ from backend.board_utils import keys_int_to_str, keys_str_to_int, change_positio
 
 def opposite_color(color: str) -> str:
     return "черный" if color == "белый" else "белый"
+
+
+def _resolve_game_end_reason(result) -> str | None:
+    """Map engine end state to a stable reason code for archive and metrics."""
+    if result.draw_reason:
+        return result.draw_reason
+    if result.game_over and result.winner_color:
+        return "biy_wins"
+    return None
 
 
 def color_has_moved(game: dict | None, color: str) -> bool:
@@ -48,16 +58,44 @@ def assign_player_color(room_data: dict, client_id: str, players: dict) -> str:
     return opposite_color(creator_col)
 
 
-def _timer_fields(room_data: dict) -> dict:
+def compute_clock_times(
+    room_data: dict,
+    game: dict | None,
+    *,
+    now: float | None = None,
+) -> dict[str, float] | None:
+    """Display clock times from stored values + elapsed since last_tick (read-only)."""
+    if not room_data.get("time_control"):
+        return None
+    white = room_data.get("timer_white")
+    black = room_data.get("timer_black")
+    if white is None or black is None:
+        return None
+
+    now = now if now is not None else time.time()
+    last_tick = room_data.get("last_tick")
+    elapsed = (now - last_tick) if last_tick is not None else 0.0
+    mover = game.get("mover") if game else None
+
+    if mover == "белый" and game and color_has_moved(game, "белый"):
+        white = max(0.0, float(white) - elapsed)
+    elif mover == "черный" and game and color_has_moved(game, "черный"):
+        black = max(0.0, float(black) - elapsed)
+
+    return {"белый": white, "черный": black}
+
+
+def _timer_fields(room_data: dict, game: dict | None = None) -> dict:
     if not room_data.get("time_control"):
         return {}
+    times = compute_clock_times(room_data, game) or {
+        "белый": room_data.get("timer_white") or 0,
+        "черный": room_data.get("timer_black") or 0,
+    }
     return {
         "time_control": room_data["time_control"],
         "increment": room_data.get("increment"),
-        "time": {
-            "белый": room_data.get("timer_white") or 0,
-            "черный": room_data.get("timer_black") or 0,
-        },
+        "time": times,
     }
 
 
@@ -75,7 +113,7 @@ def build_game_started_response(game: dict, room_data: dict, my_color: str) -> d
         "winner_color": game.get("winner_color") or game.get("winner") or "",
         "reason": game.get("reason") or "",
         "draw_offer_from": game.get("draw_offer_from"),
-        **_timer_fields(room_data),
+        **_timer_fields(room_data, game),
     }
     return response
 
@@ -118,8 +156,9 @@ def build_move_response(
     }
     if result.message_params:
         response["message_params"] = result.message_params
-    if result.draw_reason:
-        response["reason"] = result.draw_reason
+    end_reason = _resolve_game_end_reason(result)
+    if end_reason:
+        response["reason"] = end_reason
     response = {k: v for k, v in response.items() if v is not None}
     if result.movers_color and result.movers_color != prev_mover:
         response["position_for_mandatory_capture"] = None
@@ -155,14 +194,42 @@ def save_move_to_history(
     history.append(entry)
 
 
-async def apply_increment(room_id: str, prev_mover: str) -> None:
-    room_data = await get_room(room_id)
-    if not room_data or not room_data.get("increment") or not room_data.get("time_control"):
+async def apply_increment(room_data: dict, prev_mover: str) -> None:
+    if not room_data.get("increment") or not room_data.get("time_control"):
         return
+    inc = float(room_data["increment"])
     if prev_mover == "белый" and room_data.get("timer_white") is not None:
-        room_data["timer_white"] += float(room_data["increment"])
+        room_data["timer_white"] += inc
     elif prev_mover == "черный" and room_data.get("timer_black") is not None:
-        room_data["timer_black"] += float(room_data["increment"])
+        room_data["timer_black"] += inc
+
+
+async def finalize_clock_on_move(
+    room_id: str,
+    game: dict,
+    prev_mover: str,
+    *,
+    turn_passed: bool,
+) -> None:
+    """Fix stored clocks on turn pass: deduct elapsed, add increment, reset last_tick."""
+    if not turn_passed:
+        return
+
+    room_data = await get_room(room_id)
+    if not room_data or not room_data.get("time_control"):
+        return
+
+    now = time.time()
+    last_tick = room_data.get("last_tick")
+    if last_tick is not None and color_has_moved(game, prev_mover):
+        elapsed = now - last_tick
+        if prev_mover == "белый" and room_data.get("timer_white") is not None:
+            room_data["timer_white"] = max(0.0, room_data["timer_white"] - elapsed)
+        elif prev_mover == "черный" and room_data.get("timer_black") is not None:
+            room_data["timer_black"] = max(0.0, room_data["timer_black"] - elapsed)
+
+    await apply_increment(room_data, prev_mover)
+    room_data["last_tick"] = now
     await set_room(room_id, room_data)
 
 
@@ -179,9 +246,11 @@ async def apply_move_result(
     if result.updated_positions:
         game["board"] = result.updated_positions
 
-    if result.movers_color and result.movers_color != prev_mover:
+    turn_passed = bool(result.movers_color and result.movers_color != prev_mover)
+    await finalize_clock_on_move(room_id, game, prev_mover, turn_passed=turn_passed)
+
+    if turn_passed:
         game["moves_made"] = game.get("moves_made", 0) + 1
-        await apply_increment(room_id, prev_mover)
 
     update_captures(game, result)
 
@@ -193,8 +262,9 @@ async def apply_move_result(
         if result.winner_color:
             game["winner_color"] = result.winner_color
             game["winner"] = result.winner_color
-        if result.draw_reason:
-            game["reason"] = result.draw_reason
+        end_reason = _resolve_game_end_reason(result)
+        if end_reason:
+            game["reason"] = end_reason
         room_data = await get_room(room_id)
         if room_data and room_data.get("type") != "ai":
             room_data["rematch_ready"] = []
@@ -217,6 +287,9 @@ async def apply_move_result(
 
     await set_game(room_id, game)
     response = build_move_response(game, result, prev_mover, from_cell, to_cell)
+    room_data = await get_room(room_id)
+    if room_data:
+        response.update(_timer_fields(room_data, game))
     if result.game_over:
         from backend.timers import stop_game_timer
 
@@ -231,19 +304,6 @@ def ws_error_payload(code: str, **params) -> dict:
     return ws_error(code, **params)
 
 
-KNOWN_CONTROL_MESSAGE_TYPES = frozenset({
-    "request_rematch",
-    "decline_draw",
-    "offer_draw",
-    "resign",
-    "cancel_game",
-})
-
-
-def is_control_message(data: dict) -> bool:
-    return data.get("type") in KNOWN_CONTROL_MESSAGE_TYPES
-
-
 def is_move_message(data: dict) -> bool:
     return isinstance(data, dict) and isinstance(data.get("board"), dict) and "movers_color" in data
 
@@ -256,6 +316,11 @@ def _norm_board_keys(board: dict) -> dict:
         except (TypeError, ValueError):
             out[k] = v
     return out
+
+
+def is_hint_request(raw_from: int | None, raw_to: int | None, event) -> bool:
+    """Запрос подсказок: выбрана клетка (position), ход from/to не указан."""
+    return raw_from is None and raw_to is None and event.position is not None
 
 
 def is_rejected_move(

@@ -6,9 +6,10 @@ from backend.state import (get_room, set_room, get_game, set_game,
                             game_timers, disconnect_timers, DISCONNECT_TIMEOUT,
                             get_room_lock)
 from backend.config import settings
+from backend.observability.metrics import record_timeout
 from backend.ws_manager import manager
 from backend.board_utils import keys_int_to_str
-from backend.game_helpers import color_has_moved
+from backend.game_helpers import color_has_moved, compute_clock_times
 
 logger = logging.getLogger(__name__)
 TICK_INTERVAL_SECONDS = settings.tick_interval_seconds
@@ -20,11 +21,9 @@ def _opposite_color(color: str) -> str:
 
 
 async def game_ticker(room_id: str):
-    """Тикает каждую секунду, уменьшая таймеры обоих игроков."""
+    """Sync clocks and detect timeout using computed display times (no stored -= 1)."""
     try:
         while True:
-            # Сериализуем тик с обработкой ходов через лок комнаты,
-            # чтобы не потерять начисление инкремента / обновление таймеров.
             async with get_room_lock(room_id):
                 room_data = await get_room(room_id)
                 if not room_data:
@@ -40,42 +39,46 @@ async def game_ticker(room_id: str):
                 if game and game.get("game_over"):
                     stop_game_timer(room_id)
                     return
-                if game:
-                    mover = game.get("mover")
 
-                # Первый ход стороны не тратит время на раздумье.
+                if not game:
+                    return
+
+                mover = game.get("mover")
+                times = compute_clock_times(room_data, game)
+                if not times:
+                    return
+
+                timed_out = None
                 if (
                     mover == "белый"
-                    and room_data.get("timer_white") is not None
                     and color_has_moved(game, "белый")
+                    and times["белый"] <= 0
                 ):
-                    room_data["timer_white"] -= TICK_INTERVAL_SECONDS
-                    if room_data["timer_white"] <= 0:
-                        room_data["timer_white"] = 0
-                        await set_room(room_id, room_data)
-                        await handle_timeout(room_id, "белый")
-                        return
+                    timed_out = "белый"
+                    room_data["timer_white"] = 0
                 elif (
                     mover == "черный"
-                    and room_data.get("timer_black") is not None
                     and color_has_moved(game, "черный")
+                    and times["черный"] <= 0
                 ):
-                    room_data["timer_black"] -= TICK_INTERVAL_SECONDS
-                    if room_data["timer_black"] <= 0:
-                        room_data["timer_black"] = 0
-                        await set_room(room_id, room_data)
-                        await handle_timeout(room_id, "черный")
-                        return
+                    timed_out = "черный"
+                    room_data["timer_black"] = 0
 
-                room_data["last_tick"] = time.time()
-                await set_room(room_id, room_data)
+                if timed_out:
+                    await set_room(room_id, room_data)
+                    await manager.send_to_room(room_id, {
+                        "type": "timer_tick",
+                        "time": {
+                            "белый": room_data.get("timer_white") or 0,
+                            "черный": room_data.get("timer_black") or 0,
+                        },
+                    })
+                    await handle_timeout(room_id, timed_out)
+                    return
 
                 await manager.send_to_room(room_id, {
                     "type": "timer_tick",
-                    "time": {
-                        "белый": room_data["timer_white"],
-                        "черный": room_data["timer_black"],
-                    }
+                    "time": times,
                 })
 
             await asyncio.sleep(TICK_INTERVAL_SECONDS)
@@ -98,15 +101,28 @@ async def handle_timeout(room_id: str, timed_out_color: str):
         game["reason"] = "timeout"
         await set_game(room_id, game)
 
-    await manager.send_to_room(room_id, {
+    room_data = await get_room(room_id)
+    time_payload = None
+    if room_data:
+        time_payload = compute_clock_times(room_data, game) or {
+            "белый": room_data.get("timer_white") or 0,
+            "черный": room_data.get("timer_black") or 0,
+        }
+
+    payload = {
         "status": "timeout",
         "game_over": True,
         "winner_color": winner,
         "reason": "timeout",
         "desk": keys_int_to_str(game["board"]) if game else {},
-    })
+    }
+    if time_payload:
+        payload["time"] = time_payload
+
+    await manager.send_to_room(room_id, payload)
 
     stop_game_timer(room_id)
+    record_timeout("clock")
     logger.info("Timeout in %s: %s ran out of time", room_id, timed_out_color)
     from backend.game_archive import on_game_finished
     await on_game_finished(room_id)
@@ -155,6 +171,7 @@ async def disconnect_timer(room_id: str, remaining_ws: WebSocket, disconnected_c
             })
 
             stop_game_timer(room_id)
+            record_timeout("disconnect")
             from backend.game_archive import on_game_finished
             await on_game_finished(room_id)
 

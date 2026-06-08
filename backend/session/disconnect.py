@@ -29,6 +29,45 @@ async def _cleanup_orphaned_tasks(room_id: str, *, drop_lock: bool = False) -> N
         drop_room_lock(room_id)
 
 
+async def _remove_room_from_redis(room_id: str) -> None:
+    """Удаляет room/game из Redis и освобождает связанные in-memory ресурсы."""
+    await _cleanup_orphaned_tasks(room_id, drop_lock=True)
+    await delete_game(room_id)
+    await delete_room(room_id)
+    manager.connections.pop(room_id, None)
+    logger.info("Room %s removed from Redis", room_id)
+
+
+async def _handle_finished_game_disconnect(
+    room_id: str,
+    disconnected_client_id: str | None,
+    room_data: dict | None,
+) -> None:
+    """После game_over: реванш только пока оба на WS; иначе чистим Redis."""
+    if room_data:
+        room_data["rematch_ready"] = []
+        await set_room(room_id, room_data)
+
+    opponent = (
+        manager.get_opponent_ws(room_id, disconnected_client_id)
+        if disconnected_client_id
+        else None
+    )
+    if opponent:
+        try:
+            await opponent.send_json({
+                "status": "rematch_cancelled",
+                "message_code": "rematch.opponent_left",
+            })
+        except Exception:
+            pass
+
+    if not manager.connections.get(room_id):
+        await _remove_room_from_redis(room_id)
+    else:
+        await _cleanup_orphaned_tasks(room_id)
+
+
 async def _handle_disconnect(
     room_id: str,
     websocket: WebSocket,
@@ -37,30 +76,21 @@ async def _handle_disconnect(
     disconnected_client_id = manager.get_client_id(room_id, websocket)
     await manager.disconnect(room_id, websocket)
 
-    if is_ai_room:
-        logger.info("Player disconnected from AI room %s", room_id)
-        return
-
     game = await get_game(room_id)
     room_data = await get_room(room_id)
 
-    if game and game.get("game_over", False) and room_data and room_data.get("type") != "ai":
-        room_data["rematch_ready"] = []
-        await set_room(room_id, room_data)
-        opponent = (
-            manager.get_opponent_ws(room_id, disconnected_client_id)
-            if disconnected_client_id
-            else None
-        )
-        if opponent:
-            try:
-                await opponent.send_json({
-                    "status": "rematch_cancelled",
-                    "message_code": "rematch.opponent_left",
-                })
-            except Exception:
-                pass
-        await _cleanup_orphaned_tasks(room_id)
+    if game and game.get("game_over"):
+        if is_ai_room:
+            if not manager.connections.get(room_id):
+                await _remove_room_from_redis(room_id)
+            else:
+                await _cleanup_orphaned_tasks(room_id)
+            return
+        await _handle_finished_game_disconnect(room_id, disconnected_client_id, room_data)
+        return
+
+    if is_ai_room:
+        logger.info("Player disconnected from AI room %s", room_id)
         return
 
     if not game:
@@ -68,10 +98,6 @@ async def _handle_disconnect(
             room_id,
             drop_lock=not manager.connections.get(room_id),
         )
-        return
-
-    if game.get("game_over", False):
-        await _cleanup_orphaned_tasks(room_id)
         return
 
     opponent = (
@@ -95,6 +121,4 @@ async def _handle_disconnect(
             dt_func(room_id, opponent, disconnected_client_id)
         )
     else:
-        await _cleanup_orphaned_tasks(room_id, drop_lock=True)
-        await delete_game(room_id)
-        await delete_room(room_id)
+        await _remove_room_from_redis(room_id)

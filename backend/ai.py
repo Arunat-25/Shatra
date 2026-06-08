@@ -555,7 +555,6 @@ def _evaluate_biy_threats(cells: dict, ai_color: str) -> int:
         if not name or _safe_piece_type(name) not in ("шатра", "батыр"):
             continue
         pc = _piece_color(name)
-        sign = 1 if pc == ai_color else -1
         tgt = opp if pc == ai_color else ai_color
         biy = _find_biy_cell(cells, tgt)
         if biy is None:

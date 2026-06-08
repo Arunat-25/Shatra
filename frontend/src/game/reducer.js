@@ -71,6 +71,7 @@ export const initialGameState = {
   timeControl: null,
   increment: null,
   timer: null,
+  timerSyncedAt: null,
   movesHistory: [],
   viewingHistoryIndex: null,
   historyFrom: null,
@@ -149,6 +150,7 @@ export function gameReducer(state, action) {
         timeControl: action.payload.time_control || null,
         increment: action.payload.increment ?? null,
         timer: action.payload.time || null,
+        timerSyncedAt: action.payload.time ? Date.now() : null,
         drawOfferFrom: action.payload.draw_offer_from || null,
         rematchReady: false,
         rematchOpponentReady: false,
@@ -229,6 +231,8 @@ export function gameReducer(state, action) {
         historyTo: null,
         lastMove: newLastMove ?? state.lastMove,
         capturedGhostPieces: buildCapturedGhostPieces(state, action.payload),
+        timer: action.payload.time ?? state.timer,
+        timerSyncedAt: action.payload.time ? Date.now() : state.timerSyncedAt,
       });
     }
 
@@ -259,6 +263,7 @@ export function gameReducer(state, action) {
         timeControl: action.payload.time_control ?? state.timeControl,
         increment: action.payload.increment ?? state.increment,
         timer: action.payload.time ?? state.timer,
+        timerSyncedAt: action.payload.time ? Date.now() : state.timerSyncedAt,
       });
 
     case GAME_ACTIONS.SET_MY_COLOR:
@@ -294,7 +299,11 @@ export function gameReducer(state, action) {
       return { ...state, disconnectCountdown: action.payload };
 
     case GAME_ACTIONS.TIMER_TICK:
-      return { ...state, timer: action.payload };
+      return {
+        ...state,
+        timer: action.payload,
+        timerSyncedAt: Date.now(),
+      };
 
     case GAME_ACTIONS.SET_MOVE_HISTORY:
       return { ...state, movesHistory: action.payload };

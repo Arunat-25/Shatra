@@ -9,6 +9,7 @@ export default function GameViewport({
   boardTop,
   boardBottom,
   state,
+  displayTimer,
   isBoardBlocked,
   onCellClick,
   actionsBar,
@@ -25,7 +26,7 @@ export default function GameViewport({
               position="top"
               color={boardTop}
               playersInfo={state.playersInfo}
-              timer={state.timer}
+              timer={displayTimer ?? state.timer}
               moversColor={state.moversColor}
               myColor={state.myColor}
               timeControl={state.timeControl}
@@ -66,7 +67,7 @@ export default function GameViewport({
               position="bottom"
               color={boardBottom}
               playersInfo={state.playersInfo}
-              timer={state.timer}
+              timer={displayTimer ?? state.timer}
               moversColor={state.moversColor}
               myColor={state.myColor}
               timeControl={state.timeControl}

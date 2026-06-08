@@ -16,6 +16,8 @@ from backend.game_helpers import (
     get_ai_color,
 )
 from backend.game_archive import mark_game_started, on_game_finished
+from backend.observability.logging import log_extra
+from backend.observability.metrics import record_move, record_game_started
 
 logger = logging.getLogger(__name__)
 
@@ -115,6 +117,7 @@ async def handle_ai_move(
         return
 
     response = await apply_move_result(room_id, game, result, prev_mover, from_cell, to_cell)
+    record_move("ai")
     logger.info(
         "AI move for room %s: %s -> %s, game_over=%s, chain_next=%s",
         room_id,
@@ -149,6 +152,12 @@ async def _start_ai_game(room_id: str, websocket: WebSocket, room_data: dict, my
         room_data["game_started"] = True
         mark_game_started(room_data)
         await set_room(room_id, room_data)
+        record_game_started(room_data.get("type") or "ai")
+        logger.info(
+            "AI game started in room %s",
+            room_id,
+            extra=log_extra(room_id=room_id, room_type=room_data.get("type")),
+        )
         response = build_game_started_response(game, room_data, my_color)
         await manager.send_to_player(websocket, response)
 

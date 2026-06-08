@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.config import settings
 from backend.db.models import PresenceSession
 from backend.db.session import get_session_factory
+from backend.observability.errors import capture_exception
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +39,7 @@ async def end_lobby_sessions(client_id: str) -> None:
             await session.commit()
     except Exception:
         logger.exception("Failed to end lobby sessions for client %s", client_id[:6])
+        capture_exception()
 
 
 async def touch_lobby_presence(
@@ -87,6 +89,7 @@ async def touch_lobby_presence(
             await session.commit()
     except Exception:
         logger.exception("Failed to touch lobby presence for client %s", client_id[:6])
+        capture_exception()
 
 
 async def close_stale_lobby_presence() -> None:
@@ -109,6 +112,7 @@ async def close_stale_lobby_presence() -> None:
             await session.commit()
     except Exception:
         logger.exception("Failed to close stale lobby presence")
+        capture_exception()
 
 
 async def close_orphan_ws_presence(live_client_ids: frozenset[str]) -> None:
@@ -131,6 +135,7 @@ async def close_orphan_ws_presence(live_client_ids: frozenset[str]) -> None:
             await session.commit()
     except Exception:
         logger.exception("Failed to close orphan ws presence")
+        capture_exception()
 
 
 async def start_session(
@@ -159,6 +164,7 @@ async def start_session(
             await session.commit()
     except Exception:
         logger.exception("Failed to start presence session for client %s", client_id[:6])
+        capture_exception()
 
 
 async def end_session(client_id: str) -> None:
@@ -176,6 +182,7 @@ async def end_session(client_id: str) -> None:
             await session.commit()
     except Exception:
         logger.exception("Failed to end presence session for client %s", client_id[:6])
+        capture_exception()
 
 
 def _ws_active_at(at: datetime):

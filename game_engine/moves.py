@@ -12,8 +12,6 @@ from game_engine.message_codes import (
     CAPTURE_MUST,
     CAPTURE_MUST_CONTINUE,
     MOVE_UNKNOWN_PIECE,
-    MOVE_NO_CAPTURE_TARGET,
-    MOVE_TARGET_OCCUPIED,
     PIECE_PROMOTED,
     VALIDATION_TO_MESSAGE,
 )
@@ -226,7 +224,7 @@ def process_move(
                 Board(new_cells), to_cell, current_color, new_batyr_captures,
             )
 
-    can_pass_turn = piece_kind == "бий" and has_captured
+    can_pass_turn = piece_kind == "бий" and can_continue_chain
 
     if can_continue_chain:
         return GameEventResult(
@@ -353,7 +351,7 @@ def _process_chain_shatra_biy(
                     can_continue_chain = True
                     break
 
-    can_pass_turn = piece_kind == "бий"
+    can_pass_turn = piece_kind == "бий" and can_continue_chain
 
     if can_continue_chain:
         return GameEventResult(

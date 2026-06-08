@@ -1,0 +1,16 @@
+apiVersion: 1
+
+datasources:
+  - name: Postgres
+    type: postgres
+    uid: Postgres
+    access: proxy
+    url: postgres:5432
+    user: shatra
+    database: shatra
+    editable: false
+    jsonData:
+      sslmode: disable
+      postgresVersion: 1600
+    secureJsonData:
+      password: shatra

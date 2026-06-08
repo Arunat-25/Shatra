@@ -5,16 +5,21 @@ from backend.state import get_game, get_room, get_room_lock
 from backend.ws_manager import manager
 from backend.game_helpers import (
     apply_move_result,
+    build_move_response,
     parse_client_event,
     get_ai_color,
+    get_player_color,
     ws_error_payload,
     is_move_message,
+    is_hint_request,
     is_rejected_move,
     _norm_board_keys,
 )
+from backend.message_codes import WS_NOT_YOUR_TURN
 from backend.chat import handle_chat_message
 from backend.ws_control_handlers import CONTROL_MESSAGE_TYPES, dispatch_control_message
 from backend.session.rematch import _decline_draw_offer
+from backend.observability.metrics import record_move, record_move_rejected
 from backend.session.ai import handle_ai_move
 
 
@@ -104,7 +109,18 @@ async def _process_client_message_locked(
     )
 
     if is_rejected_move(result, prev_board, raw_from, raw_to):
-        await _send_ws_error(websocket, result.message_code or "move.impossible")
+        reason = result.message_code or "move.impossible"
+        record_move_rejected(reason)
+        await _send_ws_error(websocket, reason)
+        return True
+
+    if is_hint_request(raw_from, raw_to, event):
+        player_color = get_player_color(room_data, client_id) if room_data else None
+        if player_color != game.get("mover"):
+            await _send_ws_error(websocket, WS_NOT_YOUR_TURN)
+            return True
+        response = build_move_response(game, result, prev_mover)
+        await manager.send_to_player(websocket, response)
         return True
 
     from game_engine.endgame import _only_two_biys_left
@@ -124,6 +140,7 @@ async def _process_client_message_locked(
     response = await apply_move_result(
         room_id, game, result, prev_mover, raw_from, raw_to
     )
+    record_move("player")
     await manager.send_to_room(room_id, response)
 
     room_data = await get_room(room_id)

@@ -44,12 +44,25 @@ def pytest_configure(config):
     )
 
 
+def _only_nginx_config_tests(items) -> bool:
+    if not items:
+        return False
+    return all(
+        getattr(item.path, "name", "") == "test_nginx_config.py" for item in items
+    )
+
+
 @pytest.fixture(scope="session", autouse=True)
-def ensure_test_db_schema():
+def ensure_test_db_schema(request):
+    if _only_nginx_config_tests(request.session.items):
+        yield
+        return
+
     from backend.db.session import create_all_tables
 
     asyncio.run(create_all_tables())
     _ensure_schema_patches()
+    yield
 
 
 @pytest.fixture

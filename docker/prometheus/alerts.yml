@@ -1,0 +1,38 @@
+groups:
+  - name: shatra
+    rules:
+      - alert: ShatraTargetDown
+        expr: up{job="shatra"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Shatra app is not reachable by Prometheus
+          description: Prometheus cannot scrape GET /metrics from the app target.
+
+      - alert: ShatraArchiveErrors
+        expr: increase(shatra_archive_errors_total[15m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: Game archive errors detected
+          description: Finished games may not be persisted to PostgreSQL.
+
+      - alert: ShatraHighMoveRejectRate
+        expr: sum(rate(shatra_moves_rejected_total[5m])) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: High rejected move rate
+          description: Clients are sending many invalid moves.
+
+      - alert: ShatraRedisRoomsLeak
+        expr: sum(shatra_redis_rooms_active) > 50
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: Many rooms remain in Redis
+          description: Room cleanup may be failing or traffic is unusually high.

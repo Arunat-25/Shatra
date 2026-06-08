@@ -9,6 +9,7 @@ from backend.message_codes import ROOM_FULL, ROOM_GAME_STARTED, ROOM_NOT_FOUND
 from backend.db.models import User
 from backend.models import CreateRoomRequest, Room
 from backend.player_identity import meta_from_user
+from backend.observability.metrics import record_room_created
 from backend.state import get_room, set_room, scan_keys, get_raw, get_game
 
 logger = logging.getLogger(__name__)
@@ -52,6 +53,7 @@ async def create_room(request: CreateRoomRequest, user: User | None = None) -> d
         room.last_tick = now.timestamp()
 
     await set_room(room_id, room.model_dump())
+    record_room_created(request.type)
     logger.info("Room created: %s (type=%s, time_control=%s)", room_id, request.type, request.time_control)
     return {"room_id": room_id, "type": request.type}
 

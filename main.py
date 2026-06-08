@@ -1,6 +1,6 @@
 from pathlib import Path
 from contextlib import asynccontextmanager
-from fastapi import Depends, FastAPI, Query, WebSocket
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -8,13 +8,18 @@ from fastapi.staticfiles import StaticFiles
 import json
 import logging
 
-import sentry_sdk
+from fastapi.responses import Response
 
-from backend.config import settings
+from backend.config import settings, validate_production_settings
+from backend.observability.errors import init_sentry
+from backend.observability.health import router as health_router
+from backend.observability.logging import setup_logging
+from backend.observability.metrics import metrics_payload
+from backend.observability.redis_metrics import refresh_redis_gauges
+from backend.observability.middleware import ObservabilityMiddleware
 from backend.auth.dependencies import get_optional_user
 from backend.db.models import User
 from backend.models import CreateRoomRequest
-from datetime import datetime, timezone
 
 from backend.room_manager import create_room, list_rooms, join_room
 from backend.presence import touch_lobby_presence, count_online_for_lobby, end_lobby_sessions
@@ -29,6 +34,9 @@ from backend.bug_reports.router import public_router as bug_reports_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    setup_logging(level=settings.log_level, log_format=settings.log_format)
+    validate_production_settings(settings)
+    init_sentry(settings)
     # Startup
     await init_redis()
     await init_db()
@@ -56,9 +64,9 @@ def _parse_cors_origins() -> list[str]:
 
 logger = logging.getLogger(__name__)
 
-if settings.sentry_dsn:
-    sentry_sdk.init(dsn=settings.sentry_dsn, traces_sample_rate=0.1)
-
+app.add_middleware(
+    ObservabilityMiddleware,
+)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_parse_cors_origins(),
@@ -83,6 +91,32 @@ if _sounds_dir.is_dir():
 _images_dir = REACT_DIST / "images"
 if _images_dir.is_dir():
     app.mount("/images", StaticFiles(directory=str(_images_dir)), name="site_images")
+
+
+# === Observability (ДО catch-all) ===
+
+app.include_router(health_router)
+
+
+@app.get("/sentry-debug")
+async def sentry_debug():
+    """Dev-only: Sentry onboarding check (see Sentry FastAPI docs)."""
+    if settings.app_env != "development" or not settings.sentry_dsn:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=404, detail="Not found")
+    raise ZeroDivisionError("sentry-debug")
+
+
+@app.get("/metrics")
+async def metrics(authorization: str | None = Header(default=None)):
+    if settings.metrics_token:
+        expected = f"Bearer {settings.metrics_token}"
+        if authorization != expected:
+            raise HTTPException(status_code=401, detail="Unauthorized")
+    await refresh_redis_gauges()
+    payload, content_type = metrics_payload()
+    return Response(content=payload, media_type=content_type)
 
 
 # === REST API (ДО catch-all) ===

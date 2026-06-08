@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from sqlalchemy import func, select
@@ -195,11 +195,80 @@ class TestArchiveBasics:
             patch(st.patch_targets()[0], side_effect=st.get_game),
             patch(st.patch_targets()[1], side_effect=st.get_room),
             patch(st.patch_targets()[2], side_effect=st.set_game),
+            patch("backend.game_archive.record_game_finished") as record_finished,
         ):
             assert await archive_finished_game(st.room_id) is None
 
+        record_finished.assert_not_called()
         assert await _count_games() == 0
         assert st.game.get("archived") is not True
+
+    async def test_successful_archive_records_finished_metric(self, archive_state):
+        st = archive_state
+        with (
+            patch(st.patch_targets()[0], side_effect=st.get_game),
+            patch(st.patch_targets()[1], side_effect=st.get_room),
+            patch(st.patch_targets()[2], side_effect=st.set_game),
+            patch("backend.game_archive.record_game_finished") as record_finished,
+        ):
+            await archive_finished_game(st.room_id)
+
+        record_finished.assert_called_once()
+        kwargs = record_finished.call_args.kwargs
+        assert kwargs["reason"] == "resign"
+        assert kwargs["room_type"] == "public"
+        assert kwargs["plies"] == 1
+        assert kwargs["duration_seconds"] is not None
+
+    async def test_idempotent_second_call_records_finished_once(self, archive_state):
+        st = archive_state
+        with (
+            patch(st.patch_targets()[0], side_effect=st.get_game),
+            patch(st.patch_targets()[1], side_effect=st.get_room),
+            patch(st.patch_targets()[2], side_effect=st.set_game),
+            patch("backend.game_archive.record_game_finished") as record_finished,
+        ):
+            first = await archive_finished_game(st.room_id)
+            second = await archive_finished_game(st.room_id)
+
+        assert first is not None
+        assert second is None
+        record_finished.assert_called_once()
+        assert record_finished.call_args.kwargs["plies"] == 1
+
+    async def test_archive_db_error_records_archive_error(self, archive_state):
+        st = archive_state
+
+        class BrokenSession:
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *args):
+                return False
+
+            def add(self, _record):
+                return None
+
+            async def commit(self):
+                raise RuntimeError("db down")
+
+            async def refresh(self, _record):
+                return None
+
+        broken_factory = MagicMock(return_value=BrokenSession())
+
+        with (
+            patch(st.patch_targets()[0], side_effect=st.get_game),
+            patch(st.patch_targets()[1], side_effect=st.get_room),
+            patch(st.patch_targets()[2], side_effect=st.set_game),
+            patch("backend.game_archive.get_session_factory", return_value=broken_factory),
+            patch("backend.game_archive.record_archive_error") as record_error,
+            patch("backend.game_archive.capture_exception") as capture,
+        ):
+            assert await archive_finished_game(st.room_id) is None
+
+        record_error.assert_called_once()
+        capture.assert_called_once()
 
     async def test_not_game_over_not_archived(self, archive_state):
         st = archive_state
@@ -351,6 +420,7 @@ class TestArchiveIntegrationHooks:
 
         with (
             patch("backend.timers.get_game", side_effect=st.get_game),
+            patch("backend.timers.get_room", side_effect=st.get_room),
             patch("backend.timers.set_game", side_effect=st.set_game),
             patch("backend.timers.manager.send_to_room", AsyncMock()),
             patch("backend.timers.stop_game_timer"),
@@ -408,9 +478,16 @@ class TestArchiveIntegrationHooks:
             patch("backend.game_archive.get_game", side_effect=st.get_game),
             patch("backend.game_archive.get_room", side_effect=st.get_room),
             patch("backend.game_archive.set_game", side_effect=st.set_game),
+            patch("backend.game_archive.record_game_finished") as record_finished,
         ):
             await apply_move_result(st.room_id, st.game, result, "белый", 53, 46)
 
+        assert st.game["reason"] == "biy_wins"
+        record_finished.assert_called_once()
+        kwargs = record_finished.call_args.kwargs
+        assert kwargs["reason"] == "biy_wins"
+        assert kwargs["room_type"] == "public"
+        assert kwargs["plies"] == 1
         assert await _count_games() == 1
 
     async def test_draw_agreed_stores_null_winner(self, archive_state):

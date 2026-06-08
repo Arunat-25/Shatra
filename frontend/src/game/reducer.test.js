@@ -92,6 +92,25 @@ describe('gameReducer', () => {
     expect(finished.moveFrom).toBe(null);
   });
 
+  it('MOVE_MADE updates timer when time in payload', () => {
+    const syncedAtBefore = Date.now();
+    const state = {
+      ...initialGameState,
+      timer: { белый: 100, черный: 200 },
+      timerSyncedAt: syncedAtBefore,
+    };
+    const next = gameReducer(state, {
+      type: GAME_ACTIONS.MOVE_MADE,
+      payload: {
+        desk: { 19: 'белый бий' },
+        movers_color: 'черный',
+        time: { белый: 105, черный: 200 },
+      },
+    });
+    expect(next.timer).toEqual({ белый: 105, черный: 200 });
+    expect(next.timerSyncedAt).toBeGreaterThanOrEqual(syncedAtBefore);
+  });
+
   it('MOVE_MADE applies essential_positions from server payload', () => {
     const state = { ...initialGameState, myColor: 'белый' };
     const next = gameReducer(state, {

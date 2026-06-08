@@ -226,7 +226,7 @@ def test_shatra_quiet_promotion_ends_turn_with_promoted_message():
     assert result.position_for_mandatory_capture is None
 
 
-def test_biy_capture_without_chain_offers_pass_then_turn_switches():
+def test_biy_single_capture_ends_turn_without_pass_offer():
     board = empty_board()
     board[48] = "белый бий"
     board[47] = "черная шатра"
@@ -236,21 +236,9 @@ def test_biy_capture_without_chain_offers_pass_then_turn_switches():
     cap = logic.handle_event(
         GameEvent(positions=board, mover_color="белый", from_pos=48, to_pos=46)
     )
-    assert cap.opportunity_pass_the_move is True
+    assert cap.opportunity_pass_the_move is False
     assert cap.position_for_mandatory_capture is None
     assert cap.movers_color == "черный"
-
-    passed = logic.handle_event(
-        GameEvent(
-            positions=cap.updated_positions,
-            mover_color="белый",
-            from_pos=0,
-            to_pos=0,
-            position_for_mandatory_capture=0,
-        )
-    )
-    assert passed.message_code == MOVE_PASSED
-    assert passed.movers_color == "черный"
 
 
 def test_biy_capture_with_optional_chain_can_pass_without_continuing():
@@ -280,6 +268,35 @@ def test_biy_capture_with_optional_chain_can_pass_without_continuing():
     assert passed.message_code == MOVE_PASSED
     assert passed.movers_color == "черный"
     assert first.updated_positions[13] is None
+
+
+def test_biy_optional_chain_final_capture_does_not_offer_pass():
+    board = empty_board()
+    board[10] = "белый бий"
+    board[13] = "черная шатра"
+    board[19] = None
+    board[26] = "черная шатра"
+    board[33] = None
+    board[53] = "черный бий"
+
+    first = logic.handle_event(
+        GameEvent(positions=board, mover_color="белый", from_pos=10, to_pos=19)
+    )
+    assert first.opportunity_pass_the_move is True
+    assert first.position_for_mandatory_capture == 19
+
+    final = logic.handle_event(
+        GameEvent(
+            positions=first.updated_positions,
+            mover_color="белый",
+            from_pos=19,
+            to_pos=33,
+            position_for_mandatory_capture=19,
+        )
+    )
+    assert final.opportunity_pass_the_move is False
+    assert final.position_for_mandatory_capture is None
+    assert final.movers_color == "черный"
 
 
 def test_white_six_capture_chain_continues_after_fifth_jump():

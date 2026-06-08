@@ -12,6 +12,13 @@ from backend.game_archive import mark_game_started
 from backend.game_state import GameState
 from backend.player_identity import merge_player_meta, user_id_from_meta
 from backend.presence import end_session, start_session
+from backend.observability.logging import log_extra
+from backend.observability.metrics import (
+    record_game_started,
+    record_ws_connect,
+    record_ws_disconnect,
+    record_ws_reject,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -31,8 +38,8 @@ async def _delete_room_after_grace(room_id: str, delay_seconds: float):
         room_data = await get_room(room_id)
         if not room_data:
             return
-        # Если игра уже началась — эту ветку не используем.
-        if room_data.get("game_started"):
+        game = await get_game(room_id)
+        if room_data.get("game_started") and not (game and game.get("game_over")):
             return
         await delete_game(room_id)
         await delete_room(room_id)
@@ -67,6 +74,11 @@ class ConnectionManager:
         room_data = await get_room(room_id)
         if not room_data:
             await websocket.close(code=1008, reason="room_not_found")
+            record_ws_reject("room_not_found")
+            logger.warning(
+                "WS rejected: room_not_found",
+                extra=log_extra(room_id=room_id, client_id=client_id[:8]),
+            )
             return False
 
         if room_id not in self.connections:
@@ -94,6 +106,11 @@ class ConnectionManager:
             if client_id in self.connections.get(room_id, {}):
                 # Уже есть активное соединение — это не reconnect, а дубль
                 await websocket.close(code=1008, reason="already_in_game")
+                record_ws_reject("already_in_game")
+                logger.warning(
+                    "WS rejected: already_in_game",
+                    extra=log_extra(room_id=room_id, client_id=client_id[:8]),
+                )
                 return False
             self.connections[room_id][client_id] = websocket
 
@@ -110,12 +127,18 @@ class ConnectionManager:
                     pass
             await set_room(room_id, room_data)
             await _record_presence()
+            record_ws_connect(reason="reconnect")
             return True
 
         # Новый игрок
         if len(players) >= 2:
             # Комната заполнена
             await websocket.close(code=1008, reason="room_full")
+            record_ws_reject("room_full")
+            logger.warning(
+                "WS rejected: room_full",
+                extra=log_extra(room_id=room_id, client_id=client_id[:8]),
+            )
             return False
 
         from backend.game_helpers import assign_player_color
@@ -125,7 +148,14 @@ class ConnectionManager:
         self.connections[room_id][client_id] = websocket
         await set_room(room_id, room_data)
         await _record_presence()
-        logger.info("Player %s joined room %s as %s", client_id[:6], room_id, players[client_id])
+        record_ws_connect()
+        logger.info(
+            "Player %s joined room %s as %s",
+            client_id[:6],
+            room_id,
+            players[client_id],
+            extra=log_extra(room_id=room_id, client_id=client_id[:8], color=players[client_id]),
+        )
         return True
 
     async def _destroy_room(self, room_id: str, open_connections: dict[str, WebSocket] | None = None):
@@ -160,6 +190,7 @@ class ConnectionManager:
 
         if client_id:
             await end_session(client_id)
+            record_ws_disconnect()
 
         room_data = await get_room(room_id)
         # Не удаляем комнату мгновенно, если отключился creator:
@@ -232,6 +263,13 @@ async def handle_player2_join(room_id: str, room_data: dict):
     room_data["game_started"] = True
     mark_game_started(room_data)
     await set_room(room_id, room_data)
+    record_game_started(room_data.get("type") or "unknown")
+    logger.info(
+        "Game started in room %s (type=%s)",
+        room_id,
+        room_data.get("type"),
+        extra=log_extra(room_id=room_id, room_type=room_data.get("type")),
+    )
 
     if room_data.get("time_control"):
         from backend.timers import stop_game_timer, game_ticker as gt

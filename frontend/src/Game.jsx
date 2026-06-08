@@ -9,6 +9,7 @@ import useMessage from './hooks/useMessage';
 import useEscapeKey from './hooks/useEscapeKey';
 import useCellClick from './hooks/useCellClick';
 import useLowTimeSound from './hooks/useLowTimeSound';
+import useClockCountdown from './hooks/useClockCountdown';
 import useGameAudioUnlock from './hooks/useGameAudioUnlock';
 import WaitingScreen from './components/WaitingScreen';
 import GameActionsBar from './components/game/GameActionsBar';
@@ -51,9 +52,17 @@ export default function Game() {
   });
 
   useGameAudioUnlock();
+  const displayTimer = useClockCountdown({
+    timer: state.timer,
+    timerSyncedAt: state.timerSyncedAt,
+    moversColor: state.moversColor,
+    timeControl: state.timeControl,
+    gameOver: state.gameOver,
+    waiting: state.waiting,
+  });
   useLowTimeSound({
     timeControl: state.timeControl,
-    timer: state.timer,
+    timer: displayTimer,
     myColor: state.myColor,
     gameOver: state.gameOver,
     waiting: state.waiting,
@@ -164,6 +173,7 @@ export default function Game() {
           boardTop={boardTop}
           boardBottom={boardBottom}
           state={state}
+          displayTimer={displayTimer}
           isBoardBlocked={isBoardBlocked}
           onCellClick={handleCellClickWrapped}
           actionsBar={viewportActions}
@@ -171,6 +181,7 @@ export default function Game() {
         />
         <GameDesktopLayout
           state={state}
+          displayTimer={displayTimer}
           modeAi={modeAi}
           wsReconnecting={wsReconnecting}
           message={message}

@@ -1,7 +1,7 @@
 """Strong AI: trained weights, deeper search, transposition table, deterministic play."""
 from __future__ import annotations
 
-from typing import List, Optional, Tuple
+from typing import Optional
 
 import backend.ai as ai
 from backend.ai import Move, get_best_move as _base_get_best_move

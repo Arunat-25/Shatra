@@ -13,7 +13,6 @@ from backend.message_codes import (
     DRAW_ALREADY_OFFERED,
     DRAW_YOU_OFFERED,
     DRAW_OPPONENT_OFFERS,
-    DRAW_AGREED,
     CANCEL_YOU,
     CANCEL_OPPONENT,
     CANCEL_COLOR_UNKNOWN,

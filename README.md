@@ -20,6 +20,14 @@ docker compose up --build -d
 
 Перед первым запуском задайте `JWT_SECRET` в `.env` (см. ниже).
 
+### Production deploy
+
+Постоянный деплой на VPS с доменом и TLS: [docs/DEPLOY.md](docs/DEPLOY.md)
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
 ### Доступ через интернет (Cloudflare Tunnel)
 
 Для короткого теста с друзьями из другой сети — без деплоя и без своего домена:
@@ -39,7 +47,7 @@ docker compose up --build -d
 ## Локальная разработка
 
 ```bash
-cp .env.example .env   # опционально
+# Создайте .env в корне (см. раздел «Конфигурация»)
 
 # Backend
 python3 -m venv .venv
@@ -72,7 +80,15 @@ Vite проксирует `/rooms` и `/ws` на backend (`API_HOST` в `vite.co
 
 ## Конфигурация
 
-Переменные окружения (см. [.env.example](.env.example)):
+Создайте файл **`.env`** в корне проекта (в git не попадает). Минимум для локальной разработки:
+
+```env
+JWT_SECRET=change-me-in-production
+APP_ENV=development
+DATABASE_URL=postgresql+asyncpg://shatra:shatra@localhost:5432/shatra
+```
+
+Полный список переменных:
 
 | Переменная | Описание | По умолчанию |
 |------------|----------|--------------|
@@ -81,9 +97,20 @@ Vite проксирует `/rooms` и `/ws` на backend (`API_HOST` в `vite.co
 | `REDIS_TTL_SECONDS` | TTL ключей room/game | 14400 |
 | `DISCONNECT_TIMEOUT` | Ожидание реконнекта (сек) | 30 |
 | `CORS_ALLOW_ORIGINS` | CORS | `*` |
-| `SENTRY_DSN` | Мониторинг ошибок (опционально) | — |
+| `SENTRY_DSN` | Мониторинг ошибок backend (опционально) | — |
+| `SENTRY_TRACES_SAMPLE_RATE` | Доля traces для Sentry | `0.1` |
+| `VITE_SENTRY_DSN` | Sentry DSN для frontend (build-time / Docker ARG) | — |
+| `LOG_LEVEL` | Уровень логов (`DEBUG`, `INFO`, …) | `INFO` |
+| `LOG_FORMAT` | Формат логов: `json` или `text` | `text` (локально), `json` в Docker |
+| `APP_ENV` | Окружение для Sentry | `development` |
+| `APP_VERSION` | Release/version для Sentry | `dev` |
+| `GRAFANA_ADMIN_PASSWORD` | Пароль admin в Grafana (docker-compose) | `admin` |
 | `DATABASE_URL` | PostgreSQL (asyncpg) | `postgresql+asyncpg://shatra:shatra@localhost:5432/shatra` |
-| `JWT_SECRET` | Секрет для JWT | *(обязательно сменить)* |
+| `JWT_SECRET` | Секрет для JWT | *(обязательно сменить в prod)* |
+| `METRICS_TOKEN` | Bearer token для `/metrics` (prod + monitoring) | — |
+| `DOMAIN` | Домен для nginx (`docker-compose.prod.yml`) | — |
+| `CERTBOT_EMAIL` | Email для Let's Encrypt (prod-compose) | — |
+| `POSTGRES_PASSWORD` | Пароль Postgres (prod-compose) | — |
 | `ADMIN_USER_IDS` | UUID админов через запятую (без правки БД) | — |
 
 ### Админ-панель
@@ -127,6 +154,23 @@ cd frontend && npm run lint
 ```
 
 CI: GitHub Actions (`.github/workflows/ci.yml`) — pytest, ruff, vitest, eslint.
+
+## Мониторинг и логи
+
+При `docker compose up` поднимаются также **Prometheus** (http://127.0.0.1:9090), **Grafana** (http://127.0.0.1:3000, логин `admin` / пароль из `GRAFANA_ADMIN_PASSWORD`) и **Loki** (логи app в Grafana Explore).
+
+| Endpoint | Назначение |
+|----------|------------|
+| `GET /health` | Проверка Redis и PostgreSQL, uptime |
+| `GET /metrics` | Prometheus-метрики (WS, HTTP, игры, Redis gauges, histograms) |
+
+Логи backend пишутся в stdout; в Docker по умолчанию **JSON** (`LOG_FORMAT=json`). Promtail отправляет их в Loki — просмотр в Grafana Explore (см. [docs/MONITORING.md](docs/MONITORING.md)).
+
+**Sentry** (облако, опционально): задайте `SENTRY_DSN` и `VITE_SENTRY_DSN` в `.env`.
+
+Grafana содержит дашборд **Shatra** — описание каждой панели: [docs/MONITORING.md](docs/MONITORING.md).
+
+**Prometheus alerts** (без доставки): http://127.0.0.1:9090/alerts — target down, ошибки архива, всплеск rejected moves, утечка комнат в Redis.
 
 ## Архитектура (кратко)
 

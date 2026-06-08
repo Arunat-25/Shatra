@@ -97,6 +97,15 @@ class TestCreateRoom:
             result = await create_room(request)
         assert stored[result["room_id"]]["ai_difficulty"] == "strong"
 
+    async def test_create_room_records_metric(self):
+        request = CreateRoomRequest(type="public", creator_client_id="c1")
+        with (
+            patch("backend.room_manager.set_room", new_callable=AsyncMock),
+            patch("backend.room_manager.record_room_created") as record_created,
+        ):
+            await create_room(request)
+        record_created.assert_called_once_with("public")
+
 
 @pytest.mark.asyncio
 class TestListRooms:

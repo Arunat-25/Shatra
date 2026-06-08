@@ -7,31 +7,7 @@ from backend.board_utils import get_starting_board, keys_int_to_str
 from backend.session import process_client_message, _handle_disconnect
 from backend.session.ai import _start_ai_game
 from backend.ws_manager import handle_player2_join, _delete_room_after_grace, manager
-
-
-def _pvp_room():
-    return {
-        "room_id": "room1",
-        "type": "public",
-        "game_started": True,
-        "players": {"p-white": "белый", "p-black": "черный"},
-        "time_control": None,
-        "rematch_ready": [],
-    }
-
-
-def _game(**extra):
-    g = {
-        "board": get_starting_board(),
-        "mover": "белый",
-        "game_over": False,
-        "move_history": [],
-        "pending_batyr_captures": [],
-        "position_history": {},
-        "moves_with_two_biys": 0,
-    }
-    g.update(extra)
-    return g
+from tests.server.disconnect_helpers import game_state as _game, patch_disconnect_io, pvp_room as _pvp_room
 
 
 def _legal_white_move_payload(game):
@@ -364,24 +340,37 @@ class TestAiGameStart:
 @pytest.mark.asyncio
 class TestHandleDisconnectRematch:
     async def test_disconnect_cancels_rematch_and_notifies(self, ws):
-        room = _pvp_room()
-        room["rematch_ready"] = ["p-white", "p-black"]
+        room = _pvp_room(rematch_ready=["p-white", "p-black"])
         game = _game(game_over=True)
         opponent_ws = AsyncMock()
 
-        with patch("backend.session.disconnect.manager") as mgr:
-            mgr.disconnect = AsyncMock()
-            mgr.get_client_id = MagicMock(return_value="p-white")
-            mgr.get_opponent_ws = MagicMock(return_value=opponent_ws)
-            with patch("backend.session.disconnect.get_game", new_callable=AsyncMock, return_value=game):
-                with patch("backend.session.disconnect.get_room", new_callable=AsyncMock, return_value=room):
-                    with patch("backend.session.disconnect.set_room", new_callable=AsyncMock) as set_room:
-                        await _handle_disconnect("room1", ws, is_ai_room=False)
+        async with patch_disconnect_io(
+            room_id="room1",
+            room=room,
+            game=game,
+            connections={"room1": {"p-black": opponent_ws}},
+            opponent_ws=opponent_ws,
+        ) as mocks:
+            await _handle_disconnect("room1", ws, is_ai_room=False)
 
         assert room["rematch_ready"] == []
-        set_room.assert_called_once()
+        mocks["set_room"].assert_called_once()
         opponent_ws.send_json.assert_called_once()
         assert opponent_ws.send_json.call_args[0][0]["status"] == "rematch_cancelled"
+        mocks["delete_game"].assert_not_called()
+        mocks["delete_room"].assert_not_called()
+
+    async def test_disconnect_after_game_over_deletes_redis_when_room_empty(self, ws):
+        async with patch_disconnect_io(
+            room_id="room1",
+            room=_pvp_room(),
+            game=_game(game_over=True),
+            connections={},
+        ) as mocks:
+            await _handle_disconnect("room1", ws, is_ai_room=False)
+
+        mocks["delete_game"].assert_called_once_with("room1")
+        mocks["delete_room"].assert_called_once_with("room1")
 
 
 @pytest.mark.asyncio
@@ -391,10 +380,11 @@ class TestGraceRoomDeletion:
 
         with patch("backend.ws_manager.asyncio.sleep", new_callable=AsyncMock):
             with patch("backend.ws_manager.get_room", new_callable=AsyncMock, return_value=room):
-                with patch("backend.ws_manager.delete_game", new_callable=AsyncMock) as dg:
-                    with patch("backend.ws_manager.delete_room", new_callable=AsyncMock) as dr:
-                        manager.connections.pop("g1", None)
-                        await _delete_room_after_grace("g1", 0.01)
+                with patch("backend.ws_manager.get_game", new_callable=AsyncMock, return_value=None):
+                    with patch("backend.ws_manager.delete_game", new_callable=AsyncMock) as dg:
+                        with patch("backend.ws_manager.delete_room", new_callable=AsyncMock) as dr:
+                            manager.connections.pop("g1", None)
+                            await _delete_room_after_grace("g1", 0.01)
 
         dg.assert_called_once()
         dr.assert_called_once()
@@ -405,10 +395,39 @@ class TestGraceRoomDeletion:
 
         with patch("backend.ws_manager.asyncio.sleep", new_callable=AsyncMock):
             with patch("backend.ws_manager.delete_game", new_callable=AsyncMock) as dg:
-                await _delete_room_after_grace("g2", 0.01)
+                with patch("backend.ws_manager.get_game", new_callable=AsyncMock, return_value=None):
+                    await _delete_room_after_grace("g2", 0.01)
 
         dg.assert_not_called()
         manager.connections.pop("g2", None)
+
+    async def test_deletes_finished_game_after_grace_when_no_connections(self):
+        room = {"room_id": "g3", "game_started": True, "type": "public"}
+        game = {"game_over": True, "winner_color": "белый"}
+
+        with patch("backend.ws_manager.asyncio.sleep", new_callable=AsyncMock):
+            with patch("backend.ws_manager.get_room", new_callable=AsyncMock, return_value=room):
+                with patch("backend.ws_manager.get_game", new_callable=AsyncMock, return_value=game):
+                    with patch("backend.ws_manager.delete_game", new_callable=AsyncMock) as dg:
+                        with patch("backend.ws_manager.delete_room", new_callable=AsyncMock) as dr:
+                            manager.connections.pop("g3", None)
+                            await _delete_room_after_grace("g3", 0.01)
+
+        dg.assert_called_once()
+        dr.assert_called_once()
+
+    async def test_skips_grace_deletion_for_active_game(self):
+        room = {"room_id": "g4", "game_started": True, "type": "public"}
+        game = {"game_over": False, "mover": "белый"}
+
+        with patch("backend.ws_manager.asyncio.sleep", new_callable=AsyncMock):
+            with patch("backend.ws_manager.get_room", new_callable=AsyncMock, return_value=room):
+                with patch("backend.ws_manager.get_game", new_callable=AsyncMock, return_value=game):
+                    with patch("backend.ws_manager.delete_game", new_callable=AsyncMock) as dg:
+                        manager.connections.pop("g4", None)
+                        await _delete_room_after_grace("g4", 0.01)
+
+        dg.assert_not_called()
 
 
 @pytest.mark.asyncio

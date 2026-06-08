@@ -113,6 +113,89 @@ class TestConnectionManagerConnect:
 
 
 @pytest.mark.asyncio
+class TestConnectionManagerMetrics:
+    async def test_room_not_found_records_reject_not_connect(self, cm, mock_ws):
+        with (
+            patch("backend.ws_manager.get_room", new_callable=AsyncMock, return_value=None),
+            patch("backend.ws_manager.record_ws_reject") as reject,
+            patch("backend.ws_manager.record_ws_connect") as connect,
+        ):
+            ok = await cm.connect("missing", mock_ws, "c1")
+        assert ok is False
+        reject.assert_called_once_with("room_not_found")
+        connect.assert_not_called()
+
+    async def test_duplicate_tab_records_already_in_game(self, cm, mock_ws):
+        room = _room({"player-a": "белый"})
+        ws2 = AsyncMock()
+        ws2.accept = AsyncMock()
+        ws2.close = AsyncMock()
+
+        with patch("backend.ws_manager.get_room", new_callable=AsyncMock, return_value=room):
+            with patch("backend.ws_manager.set_room", new_callable=AsyncMock):
+                with patch("backend.ws_manager.start_session", new_callable=AsyncMock):
+                    with patch("backend.ws_manager.record_ws_connect"):
+                        await cm.connect("room1", mock_ws, "player-a")
+                    cm.connections["room1"] = {"player-a": mock_ws}
+                    with patch("backend.ws_manager.record_ws_reject") as reject:
+                        ok = await cm.connect("room1", ws2, "player-a")
+        assert ok is False
+        reject.assert_called_once_with("already_in_game")
+
+    async def test_room_full_records_reject(self, cm, mock_ws):
+        room = _room({"p1": "белый", "p2": "черный"})
+        ws3 = AsyncMock()
+        ws3.accept = AsyncMock()
+        ws3.close = AsyncMock()
+
+        with (
+            patch("backend.ws_manager.get_room", new_callable=AsyncMock, return_value=room),
+            patch("backend.ws_manager.set_room", new_callable=AsyncMock),
+            patch("backend.ws_manager.record_ws_reject") as reject,
+        ):
+            ok = await cm.connect("room1", ws3, "p3")
+        assert ok is False
+        reject.assert_called_once_with("room_full")
+
+    async def test_successful_join_records_connect(self, cm, mock_ws):
+        room = _room()
+        with (
+            patch("backend.ws_manager.get_room", new_callable=AsyncMock, return_value=room),
+            patch("backend.ws_manager.set_room", new_callable=AsyncMock),
+            patch("backend.ws_manager.start_session", new_callable=AsyncMock),
+            patch("backend.ws_manager.record_ws_connect") as connect,
+        ):
+            ok = await cm.connect("room1", mock_ws, "joiner")
+        assert ok is True
+        connect.assert_called_once_with()
+
+    async def test_reconnect_records_connect_with_reason(self, cm, mock_ws):
+        room = _room({"player-a": "белый"})
+        with (
+            patch("backend.ws_manager.get_room", new_callable=AsyncMock, return_value=room),
+            patch("backend.ws_manager.set_room", new_callable=AsyncMock),
+            patch("backend.ws_manager.disconnect_timers", {}),
+            patch("backend.ws_manager.start_session", new_callable=AsyncMock),
+            patch("backend.ws_manager.record_ws_connect") as connect,
+        ):
+            cm.connections["room1"] = {}
+            ok = await cm.connect("room1", mock_ws, "player-a")
+        assert ok is True
+        connect.assert_called_once_with(reason="reconnect")
+
+    async def test_disconnect_records_ws_disconnect(self, cm, mock_ws):
+        cm.connections["room1"] = {"player-a": mock_ws}
+        with (
+            patch("backend.ws_manager.get_room", new_callable=AsyncMock, return_value=_room({"player-a": "белый"})),
+            patch("backend.ws_manager.set_room", new_callable=AsyncMock),
+            patch("backend.ws_manager.end_session", new_callable=AsyncMock),
+            patch("backend.ws_manager.record_ws_disconnect") as disconnect,
+        ):
+            await cm.disconnect("room1", mock_ws)
+        disconnect.assert_called_once_with()
+
+
+@pytest.mark.asyncio
 class TestListRoomsEdgeCases:
     async def test_skips_private_ai_and_started_games(self):
         import json
