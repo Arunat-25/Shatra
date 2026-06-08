@@ -254,6 +254,11 @@ async def handle_player2_join(room_id: str, room_data: dict):
     await init_game(room_id)
     game = await get_game(room_id)
 
+    if room_data.get("type") in ("public", "private"):
+        from backend.player_identity import refresh_pvp_ratings_for_room
+
+        await refresh_pvp_ratings_for_room(room_data)
+
     for cid, color in room_data.get("players", {}).items():
         response = build_game_started_response(game, room_data, color)
         ws = manager.get_ws(room_id, cid)

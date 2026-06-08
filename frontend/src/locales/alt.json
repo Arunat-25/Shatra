@@ -234,7 +234,9 @@
     "inc5": "5 сек",
     "inc10": "10 сек",
     "inc15": "15 сек",
-    "inc30": "30 сек"
+    "inc30": "30 сек",
+    "ratedGame": "Рейтингке ойноор",
+    "ratedGameHint": "Начар рейтингке таасир этет (аккаунттагылар гана)"
   },
   "auth": {
     "loginTitle": "Аккаунттен кирери",
@@ -282,6 +284,7 @@
     "wrongPassword": "Эмдиги пароль jастыра бичилген",
     "authRequired": "Авторизация керек",
     "gamesTitle": "Мениҥ ойындарым",
+    "ratingSummary": "Рейтинг: {{rating}} ({{count}} ойын)",
     "gamesEmpty": "Божоп калган ойындар слерде jок",
     "gamesLoadMore": "База чыгарар",
     "gamesLoading": "Сакыгар…",
@@ -289,6 +292,7 @@
     "gameDate": "Кӱн",
     "gameOpponent": "Маргаашкан кижи",
     "gameResult": "Канайда божогон",
+    "gameRatingDelta": "±Рейтинг",
     "gameType": "Ойыныҥ бӱдӱми",
     "gameMoves": "Jӱргени",
     "resultWin": "Jеҥӱ алынган",
@@ -321,6 +325,8 @@
     "boardAria": "Доско",
     "chatAria": "Куучындажар jер",
     "clocks": "Саат",
+    "playerRatingTooltip": "{{name}} · рейтинг {{rating}}",
+    "playerRatingAria": "Рейтинг {{rating}}",
     "players": "Тартыжучылар",
     "time": "Ӧй",
     "pieces": "Таштар",

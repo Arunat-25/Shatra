@@ -114,15 +114,16 @@ class TestGameTimerCleanup:
         }
 
         with patch("backend.ws_manager.init_game", new_callable=AsyncMock):
-            with patch("backend.ws_manager.get_game", new_callable=AsyncMock, return_value={"board": {}, "mover": "белый"}):
-                with patch("backend.ws_manager.set_room", new_callable=AsyncMock):
-                    with patch("backend.ws_manager.manager") as mgr:
-                        mgr.get_ws = MagicMock(return_value=None)
-                        mgr.send_to_player = AsyncMock()
-                        with patch("backend.ws_manager.asyncio.create_task") as create_task:
-                            new_task = MagicMock(done=MagicMock(return_value=False))
-                            create_task.return_value = new_task
-                            await handle_player2_join(room_id, room)
+            with patch("backend.player_identity.refresh_pvp_ratings_for_room", new_callable=AsyncMock):
+                with patch("backend.ws_manager.get_game", new_callable=AsyncMock, return_value={"board": {}, "mover": "белый"}):
+                    with patch("backend.ws_manager.set_room", new_callable=AsyncMock):
+                        with patch("backend.ws_manager.manager") as mgr:
+                            mgr.get_ws = MagicMock(return_value=None)
+                            mgr.send_to_player = AsyncMock()
+                            with patch("backend.ws_manager.asyncio.create_task") as create_task:
+                                new_task = MagicMock(done=MagicMock(return_value=False))
+                                create_task.return_value = new_task
+                                await handle_player2_join(room_id, room)
 
         await asyncio.sleep(0)
         assert old_task.cancelled() or old_task.done()

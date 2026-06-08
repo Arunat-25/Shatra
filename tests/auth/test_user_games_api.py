@@ -94,3 +94,31 @@ class TestUserGamesApi:
         )
         item = client.get("/api/auth/me/games", headers=headers).json()["items"][0]
         assert item["result"] == "draw"
+
+    def test_rating_delta_in_rated_game(self, client, register_user):
+        white = register_user("rated_white")
+        black = register_user("rated_black")
+        white_id = uuid.UUID(white["user"]["id"])
+        black_id = uuid.UUID(black["user"]["id"])
+        headers = {"Authorization": f"Bearer {white['access_token']}"}
+        insert_finished_game(
+            room_id="rtd00001",
+            white_user_id=white_id,
+            black_user_id=black_id,
+            black_is_anonymous=False,
+            winner_color="белый",
+            reason="resign",
+            is_rated=True,
+            white_rating_delta=10,
+            black_rating_delta=-10,
+        )
+        item = client.get("/api/auth/me/games", headers=headers).json()["items"][0]
+        assert item["is_rated"] is True
+        assert item["rating_delta"] == 10
+
+    def test_me_includes_rating(self, client, register_user, auth_headers):
+        r = client.get("/api/auth/me", headers=auth_headers)
+        assert r.status_code == 200
+        data = r.json()
+        assert data["rating"] == 1200
+        assert data["rated_games_count"] == 0

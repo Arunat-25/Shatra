@@ -81,8 +81,10 @@ async def list_user_games(
     for game in rows:
         if game.white_user_id == user_id:
             my_color: ColorKind = "белый"
+            rating_delta = game.white_rating_delta
         else:
             my_color = "черный"
+            rating_delta = game.black_rating_delta
         items.append(
             {
                 "id": game.id,
@@ -101,6 +103,8 @@ async def list_user_games(
                 "moves_count": game.moves_count,
                 "time_control": game.time_control,
                 "increment": game.increment,
+                "is_rated": game.is_rated,
+                "rating_delta": rating_delta if game.is_rated else None,
             }
         )
     return items, total

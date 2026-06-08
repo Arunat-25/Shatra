@@ -64,6 +64,15 @@ export const messageHandlers = [
     },
   },
   {
+    check: (d) => d.type === 'rating_update',
+    handle: (d, dispatch) => {
+      if (d.players_info) {
+        dispatch({ type: GAME_ACTIONS.SET_PLAYERS_INFO, payload: d.players_info });
+      }
+      return null;
+    },
+  },
+  {
     check: (d) => d.game_over,
     handle: (d, dispatch) => {
       trackGameEvent('game_over', {

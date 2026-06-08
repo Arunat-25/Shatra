@@ -234,7 +234,9 @@
     "inc5": "5 sec",
     "inc10": "10 sec",
     "inc15": "15 sec",
-    "inc30": "30 sec"
+    "inc30": "30 sec",
+    "ratedGame": "Rated game",
+    "ratedGameHint": "The result will affect both players' ratings (registered accounts only)"
   },
   "auth": {
     "loginTitle": "Log in",
@@ -282,6 +284,7 @@
     "wrongPassword": "Incorrect current password",
     "authRequired": "Authentication required",
     "gamesTitle": "My games",
+    "ratingSummary": "Rating: {{rating}} ({{count}} games)",
     "gamesEmpty": "No finished games yet",
     "gamesLoadMore": "Load more",
     "gamesLoading": "Loading…",
@@ -289,6 +292,7 @@
     "gameDate": "Date",
     "gameOpponent": "Opponent",
     "gameResult": "Result",
+    "gameRatingDelta": "±Rating",
     "gameType": "Type",
     "gameMoves": "Moves",
     "resultWin": "Win",
@@ -321,6 +325,8 @@
     "boardAria": "Game board",
     "chatAria": "Chat",
     "clocks": "Clocks",
+    "playerRatingTooltip": "{{name}} · rating {{rating}}",
+    "playerRatingAria": "Rating {{rating}}",
     "players": "Players",
     "time": "Time",
     "pieces": "Pieces",

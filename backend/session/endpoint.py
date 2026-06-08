@@ -10,7 +10,7 @@ from backend.models import Room
 from backend.game_helpers import build_game_started_response, get_player_color
 from backend.chat import send_chat_history
 from backend.db.session import get_session_factory
-from backend.player_identity import build_players_info, resolve_user_from_access_token
+from backend.player_identity import build_players_info, refresh_pvp_ratings_for_room, resolve_user_from_access_token
 from backend.session.ai import _start_ai_game
 from backend.session.disconnect import _handle_disconnect
 from backend.session.rematch import _broadcast_rematch_status
@@ -97,6 +97,9 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
     elif room_data.get("game_started"):
         game = await get_game(room_id)
         if game:
+            if room_data.get("type") in ("public", "private"):
+                await refresh_pvp_ratings_for_room(room_data)
+                await set_room(room_id, room_data)
             response = build_game_started_response(game, room_data, my_color)
             await manager.send_to_player(websocket, response)
             if game.get("game_over") and not is_ai_room:

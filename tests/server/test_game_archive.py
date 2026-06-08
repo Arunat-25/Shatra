@@ -8,7 +8,9 @@ import pytest
 from sqlalchemy import func, select
 
 from backend.board_utils import get_starting_board, keys_int_to_str
-from backend.db.models import FinishedGame
+from backend.rating.elo import rating_deltas
+from backend.rating.service import score_for_color
+from backend.db.models import FinishedGame, User
 from backend.db.session import get_session_factory
 from backend.game_archive import (
     archive_finished_game,
@@ -138,6 +140,237 @@ async def _fetch_games(room_id: str | None = None) -> list[FinishedGame]:
             stmt = stmt.where(FinishedGame.room_id == room_id)
         result = await session.scalars(stmt.order_by(FinishedGame.finished_at))
         return list(result.all())
+
+
+def _both_registered_room(room_id="room1", **extra):
+    white_id = uuid.uuid4()
+    black_id = uuid.uuid4()
+    room = _room(
+        room_id=room_id,
+        player_meta={
+            "p-white": {
+                "user_id": str(white_id),
+                "username": "alice",
+                "is_anonymous": False,
+            },
+            "p-black": {
+                "user_id": str(black_id),
+                "username": "bob",
+                "is_anonymous": False,
+            },
+        },
+        **extra,
+    )
+    return room, white_id, black_id
+
+
+async def _get_user_stats(user_id: uuid.UUID) -> tuple[int, int]:
+    factory = get_session_factory()
+    async with factory() as session:
+        user = await session.get(User, user_id)
+        assert user is not None
+        return user.rating, user.rated_games_count
+
+
+async def _set_user_stats(user_id: uuid.UUID, rating: int, games: int) -> None:
+    factory = get_session_factory()
+    async with factory() as session:
+        user = await session.get(User, user_id)
+        assert user is not None
+        user.rating = rating
+        user.rated_games_count = games
+        await session.commit()
+
+
+@pytest.mark.asyncio
+class TestArchiveRating:
+    async def test_public_both_registered_updates_ratings(self, archive_state):
+        st = archive_state
+        room, white_id, black_id = _both_registered_room(room_id=st.room_id)
+        st.room = room
+        ensure_users_for_room(st.room)
+        await _set_user_stats(white_id, 1500, 50)
+        await _set_user_stats(black_id, 1500, 50)
+
+        with (
+            patch(st.patch_targets()[0], side_effect=st.get_game),
+            patch(st.patch_targets()[1], side_effect=st.get_room),
+            patch(st.patch_targets()[2], side_effect=st.set_game),
+        ):
+            await archive_finished_game(st.room_id)
+
+        row = (await _fetch_games(st.room_id))[0]
+        assert row.is_rated is True
+        assert row.white_rating_delta == 10
+        assert row.black_rating_delta == -10
+        assert await _get_user_stats(white_id) == (1510, 51)
+        assert await _get_user_stats(black_id) == (1490, 51)
+
+    async def test_anonymous_opponent_not_rated(self, archive_state):
+        st = archive_state
+        ensure_users_for_room(st.room)
+
+        with (
+            patch(st.patch_targets()[0], side_effect=st.get_game),
+            patch(st.patch_targets()[1], side_effect=st.get_room),
+            patch(st.patch_targets()[2], side_effect=st.set_game),
+        ):
+            await archive_finished_game(st.room_id)
+
+        row = (await _fetch_games(st.room_id))[0]
+        assert row.is_rated is False
+        assert row.white_rating_delta is None
+
+    async def test_private_unrated_not_applied(self, archive_state):
+        st = archive_state
+        room, white_id, black_id = _both_registered_room(
+            room_id=st.room_id, type="private", rated=False
+        )
+        st.room = room
+        ensure_users_for_room(st.room)
+        await _set_user_stats(white_id, 1500, 50)
+        await _set_user_stats(black_id, 1500, 50)
+
+        with (
+            patch(st.patch_targets()[0], side_effect=st.get_game),
+            patch(st.patch_targets()[1], side_effect=st.get_room),
+            patch(st.patch_targets()[2], side_effect=st.set_game),
+        ):
+            await archive_finished_game(st.room_id)
+
+        row = (await _fetch_games(st.room_id))[0]
+        assert row.is_rated is False
+        assert await _get_user_stats(white_id) == (1500, 50)
+
+    async def test_private_rated_updates_ratings(self, archive_state):
+        st = archive_state
+        room, white_id, black_id = _both_registered_room(
+            room_id=st.room_id, type="private", rated=True
+        )
+        st.room = room
+        ensure_users_for_room(st.room)
+        await _set_user_stats(white_id, 1500, 50)
+        await _set_user_stats(black_id, 1500, 50)
+
+        with (
+            patch(st.patch_targets()[0], side_effect=st.get_game),
+            patch(st.patch_targets()[1], side_effect=st.get_room),
+            patch(st.patch_targets()[2], side_effect=st.set_game),
+        ):
+            await archive_finished_game(st.room_id)
+
+        row = (await _fetch_games(st.room_id))[0]
+        assert row.is_rated is True
+        assert row.white_rating_delta == 10
+        assert await _get_user_stats(white_id) == (1510, 51)
+
+    async def test_rated_draw_zero_deltas(self, archive_state):
+        st = archive_state
+        room, white_id, black_id = _both_registered_room(room_id=st.room_id)
+        st.room = room
+        st.game = _finished_game(winner_color="", reason="draw_agreed")
+        ensure_users_for_room(st.room)
+        await _set_user_stats(white_id, 1500, 50)
+        await _set_user_stats(black_id, 1500, 50)
+
+        with (
+            patch(st.patch_targets()[0], side_effect=st.get_game),
+            patch(st.patch_targets()[1], side_effect=st.get_room),
+            patch(st.patch_targets()[2], side_effect=st.set_game),
+        ):
+            await archive_finished_game(st.room_id)
+
+        row = (await _fetch_games(st.room_id))[0]
+        assert row.is_rated is True
+        assert row.white_rating_delta == 0
+        assert row.black_rating_delta == 0
+        assert await _get_user_stats(white_id) == (1500, 51)
+
+    async def test_black_win_negative_white_delta(self, archive_state):
+        st = archive_state
+        room, white_id, black_id = _both_registered_room(room_id=st.room_id)
+        st.room = room
+        st.game = _finished_game(winner_color="черный", reason="timeout")
+        ensure_users_for_room(st.room)
+        await _set_user_stats(white_id, 1500, 50)
+        await _set_user_stats(black_id, 1500, 50)
+
+        with (
+            patch(st.patch_targets()[0], side_effect=st.get_game),
+            patch(st.patch_targets()[1], side_effect=st.get_room),
+            patch(st.patch_targets()[2], side_effect=st.set_game),
+        ):
+            await archive_finished_game(st.room_id)
+
+        row = (await _fetch_games(st.room_id))[0]
+        assert row.white_rating_delta == -10
+        assert row.black_rating_delta == 10
+
+    async def test_upset_underdog_gains_more_than_standard(self, archive_state):
+        st = archive_state
+        room, white_id, black_id = _both_registered_room(room_id=st.room_id)
+        st.room = room
+        st.game = _finished_game(winner_color="белый", reason="resign")
+        ensure_users_for_room(st.room)
+        await _set_user_stats(white_id, 1400, 50)
+        await _set_user_stats(black_id, 1800, 50)
+
+        expected = rating_deltas(1400, 1800, 50, 50, 1.0)
+
+        with (
+            patch(st.patch_targets()[0], side_effect=st.get_game),
+            patch(st.patch_targets()[1], side_effect=st.get_room),
+            patch(st.patch_targets()[2], side_effect=st.set_game),
+        ):
+            await archive_finished_game(st.room_id)
+
+        row = (await _fetch_games(st.room_id))[0]
+        assert (row.white_rating_delta, row.black_rating_delta) == expected
+        assert row.white_rating_delta == 18
+        assert await _get_user_stats(white_id) == (1418, 51)
+
+    async def test_novice_calibration_k40(self, archive_state):
+        st = archive_state
+        room, white_id, black_id = _both_registered_room(room_id=st.room_id)
+        st.room = room
+        ensure_users_for_room(st.room)
+        await _set_user_stats(white_id, 1500, 0)
+        await _set_user_stats(black_id, 1500, 0)
+
+        with (
+            patch(st.patch_targets()[0], side_effect=st.get_game),
+            patch(st.patch_targets()[1], side_effect=st.get_room),
+            patch(st.patch_targets()[2], side_effect=st.set_game),
+        ):
+            await archive_finished_game(st.room_id)
+
+        row = (await _fetch_games(st.room_id))[0]
+        assert row.white_rating_delta == 20
+        assert row.black_rating_delta == -20
+
+    async def test_deltas_match_elo_module(self, archive_state):
+        st = archive_state
+        room, white_id, black_id = _both_registered_room(room_id=st.room_id)
+        st.room = room
+        ensure_users_for_room(st.room)
+        white_rating, white_games = 1620, 29
+        black_rating, black_games = 1580, 45
+        await _set_user_stats(white_id, white_rating, white_games)
+        await _set_user_stats(black_id, black_rating, black_games)
+        score = score_for_color("белый", st.game.get("winner_color"), st.game.get("reason"))
+        expected = rating_deltas(
+            white_rating, black_rating, white_games, black_games, score
+        )
+
+        with (
+            patch(st.patch_targets()[0], side_effect=st.get_game),
+            patch(st.patch_targets()[1], side_effect=st.get_room),
+            patch(st.patch_targets()[2], side_effect=st.set_game),
+        ):
+            await archive_finished_game(st.room_id)
+
+        row = (await _fetch_games(st.room_id))[0]
+        assert (row.white_rating_delta, row.black_rating_delta) == expected
 
 
 @pytest.mark.asyncio

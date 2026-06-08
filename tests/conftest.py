@@ -35,6 +35,41 @@ def _ensure_schema_patches() -> None:
                 "CREATE INDEX IF NOT EXISTS ix_presence_sessions_last_seen_at "
                 "ON presence_sessions (last_seen_at)"
             )
+
+        cur.execute(
+            """
+            SELECT 1 FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'users'
+              AND column_name = 'rating'
+            """
+        )
+        if cur.fetchone() is None:
+            cur.execute(
+                "ALTER TABLE users ADD COLUMN rating INTEGER NOT NULL DEFAULT 1200"
+            )
+            cur.execute(
+                "ALTER TABLE users ADD COLUMN rated_games_count INTEGER NOT NULL DEFAULT 0"
+            )
+
+        cur.execute(
+            """
+            SELECT 1 FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'finished_games'
+              AND column_name = 'is_rated'
+            """
+        )
+        if cur.fetchone() is None:
+            cur.execute(
+                "ALTER TABLE finished_games ADD COLUMN is_rated BOOLEAN NOT NULL DEFAULT false"
+            )
+            cur.execute(
+                "ALTER TABLE finished_games ADD COLUMN white_rating_delta INTEGER"
+            )
+            cur.execute(
+                "ALTER TABLE finished_games ADD COLUMN black_rating_delta INTEGER"
+            )
     conn.close()
 
 

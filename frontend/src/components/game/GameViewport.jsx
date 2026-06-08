@@ -14,6 +14,8 @@ export default function GameViewport({
   onCellClick,
   actionsBar,
   moveHistoryProps,
+  showRating = false,
+  gameOver = false,
 }) {
   const { t } = useTranslation();
 
@@ -31,6 +33,8 @@ export default function GameViewport({
               myColor={state.myColor}
               timeControl={state.timeControl}
               countsByType={state.countsByType}
+              showRating={showRating}
+              gameOver={state.gameOver}
             />
             <div className="room-board-wrap">
               <div className="room-board">
@@ -72,6 +76,8 @@ export default function GameViewport({
               myColor={state.myColor}
               timeControl={state.timeControl}
               countsByType={state.countsByType}
+              showRating={showRating}
+              gameOver={state.gameOver}
             />
           </div>
         </div>

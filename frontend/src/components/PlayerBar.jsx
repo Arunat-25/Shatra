@@ -1,19 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
-import { COLOR_WHITE, COLOR_BLACK } from '../constants';
 import { formatClockTime, readTimerSeconds } from '../utils';
+import { playerDisplayForColor } from '../utils/playerDisplay';
+import PlayerNick from './PlayerNick';
 import { PieceCountRow } from './PieceCounts';
-
-function nicknameForColor(playersInfo, color, t) {
-  const player = playersInfo?.find((p) => p.color === color);
-  if (!player) {
-    return color === COLOR_WHITE ? t('colors.whitePl') : t('colors.blackPl');
-  }
-  if (player.display_name) return player.display_name;
-  if (!player.is_anonymous && player.username) return player.username;
-  return t('lobby.anonymous');
-}
 
 export default function PlayerBar({
   color,
@@ -24,6 +15,8 @@ export default function PlayerBar({
   myColor,
   timeControl,
   countsByType,
+  showRating = false,
+  gameOver = false,
 }) {
   const { t } = useTranslation();
   const hasTimer = Boolean(timeControl && timer);
@@ -31,7 +24,12 @@ export default function PlayerBar({
   const isActive = hasTimer && moversColor === color;
   const isSelf = myColor === color;
   const low = hasTimer && seconds != null && seconds <= 10;
-  const nickname = nicknameForColor(playersInfo, color, t);
+  const { nickname, title, rating, ratingDelta } = playerDisplayForColor(
+    playersInfo,
+    color,
+    t,
+    gameOver,
+  );
 
   return (
     <div
@@ -43,12 +41,15 @@ export default function PlayerBar({
       ].filter(Boolean).join(' ')}
     >
       <div className="game-player-bar__info">
-        <span
+        <PlayerNick
           className={['game-player-bar__nick', isSelf ? 'game-player-bar__nick--self' : ''].filter(Boolean).join(' ')}
-          title={nickname}
-        >
-          {nickname}
-        </span>
+          nickname={nickname}
+          title={title}
+          rating={rating}
+          ratingDelta={ratingDelta}
+          showRating={showRating}
+          showRatingDelta={showRating && gameOver}
+        />
         <PieceCountRow color={color} countsByType={countsByType} />
       </div>
       {hasTimer && (
@@ -76,4 +77,6 @@ PlayerBar.propTypes = {
   myColor: PropTypes.string,
   timeControl: PropTypes.number,
   countsByType: PropTypes.object,
+  showRating: PropTypes.bool,
+  gameOver: PropTypes.bool,
 };

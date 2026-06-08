@@ -94,6 +94,8 @@ class UserPublic(BaseModel):
     last_name: str | None
     district: str | None
     is_admin: bool = False
+    rating: int = 1200
+    rated_games_count: int = 0
 
     model_config = {"from_attributes": True}
 
@@ -126,6 +128,8 @@ class FinishedGameSummary(BaseModel):
     moves_count: int
     time_control: int | None
     increment: int | None
+    is_rated: bool = False
+    rating_delta: int | None = None
 
 
 class UserGamesListResponse(BaseModel):

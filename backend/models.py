@@ -25,6 +25,7 @@ class Room(BaseModel):
     creator_username: Optional[str] = None
     creator_color_preference: str = "random"  # "белый" | "черный" | "random"
     ai_difficulty: AiDifficulty = "strong"
+    rated: bool = False
     chat_messages: list[dict] = []
 
     def correct_timers_after_restart(
@@ -56,6 +57,7 @@ class CreateRoomRequest(BaseModel):
     color_preference: ColorPreference = "random"
     creator_client_id: Optional[str] = None
     ai_difficulty: AiDifficulty = "strong"
+    rated: bool = False
 
 
 class CreateRoomResponse(BaseModel):

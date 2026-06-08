@@ -47,6 +47,8 @@ async def create_room(request: CreateRoomRequest, user: User | None = None) -> d
         room.creator_username = user.username
     if request.creator_client_id:
         room.player_meta[request.creator_client_id] = meta_from_user(user)
+    if request.type == "private" and request.rated:
+        room.rated = True
     if request.time_control:
         room.timer_white = float(request.time_control)
         room.timer_black = float(request.time_control)

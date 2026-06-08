@@ -47,11 +47,12 @@ function RandomBiyIcon() {
   );
 }
 
-export default function GameSetupPicker({ onFinish, onCancel, aiOnly = false }) {
+export default function GameSetupPicker({ onFinish, onCancel, aiOnly = false, privateMode = false }) {
   const { t } = useTranslation();
   const [colorPref, setColorPref] = useState(COLOR_PREF_RANDOM);
   const [timeValue, setTimeValue] = useState(null);
   const [increment, setIncrement] = useState(0);
+  const [rated, setRated] = useState(false);
 
   const colorOptions = [
     { value: COLOR_PREF_WHITE, label: t('setup.colorWhite'), color: COLOR_WHITE },
@@ -62,7 +63,7 @@ export default function GameSetupPicker({ onFinish, onCancel, aiOnly = false }) 
   const hasTimer = timeValue !== null;
 
   const handleCreate = () => {
-    onFinish(timeValue, hasTimer ? increment : 0, colorPref);
+    onFinish(timeValue, hasTimer ? increment : 0, colorPref, privateMode ? rated : false);
   };
 
   return (
@@ -143,6 +144,21 @@ export default function GameSetupPicker({ onFinish, onCancel, aiOnly = false }) 
             </div>
           </section>
         </>
+      )}
+
+      {privateMode && (
+        <section className="game-setup-section" aria-labelledby="setup-rated-label">
+          <label className="game-setup-rated" htmlFor="setup-rated">
+            <input
+              id="setup-rated"
+              type="checkbox"
+              checked={rated}
+              onChange={(e) => setRated(e.target.checked)}
+            />
+            <span id="setup-rated-label">{t('setup.ratedGame')}</span>
+          </label>
+          <p className="game-setup-hint">{t('setup.ratedGameHint')}</p>
+        </section>
       )}
 
       <button type="button" className="btn-setup-create" onClick={handleCreate}>

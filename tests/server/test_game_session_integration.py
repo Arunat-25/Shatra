@@ -445,19 +445,20 @@ class TestHandlePlayer2Join:
         ws_b = AsyncMock()
 
         with patch("backend.ws_manager.init_game", new_callable=AsyncMock):
-            with patch("backend.ws_manager.get_game", new_callable=AsyncMock, return_value=game):
-                with patch("backend.ws_manager.set_room", new_callable=AsyncMock):
-                    with patch("backend.ws_manager.manager") as mgr:
-                        mgr.get_ws = MagicMock(side_effect=lambda rid, cid: ws_a if cid == "a" else ws_b)
-                        mgr.send_to_player = AsyncMock()
-                        with patch("backend.ws_manager.game_timers", {}):
-                            with patch("backend.ws_manager.asyncio.create_task") as create_task:
-                                def close_coro(coro):
-                                    coro.close()
-                                    return MagicMock(done=MagicMock(return_value=False))
+            with patch("backend.player_identity.refresh_pvp_ratings_for_room", new_callable=AsyncMock):
+                with patch("backend.ws_manager.get_game", new_callable=AsyncMock, return_value=game):
+                    with patch("backend.ws_manager.set_room", new_callable=AsyncMock):
+                        with patch("backend.ws_manager.manager") as mgr:
+                            mgr.get_ws = MagicMock(side_effect=lambda rid, cid: ws_a if cid == "a" else ws_b)
+                            mgr.send_to_player = AsyncMock()
+                            with patch("backend.ws_manager.game_timers", {}):
+                                with patch("backend.ws_manager.asyncio.create_task") as create_task:
+                                    def close_coro(coro):
+                                        coro.close()
+                                        return MagicMock(done=MagicMock(return_value=False))
 
-                                create_task.side_effect = close_coro
-                                await handle_player2_join("j1", room)
+                                    create_task.side_effect = close_coro
+                                    await handle_player2_join("j1", room)
 
         assert room["game_started"] is True
         assert mgr.send_to_player.call_count == 2

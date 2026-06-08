@@ -234,7 +234,9 @@
     "inc5": "5 сек",
     "inc10": "10 сек",
     "inc15": "15 сек",
-    "inc30": "30 сек"
+    "inc30": "30 сек",
+    "ratedGame": "Игра на рейтинг",
+    "ratedGameHint": "Результат повлияет на рейтинг обоих игроков (только для зарегистрированных аккаунтов)"
   },
   "auth": {
     "loginTitle": "Вход",
@@ -282,6 +284,7 @@
     "wrongPassword": "Неверный текущий пароль",
     "authRequired": "Требуется авторизация",
     "gamesTitle": "Мои игры",
+    "ratingSummary": "Рейтинг: {{rating}} ({{count}} игр)",
     "gamesEmpty": "Завершённых партий пока нет",
     "gamesLoadMore": "Загрузить ещё",
     "gamesLoading": "Загрузка…",
@@ -289,6 +292,7 @@
     "gameDate": "Дата",
     "gameOpponent": "Соперник",
     "gameResult": "Результат",
+    "gameRatingDelta": "±Рейтинг",
     "gameType": "Тип",
     "gameMoves": "Ходов",
     "resultWin": "Победа",
@@ -321,6 +325,8 @@
     "boardAria": "Игровое поле",
     "chatAria": "Чат",
     "clocks": "Часы",
+    "playerRatingTooltip": "{{name}} · рейтинг {{rating}}",
+    "playerRatingAria": "Рейтинг {{rating}}",
     "players": "Игроки",
     "time": "Время",
     "pieces": "Фигуры",

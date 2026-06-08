@@ -11,6 +11,7 @@ from backend.db.models import FinishedGame
 from backend.db.session import get_session_factory
 from backend.observability.errors import capture_exception
 from backend.observability.metrics import record_archive_error, record_game_finished
+from backend.rating.service import apply_rating, is_rated_match, players_info_with_rating_result, score_for_color
 from backend.state import get_game, get_room, set_game
 
 logger = logging.getLogger(__name__)
@@ -119,6 +120,7 @@ async def archive_finished_game(room_id: str) -> uuid.UUID | None:
         if started_at is not None:
             duration_seconds = max(0.0, (finished_at - started_at).total_seconds())
 
+        winner_color = _normalize_winner_color(game)
         record = FinishedGame(
             room_id=room_id,
             room_type=room_type,
@@ -128,7 +130,7 @@ async def archive_finished_game(room_id: str) -> uuid.UUID | None:
             black_client_id=black["client_id"],
             white_is_anonymous=white["is_anonymous"],
             black_is_anonymous=black["is_anonymous"],
-            winner_color=_normalize_winner_color(game),
+            winner_color=winner_color,
             reason=reason or None,
             time_control=room_data.get("time_control"),
             increment=room_data.get("increment"),
@@ -144,6 +146,15 @@ async def archive_finished_game(room_id: str) -> uuid.UUID | None:
         factory = get_session_factory()
         async with factory() as session:
             session.add(record)
+            if is_rated_match(room_data, white, black):
+                score_white = score_for_color("белый", winner_color, reason or None)
+                await apply_rating(
+                    session,
+                    record,
+                    white_user_id=white["user_id"],
+                    black_user_id=black["user_id"],
+                    score_white=score_white,
+                )
             await session.commit()
             await session.refresh(record)
             record_id = record.id
@@ -157,6 +168,8 @@ async def archive_finished_game(room_id: str) -> uuid.UUID | None:
             duration_seconds=duration_seconds,
         )
         logger.info("Archived finished game %s for room %s", record_id, room_id)
+        if record.is_rated:
+            await _broadcast_rating_update(room_id, room_data, record)
         return record_id
     except Exception:
         record_archive_error()
@@ -167,3 +180,13 @@ async def archive_finished_game(room_id: str) -> uuid.UUID | None:
 
 async def on_game_finished(room_id: str) -> None:
     await archive_finished_game(room_id)
+
+
+async def _broadcast_rating_update(room_id: str, room_data: dict, record: FinishedGame) -> None:
+    from backend.ws_manager import manager
+
+    players_info = players_info_with_rating_result(room_data, record)
+    await manager.send_to_room(room_id, {
+        "type": "rating_update",
+        "players_info": players_info,
+    })

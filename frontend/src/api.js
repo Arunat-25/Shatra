@@ -86,6 +86,7 @@ export function createRoom(
   timeControl = null,
   increment = null,
   colorPreference = 'random',
+  rated = false,
 ) {
   const body = {
     type,
@@ -96,6 +97,9 @@ export function createRoom(
   };
   if (type === 'ai') {
     body.ai_difficulty = 'strong';
+  }
+  if (type === 'private' && rated) {
+    body.rated = true;
   }
   return request(`${API_BASE}/rooms`, {
     method: 'POST',

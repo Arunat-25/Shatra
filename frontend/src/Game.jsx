@@ -178,6 +178,7 @@ export default function Game() {
           onCellClick={handleCellClickWrapped}
           actionsBar={viewportActions}
           moveHistoryProps={moveHistoryProps}
+          showRating={!modeAi}
         />
         <GameDesktopLayout
           state={state}
@@ -192,6 +193,7 @@ export default function Game() {
           chatHidden={state.chatHidden}
           onToggleChatHidden={actions.toggleChatHidden}
           roomId={roomId}
+          showRating={!modeAi}
         />
       </div>
     </div>

@@ -22,6 +22,12 @@ function formatResult(result, t) {
   return t('auth.resultDraw');
 }
 
+function formatRatingDelta(delta) {
+  if (delta == null) return '—';
+  if (delta > 0) return `+${delta}`;
+  return String(delta);
+}
+
 function formatRoomType(roomType, t) {
   if (roomType === 'private') return t('auth.roomTypePrivate');
   if (roomType === 'ai') return t('auth.roomTypeAi');
@@ -153,6 +159,12 @@ export default function Profile() {
           <GameEmblem size={56} />
         </div>
         <h1>{t('auth.profileTitle')}</h1>
+        <p className="auth-subtitle profile-rating">
+          {t('auth.ratingSummary', {
+            rating: user.rating ?? 1200,
+            count: user.rated_games_count ?? 0,
+          })}
+        </p>
         <form className="auth-form" onSubmit={handleSubmit}>
           <div className="auth-field">
             <label htmlFor="username">{t('auth.username')}</label>
@@ -259,6 +271,7 @@ export default function Profile() {
                   <th>{t('auth.gameDate')}</th>
                   <th>{t('auth.gameOpponent')}</th>
                   <th>{t('auth.gameResult')}</th>
+                  <th>{t('auth.gameRatingDelta')}</th>
                   <th>{t('auth.gameType')}</th>
                   <th>{t('auth.gameMoves')}</th>
                 </tr>
@@ -270,6 +283,9 @@ export default function Profile() {
                     <td>{formatOpponent(game.opponent_display, t)}</td>
                     <td className={`profile-games-result profile-games-result--${game.result}`}>
                       {formatResult(game.result, t)}
+                    </td>
+                    <td className="profile-games-rating-delta">
+                      {formatRatingDelta(game.rating_delta)}
                     </td>
                     <td>{formatRoomType(game.room_type, t)}</td>
                     <td>{game.moves_count}</td>

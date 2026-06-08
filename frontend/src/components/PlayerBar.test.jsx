@@ -6,7 +6,10 @@ import { COLOR_WHITE } from '../constants';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key) => {
+    t: (key, opts) => {
+      if (key === 'game.playerRatingTooltip') {
+        return `${opts.name} · рейтинг ${opts.rating}`;
+      }
       const map = {
         'colors.whitePl': 'Белые',
         'lobby.anonymous': 'Аноним',
@@ -36,7 +39,13 @@ describe('PlayerBar mobile layout', () => {
       <PlayerBar
         color={COLOR_WHITE}
         position="top"
-        playersInfo={[{ color: COLOR_WHITE, username: 'alice', is_anonymous: false }]}
+        playersInfo={[{
+          color: COLOR_WHITE,
+          username: 'alice',
+          is_anonymous: false,
+          rating: 1542,
+        }]}
+        showRating
         timer={{ белый: 120, черный: 90 }}
         moversColor={COLOR_WHITE}
         myColor={COLOR_WHITE}
@@ -49,6 +58,8 @@ describe('PlayerBar mobile layout', () => {
     expect(bar).toBeTruthy();
     expect(bar.querySelector('.game-player-bar__info')).toBeTruthy();
     expect(screen.getByText('alice')).toBeTruthy();
+    expect(screen.getByText('1542')).toBeTruthy();
+    expect(screen.getByTitle('alice · рейтинг 1542')).toBeTruthy();
     expect(screen.getByText('2')).toBeTruthy();
     expect(screen.getByText('7')).toBeTruthy();
     expect(screen.getByText('2:00')).toBeTruthy();

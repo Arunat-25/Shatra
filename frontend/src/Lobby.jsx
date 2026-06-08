@@ -60,12 +60,12 @@ export default function Lobby() {
     setShowSetup(true);
   };
 
-  const finishCreate = async (timeValue, incrementValue, colorPref) => {
+  const finishCreate = async (timeValue, incrementValue, colorPref, rated = false) => {
     dismissError();
     try {
       const type =
         pickerMode === 'private' ? ROOM_PRIVATE : pickerMode === 'ai' ? ROOM_AI : ROOM_PUBLIC;
-      const data = await createRoom(type, timeValue, incrementValue, colorPref);
+      const data = await createRoom(type, timeValue, incrementValue, colorPref, rated);
       const modeParam = pickerMode === 'ai' ? '?mode=ai' : '';
       navigate(`/${data.room_id}${modeParam}`);
     } catch (e) {
@@ -118,6 +118,7 @@ export default function Lobby() {
           {showSetup ? (
             <GameSetupPicker
               aiOnly={pickerMode === 'ai'}
+              privateMode={pickerMode === 'private'}
               onFinish={finishCreate}
               onCancel={handleCancelSetup}
             />

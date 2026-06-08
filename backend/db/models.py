@@ -27,6 +27,8 @@ class User(Base):
     last_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     district: Mapped[str | None] = mapped_column(String(64), nullable=True)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    rating: Mapped[int] = mapped_column(Integer, default=1200, server_default="1200")
+    rated_games_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow, onupdate=_utcnow
@@ -87,6 +89,10 @@ class FinishedGame(Base):
 
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     finished_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+    is_rated: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    white_rating_delta: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    black_rating_delta: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
 
 class PresenceSession(Base):

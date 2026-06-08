@@ -20,9 +20,11 @@ def test_meta_from_user_authenticated():
     user = MagicMock()
     user.id = "uuid-1"
     user.username = "Player1"
+    user.rating = 1625
     meta = meta_from_user(user)
     assert meta["username"] == "Player1"
     assert meta["is_anonymous"] is False
+    assert meta["rating"] == 1625
 
 
 def test_merge_player_meta_preserves_auth_when_ws_has_no_user():
@@ -45,14 +47,45 @@ def test_build_players_info():
     room = {
         "players": {"c1": "белый", "c2": "черный"},
         "player_meta": {
-            "c1": {"username": "alice", "is_anonymous": False},
+            "c1": {"username": "alice", "is_anonymous": False, "rating": 1542},
             "c2": {"username": None, "is_anonymous": True},
         },
     }
     info = build_players_info(room)
     assert len(info) == 2
     assert info[0]["display_name"] == "alice"
+    assert info[0]["rating"] == 1542
     assert info[1]["display_name"] == "Аноним"
+    assert "rating" not in info[1]
+
+
+@pytest.mark.asyncio
+async def test_refresh_player_ratings_in_room():
+    from unittest.mock import AsyncMock, MagicMock
+
+    from backend.player_identity import refresh_player_ratings_in_room
+
+    uid = uuid.uuid4()
+    room = {
+        "player_meta": {
+            "c1": {
+                "user_id": str(uid),
+                "username": "alice",
+                "is_anonymous": False,
+                "rating": 1500,
+            },
+        },
+    }
+    user = MagicMock()
+    user.id = uid
+    user.username = "alice"
+    user.rating = 1633
+
+    db = AsyncMock()
+    db.scalars = AsyncMock(return_value=MagicMock(all=MagicMock(return_value=[user])))
+
+    await refresh_player_ratings_in_room(room, db)
+    assert room["player_meta"]["c1"]["rating"] == 1633
 
 
 @pytest.mark.asyncio

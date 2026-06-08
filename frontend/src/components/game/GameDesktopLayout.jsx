@@ -17,6 +17,7 @@ export default function GameDesktopLayout({
   chatHidden,
   onToggleChatHidden,
   roomId,
+  showRating = false,
 }) {
   const { t } = useTranslation();
 
@@ -31,6 +32,8 @@ export default function GameDesktopLayout({
           playersInfo={state.playersInfo}
           countsByType={state.countsByType}
           middleSlot={actionsBar}
+          showRating={showRating}
+          gameOver={state.gameOver}
         />
 
         <div className="move-history-slot move-history-slot--sidebar">

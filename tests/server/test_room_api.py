@@ -106,6 +106,36 @@ class TestCreateRoom:
             await create_room(request)
         record_created.assert_called_once_with("public")
 
+    async def test_private_rated_flag_stored(self):
+        stored = {}
+
+        async def fake_set_room(room_id, data):
+            stored[room_id] = data
+
+        request = CreateRoomRequest(
+            type="private",
+            creator_client_id="c1",
+            rated=True,
+        )
+        with patch("backend.room_manager.set_room", side_effect=fake_set_room):
+            result = await create_room(request)
+        assert stored[result["room_id"]]["rated"] is True
+
+    async def test_public_rated_flag_not_stored(self):
+        stored = {}
+
+        async def fake_set_room(room_id, data):
+            stored[room_id] = data
+
+        request = CreateRoomRequest(
+            type="public",
+            creator_client_id="c1",
+            rated=True,
+        )
+        with patch("backend.room_manager.set_room", side_effect=fake_set_room):
+            result = await create_room(request)
+        assert stored[result["room_id"]].get("rated") is False
+
 
 @pytest.mark.asyncio
 class TestListRooms:
