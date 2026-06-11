@@ -17,6 +17,17 @@ function isAiThinking(modeAi, moversColor, myColor, payload) {
   return moversColor !== myColor;
 }
 
+/** Ignore stale hint responses after the user selected another piece. */
+export function hintMatchesSelection(data, getSelection) {
+  const hintPos = data.hint_position != null ? Number(data.hint_position) : null;
+  if (hintPos == null || Number.isNaN(hintPos)) return true;
+  if (!getSelection) return true;
+  const { moveFrom, chainCell } = getSelection();
+  const expected = moveFrom ?? chainCell;
+  if (expected == null) return false;
+  return hintPos === Number(expected);
+}
+
 export const messageHandlers = [
   {
     check: (d) => d.status === 'error',
@@ -107,9 +118,10 @@ export const messageHandlers = [
   },
   {
     check: (d) => d.essential_positions !== undefined && !d.message_code && !d.message,
-    handle: (d, dispatch, _modeAi, getMyColor) => {
+    handle: (d, dispatch, _modeAi, getMyColor, getSelection) => {
       const myColor = getMyColor?.() || null;
       if (d.movers_color != null && d.movers_color !== myColor) return null;
+      if (!hintMatchesSelection(d, getSelection)) return null;
       dispatch({
         type: GAME_ACTIONS.HIGHLIGHTS,
         payload: {
@@ -221,10 +233,10 @@ export const messageHandlers = [
   },
 ];
 
-export function dispatchServerMessage(data, dispatch, modeAi, getMyColor) {
+export function dispatchServerMessage(data, dispatch, modeAi, getMyColor, getSelection) {
   for (const { check, handle } of messageHandlers) {
     if (check(data)) {
-      return handle(data, dispatch, modeAi, getMyColor);
+      return handle(data, dispatch, modeAi, getMyColor, getSelection);
     }
   }
   if (import.meta.env?.DEV) {

@@ -124,6 +124,7 @@ def build_move_response(
     prev_mover: str,
     move_from: int | None = None,
     move_to: int | None = None,
+    hint_position: int | None = None,
 ) -> dict:
     # Defensive: filter out any non-real history entries and renumber sequentially.
     filtered_history = []
@@ -162,6 +163,8 @@ def build_move_response(
     response = {k: v for k, v in response.items() if v is not None}
     if result.movers_color and result.movers_color != prev_mover:
         response["position_for_mandatory_capture"] = None
+    if hint_position is not None:
+        response["hint_position"] = hint_position
     return response
 
 
@@ -300,6 +303,34 @@ async def apply_move_result(
 def ws_error_payload(code: str, **params) -> dict:
     from backend.message_codes import ws_error
     return ws_error(code, **params)
+
+
+def is_hint_ws_message(data: dict) -> bool:
+    """Hint request: position only, no move_from/move_to. Board not required."""
+    if not isinstance(data, dict):
+        return False
+    if data.get("move_from") or data.get("move_to"):
+        return False
+    return bool(data.get("position"))
+
+
+def parse_hint_request(data: dict) -> int:
+    raw = data.get("position")
+    if raw is None:
+        raise ValueError("ws.invalid_move_data")
+    try:
+        return change_position_name_from_frontend(raw)
+    except (TypeError, ValueError):
+        raise ValueError("ws.invalid_move_data") from None
+
+
+def build_hint_event_from_game(game: dict, hint_cell: int) -> GameEvent:
+    return GameEvent(
+        positions=_norm_board_keys(game.get("board", {})),
+        mover_color=game["mover"],
+        position=hint_cell,
+        position_for_mandatory_capture=game.get("pending_mandatory_position"),
+    )
 
 
 def is_move_message(data: dict) -> bool:

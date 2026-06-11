@@ -109,8 +109,9 @@ export function formatGameOverMessage(winnerColorRaw, reason, messageCode) {
   if (reason === 'draw_agreed') return t('result.drawAgreed');
 
   if (reason === 'timeout') {
-    if (color === COLOR_WHITE) return t('result.timeoutWhite');
-    if (color === COLOR_BLACK) return t('result.timeoutBlack');
+    // winner_color is who won; timeout message names who ran out of time (the loser).
+    if (color === COLOR_WHITE) return t('result.timeoutBlack');
+    if (color === COLOR_BLACK) return t('result.timeoutWhite');
   }
   if (reason === 'resign') {
     if (color === COLOR_WHITE) return t('result.resignWhite');

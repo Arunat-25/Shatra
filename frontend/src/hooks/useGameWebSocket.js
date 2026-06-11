@@ -59,6 +59,7 @@ export default function useGameWebSocket(roomId, modeAi, {
     if (!statusInfo) return;
     if (statusInfo.type === 'reconnecting') {
       setWsReconnecting(true);
+      dispatchRef.current({ type: GAME_ACTIONS.DESELECT });
       showMessage(resolveWsErrorMessage(statusInfo.message), MSG_WARNING);
       return;
     }

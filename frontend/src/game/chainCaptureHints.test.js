@@ -17,8 +17,8 @@ describe('shouldRequestChainHints', () => {
     expect(shouldRequestChainHints(base)).toBe(true);
   });
 
-  it('skips when highlights already present', () => {
-    expect(shouldRequestChainHints({ ...base, highlightedEssential: [33] })).toBe(false);
+  it('still requests hints during chain even if highlights are stale', () => {
+    expect(shouldRequestChainHints({ ...base, highlightedEssential: [33] })).toBe(true);
   });
 
   it('skips when chain is not active', () => {
@@ -27,5 +27,26 @@ describe('shouldRequestChainHints', () => {
 
   it('skips when not my turn', () => {
     expect(shouldRequestChainHints({ ...base, myColor: 'черный' })).toBe(false);
+  });
+
+  it('skips while waiting for opponent', () => {
+    expect(shouldRequestChainHints({ ...base, waiting: true })).toBe(false);
+  });
+
+  it('skips after game over', () => {
+    expect(shouldRequestChainHints({ ...base, gameOver: true })).toBe(false);
+  });
+
+  it('skips when browsing move history', () => {
+    expect(shouldRequestChainHints({ ...base, viewingHistoryIndex: 2 })).toBe(false);
+  });
+
+  it('skips when it is my turn but chain flag is off', () => {
+    expect(shouldRequestChainHints({
+      ...base,
+      moversColor: 'белый',
+      myColor: 'белый',
+      posForMandatoryCapture: null,
+    })).toBe(false);
   });
 });

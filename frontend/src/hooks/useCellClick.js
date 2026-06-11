@@ -20,7 +20,7 @@ export default function useCellClick({
 }) {
   const selectPiece = useCallback((positionNum, s) => {
     dispatch({ type: GAME_ACTIONS.SET_MOVE_FROM, payload: positionNum });
-    if (!send(buildHintPayload(s, positionNum))) {
+    if (!send(buildHintPayload(positionNum))) {
       showMessage(i18n.t('game.connectionLost'), MSG_WARNING);
     }
   }, [dispatch, send, showMessage]);
@@ -37,7 +37,7 @@ export default function useCellClick({
     const chainCell = chainCaptureCell(s);
     if (chainCell != null) {
       if (positionNum === chainCell) {
-        if (!send(buildHintPayload(s, chainCell))) {
+        if (!send(buildHintPayload(chainCell))) {
           showMessage(i18n.t('game.connectionLost'), MSG_WARNING);
         }
         return;

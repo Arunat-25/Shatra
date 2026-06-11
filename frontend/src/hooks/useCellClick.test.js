@@ -66,10 +66,7 @@ describe('useCellClick capture chain', () => {
     });
 
     expect(send).toHaveBeenCalledTimes(1);
-    expect(send.mock.calls[0][0]).toMatchObject({
-      position: 'position19',
-      position_for_mandatory_capture: 19,
-    });
+    expect(send.mock.calls[0][0]).toEqual({ position: 'position19' });
   });
 
   it('ignores selecting another own piece during chain', () => {
@@ -85,6 +82,24 @@ describe('useCellClick capture chain', () => {
 });
 
 describe('useCellClick normal moves', () => {
+  it('requests hints with position-only payload on piece select', () => {
+    const state = {
+      myColor: 'белый',
+      moversColor: 'белый',
+      moveFrom: null,
+      posForMandatoryCapture: null,
+      board: { 53: 'белая шатра' },
+    };
+    const { hookProps, send } = makeDeps(state);
+    const { result } = renderHook(() => useCellClick(hookProps));
+
+    act(() => {
+      result.current(53);
+    });
+
+    expect(send).toHaveBeenCalledWith({ position: 'position53' });
+  });
+
   it('selects piece on first click and sends move on second', () => {
     const state = {
       myColor: 'белый',

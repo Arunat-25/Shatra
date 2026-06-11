@@ -22,7 +22,8 @@ function formatGameOverMessage(winner, reason) {
   const colorLabel = color === 'белый' ? 'белых' : color === 'чёрный' ? 'чёрных' : null;
 
   if (reason === 'timeout' && colorLabel) {
-    return `Время вышло у ${colorLabel}`;
+    const timedOutLabel = color === 'белый' ? 'чёрных' : 'белых';
+    return `Время вышло у ${timedOutLabel}`;
   }
   if (reason === 'resign' && color) {
     const winnerLabel = color === 'белый' ? 'белые' : 'чёрные';
@@ -59,7 +60,8 @@ function assert(cond, msg) {
   }
 }
 
-assert(formatGameOverMessage('белый', 'timeout').includes('Время вышло'), 'timeout');
+assert(formatGameOverMessage('белый', 'timeout').includes('чёрных'), 'timeout: white won => black ran out');
+assert(formatGameOverMessage('черный', 'timeout').includes('белых'), 'timeout: black won => white ran out');
 assert(formatGameOverMessage('черный', 'resign').includes('сдача'), 'resign');
 assert(formatGameOverMessage('x', 'draw_agreed').includes('согласию'), 'draw');
 assert(formatGameOverMessage('Соперник отменил игру.', 'cancelled').includes('отменил'), 'cancelled');

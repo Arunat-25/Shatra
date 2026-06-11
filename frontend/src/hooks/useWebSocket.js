@@ -7,6 +7,7 @@ import {
   parseWsMessage,
   shouldStopReconnecting,
 } from '../wsReconnect';
+import { isHintWsMessage } from '../utils/wsPayloads';
 
 export default function useWebSocket(roomId, onMessage, onError, onStatus) {
   const wsRef = useRef(null);
@@ -140,6 +141,7 @@ export default function useWebSocket(roomId, onMessage, onError, onStatus) {
       return true;
     }
     if (ws?.readyState === WebSocket.CONNECTING) {
+      if (isHintWsMessage(data)) return false;
       outboundQueueRef.current.push(payload);
       return true;
     }

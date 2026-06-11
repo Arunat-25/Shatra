@@ -145,6 +145,28 @@ describe('gameReducer', () => {
     expect(next.highlightedCaptured).toEqual([]);
   });
 
+  it('MOVE_MADE chain step without essential clears stale highlights', () => {
+    const inChain = {
+      ...initialGameState,
+      myColor: 'белый',
+      moveFrom: 19,
+      posForMandatoryCapture: 19,
+      highlightedEssential: [33, 35],
+      highlightedCaptured: [26],
+    };
+    const next = gameReducer(inChain, {
+      type: GAME_ACTIONS.MOVE_MADE,
+      payload: {
+        desk: { 33: 'белый бий' },
+        movers_color: 'белый',
+        position_for_mandatory_capture: 33,
+      },
+    });
+    expect(next.moveFrom).toBe(33);
+    expect(next.highlightedEssential).toEqual([]);
+    expect(next.highlightedCaptured).toEqual([]);
+  });
+
   it('MOVE_MADE without chain clears selection and highlights', () => {
     const inChain = gameReducer(
       { ...initialGameState, myColor: 'белый' },

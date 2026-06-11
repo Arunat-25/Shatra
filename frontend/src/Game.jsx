@@ -95,7 +95,7 @@ export default function Game() {
 
   useEffect(() => {
     if (!shouldRequestChainHints(state)) return;
-    send(buildHintPayload(state, Number(state.posForMandatoryCapture)));
+    send(buildHintPayload(Number(state.posForMandatoryCapture)));
   }, [
     state.posForMandatoryCapture,
     state.moversColor,

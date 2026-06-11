@@ -215,16 +215,12 @@ export function gameReducer(state, action) {
         posForMandatoryCapture,
         canPass: !!action.payload.opportunity_pass_the_move,
         moveFrom: chainActiveForMe ? chainCell : null,
-        highlightedEssential: essential?.length && chainActiveForMe
+        highlightedEssential: chainActiveForMe && essential?.length
           ? essential.map(Number)
-          : chainActiveForMe && chainCell
-            ? state.highlightedEssential
-            : [],
-        highlightedCaptured: captured?.length && chainActiveForMe
+          : [],
+        highlightedCaptured: chainActiveForMe && captured?.length
           ? captured.map(Number)
-          : chainActiveForMe && chainCell
-            ? state.highlightedCaptured
-            : [],
+          : [],
         aiThinking: action.payload.aiThinking ?? false,
         viewingHistoryIndex: null,
         historyFrom: null,

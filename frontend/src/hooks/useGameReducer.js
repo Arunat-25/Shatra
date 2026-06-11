@@ -21,6 +21,14 @@ export default function useGameReducer(modeAi, getMyColor) {
 
   const readMyColor = useCallback(() => getMyColorRef.current?.(), []);
 
+  const readSelection = useCallback(() => {
+    const s = stateRef.current;
+    return {
+      moveFrom: s.moveFrom,
+      chainCell: s.posForMandatoryCapture != null ? Number(s.posForMandatoryCapture) : null,
+    };
+  }, []);
+
   const dispatch = useCallback((action) => {
     playForAction(action, stateRef.current, readMyColor);
     baseDispatch(action);
@@ -31,9 +39,9 @@ export default function useGameReducer(modeAi, getMyColor) {
       if (data?.status === 'error') {
         playForServerError();
       }
-      return dispatchServerMessage(data, dispatch, modeAi, readMyColor);
+      return dispatchServerMessage(data, dispatch, modeAi, readMyColor, readSelection);
     },
-    [modeAi, dispatch, readMyColor],
+    [modeAi, dispatch, readMyColor, readSelection],
   );
 
   const deselectPiece = useCallback(() => {

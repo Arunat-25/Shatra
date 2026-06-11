@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { dispatchServerMessage } from './messageHandlers';
+import { dispatchServerMessage, hintMatchesSelection } from './messageHandlers';
 import { GAME_ACTIONS } from './actions';
 
 const trackGameEventMock = vi.hoisted(() => vi.fn());
@@ -8,7 +8,7 @@ vi.mock('../observability/events', () => ({
   trackGameEvent: trackGameEventMock,
 }));
 
-function collectDispatches(payload, modeAi = false, myColor = 'белый') {
+function collectDispatches(payload, modeAi = false, myColor = 'белый', getSelection) {
   const calls = [];
   const dispatch = (action) => calls.push(action);
   const msg = dispatchServerMessage(
@@ -16,6 +16,7 @@ function collectDispatches(payload, modeAi = false, myColor = 'белый') {
     dispatch,
     modeAi,
     () => myColor,
+    getSelection,
   );
   return { calls, msg };
 }
@@ -149,6 +150,75 @@ describe('dispatchServerMessage', () => {
       'черный',
     );
     expect(calls.some((c) => c.type === GAME_ACTIONS.HIGHLIGHTS)).toBe(false);
+  });
+
+  it('ignores stale hint when hint_position does not match selection', () => {
+    const { calls } = collectDispatches(
+      {
+        essential_positions: [33, 35],
+        movers_color: 'белый',
+        hint_position: 48,
+      },
+      false,
+      'белый',
+      () => ({ moveFrom: 53, chainCell: null }),
+    );
+    expect(calls.some((c) => c.type === GAME_ACTIONS.HIGHLIGHTS)).toBe(false);
+  });
+
+  it('applies hint when hint_position matches selection', () => {
+    const { calls } = collectDispatches(
+      {
+        essential_positions: [33, 35],
+        movers_color: 'белый',
+        hint_position: 53,
+      },
+      false,
+      'белый',
+      () => ({ moveFrom: 53, chainCell: null }),
+    );
+    expect(calls).toContainEqual({
+      type: GAME_ACTIONS.HIGHLIGHTS,
+      payload: { essential: [33, 35], captured: [] },
+    });
+  });
+
+  it('hintMatchesSelection allows legacy responses without hint_position', () => {
+    expect(hintMatchesSelection({ essential_positions: [] }, () => ({ moveFrom: 53, chainCell: null }))).toBe(true);
+  });
+
+  it('hint-only with empty essential still updates highlights for my color', () => {
+    const { calls } = collectDispatches(
+      {
+        essential_positions: [],
+        movers_color: 'белый',
+        hint_position: 53,
+      },
+      false,
+      'белый',
+      () => ({ moveFrom: 53, chainCell: null }),
+    );
+    expect(calls).toContainEqual({
+      type: GAME_ACTIONS.HIGHLIGHTS,
+      payload: { essential: [], captured: [] },
+    });
+  });
+
+  it('hint-only uses chainCell when matching hint_position', () => {
+    const { calls } = collectDispatches(
+      {
+        essential_positions: [33],
+        movers_color: 'белый',
+        hint_position: 19,
+      },
+      false,
+      'белый',
+      () => ({ moveFrom: null, chainCell: 19 }),
+    );
+    expect(calls).toContainEqual({
+      type: GAME_ACTIONS.HIGHLIGHTS,
+      payload: { essential: [33], captured: [] },
+    });
   });
 
   it('server error returns localized text from message_code', () => {

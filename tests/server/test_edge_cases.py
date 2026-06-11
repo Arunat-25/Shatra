@@ -98,6 +98,24 @@ class TestMoveHistoryResponse:
         assert resp["move_history"][0]["move_number"] == 1
         assert resp["move_history"][1]["move_number"] == 2
 
+    def test_includes_hint_position_when_provided(self, starting_board):
+        game = {"board": starting_board, "move_history": []}
+        result = GameEventResult(
+            message_code=TURN_NOW,
+            movers_color="белый",
+            essential_positions=[46, 48],
+        )
+        resp = build_move_response(game, result, "белый", hint_position=53)
+        assert resp["hint_position"] == 53
+        assert resp["essential_positions"] == [46, 48]
+        assert "desk" in resp
+
+    def test_omits_hint_position_for_normal_moves(self, starting_board):
+        game = {"board": starting_board, "move_history": []}
+        result = GameEventResult(message_code=TURN_NOW, movers_color="черный")
+        resp = build_move_response(game, result, "белый", 53, 46)
+        assert "hint_position" not in resp
+
     def test_clears_mandatory_capture_flag_after_turn_switch(self, starting_board):
         game = {"board": starting_board, "move_history": []}
         result = GameEventResult(
