@@ -3,7 +3,14 @@
 set -e
 cd "$(dirname "$0")/.."
 
-COMPOSE="docker compose -f docker-compose.prod.yml"
+if docker compose version >/dev/null 2>&1; then
+  COMPOSE="docker compose -f docker-compose.prod.yml"
+elif command -v docker-compose >/dev/null 2>&1; then
+  COMPOSE="docker-compose -f docker-compose.prod.yml"
+else
+  echo "Docker Compose not found (install docker compose plugin or docker-compose)." >&2
+  exit 1
+fi
 
 if [ -f .env ]; then
   set -a
