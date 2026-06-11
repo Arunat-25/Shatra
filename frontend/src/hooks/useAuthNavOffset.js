@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef } from 'react';
 
 const DEFAULT_CHROME_OFFSET = 72;
+const COMPACT_CHROME_GAP = 6;
 
 /**
  * Measures fixed top chrome and sets --app-top-chrome-offset on :root.
@@ -12,6 +13,7 @@ export default function useAuthNavOffset(
   topEndRef = null,
   menuToggleRef = null,
   compactMode = false,
+  topCenterRef = null,
 ) {
   const navRef = useRef(null);
 
@@ -23,20 +25,33 @@ export default function useAuthNavOffset(
       const menuToggle = menuToggleRef?.current;
       let chromeBottom = 0;
 
-      if (compactMode && menuToggle) {
-        chromeBottom = menuToggle.getBoundingClientRect().bottom;
+      if (compactMode) {
+        const topStart = topStartRef?.current;
+        const topCenter = topCenterRef?.current;
+        if (topStart) {
+          chromeBottom = Math.max(chromeBottom, topStart.getBoundingClientRect().bottom);
+        } else if (menuToggle) {
+          chromeBottom = menuToggle.getBoundingClientRect().bottom;
+        }
+        if (topCenter) {
+          chromeBottom = Math.max(chromeBottom, topCenter.getBoundingClientRect().bottom);
+        }
       } else {
         const topEnd = topEndRef?.current;
         const topStart = topStartRef?.current;
+        const topCenter = topCenterRef?.current;
         if (topEnd) {
           chromeBottom = Math.max(chromeBottom, topEnd.getBoundingClientRect().bottom);
         }
         if (topStart) {
           chromeBottom = Math.max(chromeBottom, topStart.getBoundingClientRect().bottom);
         }
+        if (topCenter) {
+          chromeBottom = Math.max(chromeBottom, topCenter.getBoundingClientRect().bottom);
+        }
       }
 
-      const gap = compactMode ? 0 : 8;
+      const gap = compactMode ? COMPACT_CHROME_GAP : 8;
       const offset =
         chromeBottom > 0 ? Math.ceil(chromeBottom + gap) : DEFAULT_CHROME_OFFSET;
 
@@ -53,11 +68,14 @@ export default function useAuthNavOffset(
     update();
     const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(update) : null;
     if (navRef.current) ro?.observe(navRef.current);
-    if (compactMode && menuToggleRef?.current) {
-      ro?.observe(menuToggleRef.current);
+    if (compactMode) {
+      if (topStartRef?.current) ro?.observe(topStartRef.current);
+      else if (menuToggleRef?.current) ro?.observe(menuToggleRef.current);
+      if (topCenterRef?.current) ro?.observe(topCenterRef.current);
     } else {
       if (topStartRef?.current) ro?.observe(topStartRef.current);
       if (topEndRef?.current) ro?.observe(topEndRef.current);
+      if (topCenterRef?.current) ro?.observe(topCenterRef.current);
     }
     window.addEventListener('resize', update);
 

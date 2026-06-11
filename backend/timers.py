@@ -1,14 +1,14 @@
 import asyncio
 import logging
 from fastapi import WebSocket
-from backend.state import (get_room, set_room, get_game, set_game,
+from backend.state import (get_room, set_room, get_game,
                             game_timers, disconnect_timers, DISCONNECT_TIMEOUT,
                             get_room_lock)
 from backend.config import settings
-from backend.observability.metrics import record_timeout
-from backend.ws_manager import manager
 from backend.board_utils import keys_int_to_str
 from backend.game_helpers import color_has_moved, compute_clock_times
+from backend.game_finish import _finish_game_locked, finish_game
+from backend.ws_manager import manager
 
 logger = logging.getLogger(__name__)
 TICK_INTERVAL_SECONDS = settings.tick_interval_seconds
@@ -89,17 +89,9 @@ async def game_ticker(room_id: str):
 
 
 async def handle_timeout(room_id: str, timed_out_color: str):
-    """Обрабатывает окончание времени у одного из игроков."""
+    """Обрабатывает окончание времени у одного из игроков. Вызывать под room lock."""
     winner = _opposite_color(timed_out_color)
-
     game = await get_game(room_id)
-    if game:
-        game["game_over"] = True
-        game["winner_color"] = winner
-        game["winner"] = winner
-        game["reason"] = "timeout"
-        await set_game(room_id, game)
-
     room_data = await get_room(room_id)
     time_payload = None
     if room_data:
@@ -118,13 +110,15 @@ async def handle_timeout(room_id: str, timed_out_color: str):
     if time_payload:
         payload["time"] = time_payload
 
-    await manager.send_to_room(room_id, payload)
-
-    stop_game_timer(room_id)
-    record_timeout("clock")
-    logger.info("Timeout in %s: %s ran out of time", room_id, timed_out_color)
-    from backend.game_archive import on_game_finished
-    await on_game_finished(room_id)
+    finished = await _finish_game_locked(
+        room_id,
+        reason="timeout",
+        winner_color=winner,
+        broadcast=payload,
+        record_timeout_kind="clock",
+    )
+    if finished:
+        logger.info("Timeout in %s: %s ran out of time", room_id, timed_out_color)
 
 
 def stop_game_timer(room_id: str):
@@ -150,29 +144,28 @@ async def disconnect_timer(room_id: str, remaining_ws: WebSocket, disconnected_c
             await asyncio.sleep(TICK_INTERVAL_SECONDS)
 
         game = await get_game(room_id)
-        if game and not game.get("game_over", False):
-            game["game_over"] = True
-            room_data = await get_room(room_id)
-            disconnected_color = None
-            if room_data:
-                players = room_data.get("players", {})
-                disconnected_color = players.get(disconnected_client_id)
-            winner = _opposite_color(disconnected_color or "белый")
-            game["winner_color"] = winner
-            game["winner"] = winner
-            game["reason"] = "opponent_disconnected"
-            await set_game(room_id, game)
+        if not game or game.get("game_over", False):
+            disconnect_timers.pop(room_id, None)
+            return
 
-            await manager.send_to_room(room_id, {
+        room_data = await get_room(room_id)
+        disconnected_color = None
+        if room_data:
+            players = room_data.get("players", {})
+            disconnected_color = players.get(disconnected_client_id)
+        winner = _opposite_color(disconnected_color or "белый")
+
+        await finish_game(
+            room_id,
+            reason="opponent_disconnected",
+            winner_color=winner,
+            broadcast={
                 "game_over": True,
                 "winner_color": winner,
                 "reason": "opponent_disconnected",
-            })
-
-            stop_game_timer(room_id)
-            record_timeout("disconnect")
-            from backend.game_archive import on_game_finished
-            await on_game_finished(room_id)
+            },
+            record_timeout_kind="disconnect",
+        )
 
         disconnect_timers.pop(room_id, None)
     except asyncio.CancelledError:

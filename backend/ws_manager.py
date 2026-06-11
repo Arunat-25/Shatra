@@ -3,7 +3,8 @@ import logging
 from fastapi import WebSocket
 from backend.state import (get_game, set_game, delete_game,
                             get_room, set_room, delete_room,
-                            game_timers, disconnect_timers, drop_room_lock)
+                            game_timers, disconnect_timers, drop_room_lock,
+                            remove_waiting_public_room)
 from backend.config import settings
 from backend.board_utils import get_starting_board
 from backend.db.models import User
@@ -267,6 +268,7 @@ async def handle_player2_join(room_id: str, room_data: dict):
 
     room_data["game_started"] = True
     mark_game_started(room_data)
+    await remove_waiting_public_room(room_id)
     await set_room(room_id, room_data)
     record_game_started(room_data.get("type") or "unknown")
     logger.info(

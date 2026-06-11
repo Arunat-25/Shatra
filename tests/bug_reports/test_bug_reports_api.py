@@ -5,8 +5,10 @@ import psycopg2
 from backend.message_codes import (
     BUG_REPORT_DESCRIPTION_TOO_SHORT,
     BUG_REPORT_INVALID_SCREENSHOT,
+    BUG_REPORT_RATE_LIMIT,
     BUG_REPORT_SCREENSHOT_TOO_LARGE,
 )
+from backend.bug_reports.router import BUG_REPORT_RATE_LIMIT_COUNT
 from tests.bug_reports.conftest import MINIMAL_PNG
 from tests.test_env import SYNC_DB_URL
 
@@ -76,6 +78,46 @@ class TestSubmitBugReport:
         )
         assert r.status_code == 400
         assert r.json()["detail"] == BUG_REPORT_SCREENSHOT_TOO_LARGE
+
+    def test_rejects_javascript_page_url(self, client):
+        r = _submit_report(client, page_url="javascript:alert(1)")
+        assert r.status_code == 201, r.text
+        conn = psycopg2.connect(SYNC_DB_URL)
+        with conn.cursor() as cur:
+            cur.execute("SELECT page_url FROM bug_reports ORDER BY created_at DESC LIMIT 1")
+            assert cur.fetchone()[0] is None
+        conn.close()
+
+    def test_rejects_data_url_page_url(self, client):
+        r = _submit_report(client, page_url="data:text/html,<script>alert(1)</script>")
+        assert r.status_code == 201
+        conn = psycopg2.connect(SYNC_DB_URL)
+        with conn.cursor() as cur:
+            cur.execute("SELECT page_url FROM bug_reports ORDER BY created_at DESC LIMIT 1")
+            assert cur.fetchone()[0] is None
+        conn.close()
+
+    def test_keeps_https_page_url(self, client):
+        url = "https://example.com/game/abc"
+        r = _submit_report(client, page_url=url, client_id="client-url-1")
+        assert r.status_code == 201
+        conn = psycopg2.connect(SYNC_DB_URL)
+        with conn.cursor() as cur:
+            cur.execute("SELECT page_url FROM bug_reports ORDER BY created_at DESC LIMIT 1")
+            assert cur.fetchone()[0] == url
+        conn.close()
+
+    def test_rate_limit_by_client_id(self, client):
+        cid = "rate-limit-client"
+        for _ in range(BUG_REPORT_RATE_LIMIT_COUNT):
+            assert _submit_report(client, client_id=cid).status_code == 201
+        blocked = _submit_report(client, client_id=cid)
+        assert blocked.status_code == 429
+        assert blocked.json()["detail"] == BUG_REPORT_RATE_LIMIT
+
+    def test_rate_limit_independent_per_client_id(self, client):
+        for i in range(BUG_REPORT_RATE_LIMIT_COUNT):
+            assert _submit_report(client, client_id=f"independent-{i}").status_code == 201
 
 
 class TestAdminBugReports:

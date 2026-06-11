@@ -27,6 +27,16 @@ from game_engine.models import GameEventResult
 from tests.server.conftest import ensure_users_for_room
 
 
+def _finish_flow_patches(st):
+    return (
+        patch("backend.game_finish.get_game", side_effect=st.get_game),
+        patch("backend.game_finish.set_game", side_effect=st.set_game),
+        patch("backend.game_finish.get_room", side_effect=st.get_room),
+        patch("backend.game_finish.set_room", AsyncMock()),
+        patch("backend.game_finish.manager.send_to_room", AsyncMock()),
+    )
+
+
 def _room(room_id="room1", **extra):
     base = {
         "room_id": room_id,
@@ -876,9 +886,11 @@ class TestArchiveIntegrationHooks:
         with (
             patch("backend.ws_control_handlers.get_game", side_effect=st.get_game),
             patch("backend.ws_control_handlers.get_room", side_effect=st.get_room),
-            patch("backend.ws_control_handlers.set_game", side_effect=st.set_game),
-            patch("backend.ws_control_handlers.set_room", AsyncMock()),
-            patch("backend.ws_control_handlers.manager.send_to_room", AsyncMock()),
+            patch("backend.game_finish.get_game", side_effect=st.get_game),
+            patch("backend.game_finish.set_game", side_effect=st.set_game),
+            patch("backend.game_finish.get_room", side_effect=st.get_room),
+            patch("backend.game_finish.set_room", AsyncMock()),
+            patch("backend.game_finish.manager.send_to_room", AsyncMock()),
             patch("backend.game_archive.get_game", side_effect=st.get_game),
             patch("backend.game_archive.get_room", side_effect=st.get_room),
             patch("backend.game_archive.set_game", side_effect=st.set_game),
@@ -916,9 +928,11 @@ class TestArchiveIntegrationHooks:
         with (
             patch("backend.timers.get_game", side_effect=st.get_game),
             patch("backend.timers.get_room", side_effect=st.get_room),
-            patch("backend.timers.set_game", side_effect=st.set_game),
-            patch("backend.timers.manager.send_to_room", AsyncMock()),
-            patch("backend.timers.stop_game_timer"),
+            patch("backend.game_finish.get_game", side_effect=st.get_game),
+            patch("backend.game_finish.set_game", side_effect=st.set_game),
+            patch("backend.game_finish.get_room", side_effect=st.get_room),
+            patch("backend.game_finish.set_room", AsyncMock()),
+            patch("backend.game_finish.manager.send_to_room", AsyncMock()),
             patch("backend.game_archive.get_game", side_effect=st.get_game),
             patch("backend.game_archive.get_room", side_effect=st.get_room),
             patch("backend.game_archive.set_game", side_effect=st.set_game),
@@ -940,10 +954,11 @@ class TestArchiveIntegrationHooks:
         with (
             patch("backend.ws_control_handlers.get_game", side_effect=st.get_game),
             patch("backend.ws_control_handlers.get_room", side_effect=st.get_room),
-            patch("backend.ws_control_handlers.set_game", side_effect=st.set_game),
-            patch("backend.ws_control_handlers.set_room", AsyncMock()),
-            patch("backend.ws_control_handlers.manager.send_to_room", AsyncMock()),
-            patch("backend.timers.stop_game_timer"),
+            patch("backend.game_finish.get_game", side_effect=st.get_game),
+            patch("backend.game_finish.set_game", side_effect=st.set_game),
+            patch("backend.game_finish.get_room", side_effect=st.get_room),
+            patch("backend.game_finish.set_room", AsyncMock()),
+            patch("backend.game_finish.manager.send_to_room", AsyncMock()),
             patch("backend.game_archive.get_game", side_effect=st.get_game),
             patch("backend.game_archive.get_room", side_effect=st.get_room),
             patch("backend.game_archive.set_game", side_effect=st.set_game),
@@ -1384,6 +1399,7 @@ class TestArchiveCriticalEdgeCases:
             st.game["archived"] = False
             st.game["reason"] = "timeout"
             st.game["winner_color"] = "черный"
+            st.room["game_started_at"] = "2026-06-01T11:00:00+00:00"
             second_id = await archive_finished_game(st.room_id)
 
         assert first_id != second_id
@@ -1397,14 +1413,20 @@ class TestArchiveCriticalEdgeCases:
         st.game["game_over"] = False
         ws = AsyncMock()
 
+        async def instant_sleep(_):
+            return None
+
         with (
+            patch("backend.timers.asyncio.sleep", side_effect=instant_sleep),
             patch("backend.timers.DISCONNECT_TIMEOUT", 1),
             patch("backend.timers.TICK_INTERVAL_SECONDS", 0),
             patch("backend.timers.get_game", side_effect=st.get_game),
             patch("backend.timers.get_room", side_effect=st.get_room),
-            patch("backend.timers.set_game", side_effect=st.set_game),
-            patch("backend.timers.manager.send_to_room", AsyncMock()),
-            patch("backend.timers.stop_game_timer"),
+            patch("backend.game_finish.get_game", side_effect=st.get_game),
+            patch("backend.game_finish.set_game", side_effect=st.set_game),
+            patch("backend.game_finish.get_room", side_effect=st.get_room),
+            patch("backend.game_finish.set_room", AsyncMock()),
+            patch("backend.game_finish.manager.send_to_room", AsyncMock()),
             patch("backend.game_archive.get_game", side_effect=st.get_game),
             patch("backend.game_archive.get_room", side_effect=st.get_room),
             patch("backend.game_archive.set_game", side_effect=st.set_game),

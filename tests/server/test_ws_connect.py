@@ -226,15 +226,18 @@ class TestListRoomsEdgeCases:
             },
         }
 
-        async def fake_get_raw(key):
-            return json.dumps(payloads[key])
+        async def fake_get_room(room_id: str):
+            for payload in payloads.values():
+                if payload["room_id"] == room_id:
+                    return payload
+            return None
 
         with patch(
-            "backend.room_manager.scan_keys",
+            "backend.room_manager.get_waiting_public_room_ids",
             new_callable=AsyncMock,
-            return_value=list(payloads.keys()),
+            return_value=[p["room_id"] for p in payloads.values()],
         ):
-            with patch("backend.room_manager.get_raw", side_effect=fake_get_raw):
+            with patch("backend.room_manager.get_room", side_effect=fake_get_room):
                 result = await list_rooms()
 
         ids = {r["room_id"] for r in result["rooms"]}

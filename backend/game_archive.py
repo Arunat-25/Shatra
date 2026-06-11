@@ -6,13 +6,15 @@ import logging
 import uuid
 from datetime import datetime, timezone
 
+from sqlalchemy.exc import IntegrityError
+
 from backend.board_utils import keys_int_to_str
 from backend.db.models import FinishedGame
 from backend.db.session import get_session_factory
 from backend.observability.errors import capture_exception
 from backend.observability.metrics import record_archive_error, record_game_finished
 from backend.rating.service import apply_rating, is_rated_match, players_info_with_rating_result, score_for_color
-from backend.state import get_game, get_room, set_game
+from backend.state import get_game, get_room, get_room_lock, set_game
 
 logger = logging.getLogger(__name__)
 
@@ -90,8 +92,16 @@ def _normalize_winner_color(game: dict) -> str | None:
     return str(winner)
 
 
-async def archive_finished_game(room_id: str) -> uuid.UUID | None:
-    """Insert finished game if eligible and not yet archived."""
+async def _mark_archived_in_redis(room_id: str) -> None:
+    game = await get_game(room_id)
+    if not game:
+        return
+    game["archived"] = True
+    await set_game(room_id, game)
+
+
+async def _archive_finished_game_locked(room_id: str) -> uuid.UUID | None:
+    """Insert finished game. Caller must hold get_room_lock(room_id)."""
     try:
         game = await get_game(room_id)
         room_data = await get_room(room_id)
@@ -145,21 +155,31 @@ async def archive_finished_game(room_id: str) -> uuid.UUID | None:
 
         factory = get_session_factory()
         async with factory() as session:
-            session.add(record)
-            if is_rated_match(room_data, white, black):
-                score_white = score_for_color("белый", winner_color, reason or None)
-                await apply_rating(
-                    session,
-                    record,
-                    white_user_id=white["user_id"],
-                    black_user_id=black["user_id"],
-                    score_white=score_white,
-                    moves_count=len(move_history),
-                    finished_at=finished_at,
+            try:
+                session.add(record)
+                if is_rated_match(room_data, white, black):
+                    score_white = score_for_color("белый", winner_color, reason or None)
+                    await apply_rating(
+                        session,
+                        record,
+                        white_user_id=white["user_id"],
+                        black_user_id=black["user_id"],
+                        score_white=score_white,
+                        moves_count=len(move_history),
+                        finished_at=finished_at,
+                    )
+                await session.commit()
+                await session.refresh(record)
+                record_id = record.id
+            except IntegrityError:
+                await session.rollback()
+                logger.info(
+                    "Duplicate archive skipped for room %s (started_at=%s)",
+                    room_id,
+                    started_at,
                 )
-            await session.commit()
-            await session.refresh(record)
-            record_id = record.id
+                await _mark_archived_in_redis(room_id)
+                return None
 
         game["archived"] = True
         await set_game(room_id, game)
@@ -178,6 +198,12 @@ async def archive_finished_game(room_id: str) -> uuid.UUID | None:
         logger.exception("Failed to archive game for room %s", room_id)
         capture_exception()
         return None
+
+
+async def archive_finished_game(room_id: str) -> uuid.UUID | None:
+    """Insert finished game if eligible and not yet archived."""
+    async with get_room_lock(room_id):
+        return await _archive_finished_game_locked(room_id)
 
 
 async def on_game_finished(room_id: str) -> None:

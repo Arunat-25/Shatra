@@ -70,6 +70,7 @@ const CODE_TO_I18N = {
   'bug_report.description_too_long': 'bugReport.descriptionTooLong',
   'bug_report.invalid_screenshot': 'bugReport.invalidScreenshotServer',
   'bug_report.screenshot_too_large': 'bugReport.tooLarge',
+  'bug_report.rate_limit': 'bugReport.rateLimit',
 
   // WS protocol
   'ws.invalid_json': 'errors.malformedMessage',

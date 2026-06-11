@@ -38,19 +38,18 @@ class TestListRoomsCreator:
             },
         ]
 
-        async def fake_scan(pattern):
-            return [f"room:{r['room_id']}" for r in raw_rooms]
-
-        async def fake_get_raw(key):
-            rid = key.split(":")[-1]
+        async def fake_get_room(room_id: str):
             for r in raw_rooms:
-                if r["room_id"] == rid:
-                    return json.dumps(r)
+                if r["room_id"] == room_id:
+                    return r
             return None
 
         with (
-            patch("backend.room_manager.scan_keys", side_effect=fake_scan),
-            patch("backend.room_manager.get_raw", side_effect=fake_get_raw),
+            patch(
+                "backend.room_manager.get_waiting_public_room_ids",
+                AsyncMock(return_value=[r["room_id"] for r in raw_rooms]),
+            ),
+            patch("backend.room_manager.get_room", side_effect=fake_get_room),
         ):
             result = await list_rooms()
 
@@ -69,8 +68,16 @@ class TestListRoomsCreator:
         })
 
         with (
-            patch("backend.room_manager.scan_keys", new_callable=AsyncMock, return_value=["room:priv"]),
-            patch("backend.room_manager.get_raw", new_callable=AsyncMock, return_value=raw),
+            patch(
+                "backend.room_manager.get_waiting_public_room_ids",
+                new_callable=AsyncMock,
+                return_value=["priv"],
+            ),
+            patch(
+                "backend.room_manager.get_room",
+                new_callable=AsyncMock,
+                return_value=json.loads(raw),
+            ),
         ):
             result = await list_rooms()
             assert result["rooms"] == []
@@ -89,7 +96,10 @@ class TestCreateRoomIdentity:
         user.id = "11111111-1111-1111-1111-111111111111"
         user.username = "u"
         req = CreateRoomRequest(type="public", creator_client_id=None)
-        with patch("backend.room_manager.set_room", side_effect=fake_set):
+        with (
+            patch("backend.room_manager.set_room", side_effect=fake_set),
+            patch("backend.room_manager.add_waiting_public_room", AsyncMock()),
+        ):
             await create_room(req, user=user)
         room = next(iter(stored.values()))
         assert room["player_meta"] == {}

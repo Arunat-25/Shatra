@@ -18,6 +18,7 @@ import { resolveApiErrorMessage } from '../i18n/resolveMessage';
 import AdminLineChart from '../components/admin/AdminLineChart';
 import AdminMultiLineChart from '../components/admin/AdminMultiLineChart';
 import AdminPieChart from '../components/admin/AdminPieChart';
+import { isSafeHttpUrl } from '../utils/safeUrl';
 
 const PERIODS = ['1h', '3h', '6h', '12h', 'today', '24h', '7d', '30d', 'all'];
 const ROOM_TYPES = ['all', 'public', 'private', 'ai'];
@@ -423,9 +424,13 @@ export default function Admin() {
                             <p className="admin-bug-report__meta">
                               <span>{t('admin.bugReportsPage')}</span>
                               {' '}
-                              <a href={report.page_url} target="_blank" rel="noreferrer">
-                                {report.page_url}
-                              </a>
+                              {isSafeHttpUrl(report.page_url) ? (
+                                <a href={report.page_url} target="_blank" rel="noreferrer">
+                                  {report.page_url}
+                                </a>
+                              ) : (
+                                report.page_url
+                              )}
                             </p>
                           )}
                           {report.user_agent && (

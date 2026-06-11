@@ -26,12 +26,16 @@ def client():
 
 @pytest.fixture(autouse=True)
 def clean_bug_report_data():
+    from tests.integration.helpers import flush_redis
+
+    flush_redis()
     conn = psycopg2.connect(SYNC_DB_URL)
     conn.autocommit = True
     with conn.cursor() as cur:
         cur.execute("TRUNCATE bug_reports, refresh_tokens, users CASCADE")
     conn.close()
     yield
+    flush_redis()
 
 
 @pytest.fixture

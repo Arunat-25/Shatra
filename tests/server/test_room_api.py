@@ -60,7 +60,10 @@ class TestCreateRoom:
             creator_client_id="client-abc",
             color_preference="черный",
         )
-        with patch("backend.room_manager.set_room", side_effect=fake_set_room):
+        with (
+            patch("backend.room_manager.set_room", side_effect=fake_set_room),
+            patch("backend.room_manager.add_waiting_public_room", AsyncMock()),
+        ):
             result = await create_room(request)
 
         assert result["type"] == "public"
@@ -80,7 +83,10 @@ class TestCreateRoom:
             stored[room_id] = data
 
         request = CreateRoomRequest(type="ai", creator_client_id="c1", color_preference="random")
-        with patch("backend.room_manager.set_room", side_effect=fake_set_room):
+        with (
+            patch("backend.room_manager.set_room", side_effect=fake_set_room),
+            patch("backend.room_manager.add_waiting_public_room", AsyncMock()),
+        ):
             result = await create_room(request)
         room = stored[result["room_id"]]
         assert room["time_control"] is None
@@ -93,7 +99,10 @@ class TestCreateRoom:
             stored[room_id] = data
 
         request = CreateRoomRequest(type="ai", creator_client_id="c1", ai_difficulty="easy")
-        with patch("backend.room_manager.set_room", side_effect=fake_set_room):
+        with (
+            patch("backend.room_manager.set_room", side_effect=fake_set_room),
+            patch("backend.room_manager.add_waiting_public_room", AsyncMock()),
+        ):
             result = await create_room(request)
         assert stored[result["room_id"]]["ai_difficulty"] == "strong"
 
@@ -101,6 +110,7 @@ class TestCreateRoom:
         request = CreateRoomRequest(type="public", creator_client_id="c1")
         with (
             patch("backend.room_manager.set_room", new_callable=AsyncMock),
+            patch("backend.room_manager.add_waiting_public_room", AsyncMock()),
             patch("backend.room_manager.record_room_created") as record_created,
         ):
             await create_room(request)
@@ -117,7 +127,10 @@ class TestCreateRoom:
             creator_client_id="c1",
             rated=True,
         )
-        with patch("backend.room_manager.set_room", side_effect=fake_set_room):
+        with (
+            patch("backend.room_manager.set_room", side_effect=fake_set_room),
+            patch("backend.room_manager.add_waiting_public_room", AsyncMock()),
+        ):
             result = await create_room(request)
         assert stored[result["room_id"]]["rated"] is True
 
@@ -132,7 +145,10 @@ class TestCreateRoom:
             creator_client_id="c1",
             rated=True,
         )
-        with patch("backend.room_manager.set_room", side_effect=fake_set_room):
+        with (
+            patch("backend.room_manager.set_room", side_effect=fake_set_room),
+            patch("backend.room_manager.add_waiting_public_room", AsyncMock()),
+        ):
             result = await create_room(request)
         assert stored[result["room_id"]].get("rated") is False
 
@@ -151,12 +167,21 @@ class TestListRooms:
         started = {**waiting, "room_id": "pub2", "game_started": True}
         private = {**waiting, "room_id": "prv1", "type": "private"}
 
-        async def fake_get_raw(key):
-            data = {"room:pub1": waiting, "room:pub2": started, "room:prv1": private}[key]
-            return json.dumps(data)
+        rooms_by_id = {
+            "pub1": waiting,
+            "pub2": started,
+            "prv1": private,
+        }
 
-        with patch("backend.room_manager.scan_keys", new_callable=AsyncMock, return_value=["room:pub1", "room:pub2", "room:prv1"]):
-            with patch("backend.room_manager.get_raw", side_effect=fake_get_raw):
+        async def fake_get_room(room_id: str):
+            return rooms_by_id.get(room_id)
+
+        with patch(
+            "backend.room_manager.get_waiting_public_room_ids",
+            new_callable=AsyncMock,
+            return_value=["pub1", "pub2", "prv1"],
+        ):
+            with patch("backend.room_manager.get_room", side_effect=fake_get_room):
                 result = await list_rooms()
 
         assert len(result["rooms"]) == 1

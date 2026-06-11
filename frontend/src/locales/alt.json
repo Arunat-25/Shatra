@@ -8,6 +8,7 @@
     "logout": "Чыгар",
     "account": "Аккаунт",
     "tutorial": "Ӧйрӱнӱ",
+    "support": "Колдоо",
     "reportBug": "Кемчиликти билдири",
     "openMenu": "Меню",
     "closeMenu": "Менюны чыгар"
@@ -27,6 +28,7 @@
     "descriptionTooShort": "Темдени 10 символдон кем болбосын.",
     "descriptionTooLong": "Темдени ӱн узун (максимум 5000 символ).",
     "invalidScreenshotServer": "Сүрөт форматы туура эмес.",
+    "rateLimit": "Өтө көп билдирүү. Күтө туруңуз.",
     "charCount": "{{count}} / {{max}}",
     "minCharsHint": "Јеткизүү үчүн кеминде {{min}} символ"
   },
@@ -205,7 +207,9 @@
     "noTimer": "Ӧй jокко",
     "closeError": "Jaбар",
     "onlineCount": "Улустын тоозы: {{count}}",
-    "activeGamesCount": "Ӧдӱп jаткан ойындардыҥ тоозы: {{count}}"
+    "activeGamesCount": "Ӧдӱп jаткан ойындардыҥ тоозы: {{count}}",
+    "ratingGainBlockedTitle": "Рейтинг ээле тийи темитилген",
+    "ratingGainBlockedUntil": "{{until}} чейин Elo тийилбейт — рейтинг буст керек. Жеңилиске јарӱмдар сакталат."
   },
   "setup": {
     "title": "Ойыныҥ кӧрӱмдери",

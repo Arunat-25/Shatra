@@ -104,6 +104,27 @@ def _ensure_schema_patches() -> None:
                 "ALTER TABLE finished_games ADD COLUMN black_gain_capped "
                 "BOOLEAN NOT NULL DEFAULT false"
             )
+
+        cur.execute(
+            """
+            SELECT 1 FROM pg_constraint
+            WHERE conname = 'uq_finished_games_room_started'
+            """
+        )
+        if cur.fetchone() is None:
+            cur.execute(
+                "ALTER TABLE finished_games "
+                "ADD CONSTRAINT uq_finished_games_room_started "
+                "UNIQUE (room_id, started_at)"
+            )
+            cur.execute(
+                "CREATE INDEX IF NOT EXISTS ix_finished_games_white_user_finished_at "
+                "ON finished_games (white_user_id, finished_at DESC)"
+            )
+            cur.execute(
+                "CREATE INDEX IF NOT EXISTS ix_finished_games_black_user_finished_at "
+                "ON finished_games (black_user_id, finished_at DESC)"
+            )
     conn.close()
 
 
@@ -132,6 +153,35 @@ def ensure_test_db_schema(request):
     asyncio.run(create_all_tables())
     _ensure_schema_patches()
     yield
+
+
+@pytest.fixture(autouse=True)
+def reset_redis_gauges_cache():
+    from backend.observability.redis_metrics import invalidate_redis_gauges_cache
+
+    invalidate_redis_gauges_cache()
+    yield
+    invalidate_redis_gauges_cache()
+
+
+@pytest.fixture(autouse=True)
+def reset_in_memory_room_state():
+    """Prevent leaked room locks / timers from hanging later tests."""
+    from backend import state
+
+    state._room_locks.clear()
+    for task in list(state.disconnect_timers.values()):
+        if task is not None and hasattr(task, "cancel") and not task.done():
+            task.cancel()
+    state.disconnect_timers.clear()
+    for task in list(state.game_timers.values()):
+        if task is not None and hasattr(task, "cancel") and not task.done():
+            task.cancel()
+    state.game_timers.clear()
+    yield
+    state._room_locks.clear()
+    state.disconnect_timers.clear()
+    state.game_timers.clear()
 
 
 @pytest.fixture

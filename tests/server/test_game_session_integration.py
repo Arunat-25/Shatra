@@ -54,6 +54,7 @@ class PvpState:
         patch_specs = [
             ("backend.session.messages", ("get_game", "get_room")),
             ("backend.ws_control_handlers", ("get_game", "get_room", "set_game", "set_room")),
+            ("backend.game_finish", ("get_game", "get_room", "set_game", "set_room")),
         ]
         side_effects = {
             "get_game": get_game_side_effect,
@@ -61,7 +62,9 @@ class PvpState:
             "set_game": set_game_side_effect,
             "set_room": set_room_side_effect,
         }
-        self._patches = []
+        self._patches = [
+            patch("backend.game_archive._archive_finished_game_locked", AsyncMock()),
+        ]
         for mod, attrs in patch_specs:
             for attr in attrs:
                 self._patches.append(
@@ -446,19 +449,20 @@ class TestHandlePlayer2Join:
 
         with patch("backend.ws_manager.init_game", new_callable=AsyncMock):
             with patch("backend.player_identity.refresh_pvp_ratings_for_room", new_callable=AsyncMock):
-                with patch("backend.ws_manager.get_game", new_callable=AsyncMock, return_value=game):
-                    with patch("backend.ws_manager.set_room", new_callable=AsyncMock):
-                        with patch("backend.ws_manager.manager") as mgr:
-                            mgr.get_ws = MagicMock(side_effect=lambda rid, cid: ws_a if cid == "a" else ws_b)
-                            mgr.send_to_player = AsyncMock()
-                            with patch("backend.ws_manager.game_timers", {}):
-                                with patch("backend.ws_manager.asyncio.create_task") as create_task:
-                                    def close_coro(coro):
-                                        coro.close()
-                                        return MagicMock(done=MagicMock(return_value=False))
+                with patch("backend.ws_manager.remove_waiting_public_room", new_callable=AsyncMock):
+                    with patch("backend.ws_manager.get_game", new_callable=AsyncMock, return_value=game):
+                        with patch("backend.ws_manager.set_room", new_callable=AsyncMock):
+                            with patch("backend.ws_manager.manager") as mgr:
+                                mgr.get_ws = MagicMock(side_effect=lambda rid, cid: ws_a if cid == "a" else ws_b)
+                                mgr.send_to_player = AsyncMock()
+                                with patch("backend.ws_manager.game_timers", {}):
+                                    with patch("backend.ws_manager.asyncio.create_task") as create_task:
+                                        def close_coro(coro):
+                                            coro.close()
+                                            return MagicMock(done=MagicMock(return_value=False))
 
-                                    create_task.side_effect = close_coro
-                                    await handle_player2_join("j1", room)
+                                        create_task.side_effect = close_coro
+                                        await handle_player2_join("j1", room)
 
         assert room["game_started"] is True
         assert mgr.send_to_player.call_count == 2

@@ -8,6 +8,7 @@
     "logout": "Выйти",
     "account": "Аккаунт",
     "tutorial": "Обучение",
+    "support": "Поддержать",
     "reportBug": "Сообщить о баге",
     "openMenu": "Меню",
     "closeMenu": "Закрыть меню"
@@ -27,6 +28,7 @@
     "descriptionTooShort": "Описание должно быть не короче 10 символов.",
     "descriptionTooLong": "Описание слишком длинное (максимум 5000 символов).",
     "invalidScreenshotServer": "Недопустимый формат изображения.",
+    "rateLimit": "Слишком много сообщений. Подождите.",
     "charCount": "{{count}} / {{max}}",
     "minCharsHint": "Минимум {{min}} символов для отправки"
   },

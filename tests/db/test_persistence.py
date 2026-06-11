@@ -399,6 +399,7 @@ class TestFinishedGamesTablePersistence:
             stub.game["archived"] = False
             stub.game["reason"] = "draw_agreed"
             stub.game["winner_color"] = ""
+            stub.room["game_started_at"] = "2026-06-01T11:00:00+00:00"
             await archive_finished_game("same0001")
         assert db_scalar("SELECT COUNT(*) FROM finished_games WHERE room_id = %s", ("same0001",)) == 2
 

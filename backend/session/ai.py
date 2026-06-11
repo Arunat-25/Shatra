@@ -15,7 +15,8 @@ from backend.game_helpers import (
     apply_move_result,
     get_ai_color,
 )
-from backend.game_archive import mark_game_started, on_game_finished
+from backend.game_archive import mark_game_started
+from backend.game_finish import complete_game_after_move
 from backend.observability.logging import log_extra
 from backend.observability.metrics import record_move, record_game_started
 
@@ -84,8 +85,7 @@ async def handle_ai_move(
         game["reason"] = "ai.no_move"
         await set_game(room_id, game)
         await manager.send_to_room(room_id, response)
-        stop_game_timer(room_id)
-        await on_game_finished(room_id)
+        await complete_game_after_move(room_id)
         return
 
     from_cell, to_cell = move

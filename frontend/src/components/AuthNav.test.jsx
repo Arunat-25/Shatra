@@ -59,12 +59,22 @@ describe('AuthNav compact mobile nav', () => {
     document.documentElement.classList.remove('app-shell--game-nav-compact');
   });
 
-  it('shows only hamburger on game route in mobile layout', () => {
+  it('shows hamburger and centered support button on game route in mobile layout', () => {
     renderNav('/room123');
     expect(screen.getByRole('button', { name: 'nav.openMenu' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'nav.support' })).toBeTruthy();
+    expect(document.querySelector('.app-top-center')).toBeTruthy();
+    expect(document.querySelector('.app-top-start--compact')?.querySelector('.app-support-btn')).toBeNull();
     expect(screen.queryByText('nav.home')).toBeNull();
     expect(screen.queryByText('lobby.title')).toBeNull();
     expect(document.documentElement.classList.contains('app-shell--game-nav-compact')).toBe(true);
+  });
+
+  it('does not show support button in mobile drawer', () => {
+    renderNav('/room123');
+    fireEvent.click(screen.getByRole('button', { name: 'nav.openMenu' }));
+    const drawer = document.getElementById('app-nav-drawer');
+    expect(drawer.querySelector('a[href*="cloudtips"]')).toBeNull();
   });
 
   it('shows home and tutorial in drawer on mobile', () => {
@@ -87,5 +97,9 @@ describe('AuthNav compact mobile nav', () => {
     expect(screen.getByText('lobby.title')).toBeTruthy();
     expect(screen.getByText('nav.home')).toBeTruthy();
     expect(screen.getByText('nav.tutorial')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'nav.support' })).toBeTruthy();
+    expect(document.querySelector('.app-top-center')).toBeNull();
+    expect(document.querySelector('.app-chrome-nav-tabs .app-support-btn')).toBeNull();
+    expect(document.querySelector('.app-top-start > .app-support-btn')).toBeTruthy();
   });
 });

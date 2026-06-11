@@ -35,6 +35,7 @@ class TestListRoomsCreator:
             "players": {creator_id: "белый"},
         }
         redis_client().set(f"room:{room_id}", json.dumps(room))
+        redis_client().sadd("lobby:waiting_public", room_id)
         rooms = client.get(f"/rooms?client_id={new_client_id()}").json()["rooms"]
         match = [r for r in rooms if r["room_id"] == room_id]
         assert len(match) == 1
@@ -59,6 +60,7 @@ class TestListRoomsCreator:
             "players": {creator_id: "белый"},
         }
         redis_client().set(f"room:{room_id}", json.dumps(room))
+        redis_client().sadd("lobby:waiting_public", room_id)
         rooms = client.get(f"/rooms?client_id={new_client_id()}").json()["rooms"]
         match = [r for r in rooms if r["room_id"] == room_id]
         assert len(match) == 1

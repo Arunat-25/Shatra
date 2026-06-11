@@ -291,11 +291,9 @@ async def apply_move_result(
     if room_data:
         response.update(_timer_fields(room_data, game))
     if result.game_over:
-        from backend.timers import stop_game_timer
+        from backend.game_finish import complete_game_after_move
 
-        stop_game_timer(room_id)
-        from backend.game_archive import on_game_finished
-        await on_game_finished(room_id)
+        await complete_game_after_move(room_id)
     return response
 
 

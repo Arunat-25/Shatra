@@ -93,7 +93,7 @@ async def test_metrics_gauge_drops_after_cleanup():
             mgr.connections = {}
             await _handle_disconnect(room_id, ws, is_ai_room=False)
 
-        await refresh_redis_gauges()
+        await refresh_redis_gauges(force=True)
         body_after = (await _metrics_text()).decode()
         assert parse_gauge(body_after, "shatra_redis_games_active", {"game_over": "true"}) == 0.0
         assert parse_gauge(body_after, "shatra_redis_games_active", {"game_over": "false"}) == 0.0

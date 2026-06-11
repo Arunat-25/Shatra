@@ -8,7 +8,15 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from backend.observability import metrics as m
+from backend.observability import redis_metrics
 from backend.observability.redis_metrics import refresh_redis_gauges
+
+
+@pytest.fixture(autouse=True)
+def _reset_gauge_cache():
+    redis_metrics._gauge_cache_expires_at = 0.0
+    yield
+    redis_metrics._gauge_cache_expires_at = 0.0
 
 
 @pytest.mark.asyncio
@@ -74,3 +82,24 @@ async def test_refresh_treats_invalid_json_as_unknown_room():
         await refresh_redis_gauges()
 
     assert m.REDIS_ROOMS_ACTIVE.labels(room_type="unknown")._value.get() == 1.0
+
+
+@pytest.mark.asyncio
+async def test_refresh_uses_ttl_cache_to_skip_rescan():
+    import backend.observability.redis_metrics as redis_metrics
+
+    redis_metrics._gauge_cache_expires_at = 0.0
+    scan = AsyncMock(return_value=[])
+
+    with (
+        patch("backend.observability.redis_metrics.scan_keys", scan),
+        patch("backend.observability.redis_metrics.get_raw", AsyncMock(return_value=None)),
+        patch("backend.observability.redis_metrics.state.redis_client", object()),
+        patch("backend.observability.redis_metrics.time.monotonic", side_effect=[100.0, 100.0, 105.0]),
+    ):
+        await refresh_redis_gauges()
+        await refresh_redis_gauges()
+        redis_metrics._gauge_cache_expires_at = 0.0
+        await refresh_redis_gauges()
+
+    assert scan.await_count == 4

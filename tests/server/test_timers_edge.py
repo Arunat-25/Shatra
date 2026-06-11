@@ -76,20 +76,17 @@ class TestHandleTimeout:
         game = {"board": starting_board, "mover": "белый", "game_over": False}
         room_id = "timeout-room"
 
+        finish = AsyncMock(return_value=True)
         with patch("backend.timers.get_game", new_callable=AsyncMock, return_value=game):
             with patch("backend.timers.get_room", new_callable=AsyncMock, return_value=None):
-                with patch("backend.timers.set_game", new_callable=AsyncMock) as set_game:
-                    with patch("backend.timers.manager") as mgr:
-                        mgr.send_to_room = AsyncMock()
-                        with patch("backend.timers.stop_game_timer") as stop:
-                            await handle_timeout(room_id, "белый")
+                with patch("backend.timers._finish_game_locked", finish):
+                    await handle_timeout(room_id, "белый")
 
-        assert game["game_over"] is True
-        set_game.assert_called_once()
-        payload = mgr.send_to_room.call_args[0][1]
-        assert payload["winner_color"] == "черный"
-        assert payload["reason"] == "timeout"
-        stop.assert_called_once()
+        finish.assert_awaited_once()
+        call_kwargs = finish.await_args.kwargs
+        assert call_kwargs["winner_color"] == "черный"
+        assert call_kwargs["reason"] == "timeout"
+        assert call_kwargs["broadcast"]["status"] == "timeout"
 
 
 @pytest.mark.asyncio
@@ -104,34 +101,33 @@ class TestDisconnectTimerWinner:
         async def instant_sleep(_):
             return None
 
+        finish = AsyncMock(return_value=True)
+
         with patch("backend.timers.asyncio.sleep", side_effect=instant_sleep):
             with patch("backend.timers.DISCONNECT_TIMEOUT", 1):
                 with patch("backend.timers.get_game", new_callable=AsyncMock, return_value=game):
                     with patch("backend.timers.get_room", new_callable=AsyncMock, return_value=room):
-                        with patch("backend.timers.set_game", new_callable=AsyncMock):
-                            with patch("backend.timers.manager") as mgr:
-                                mgr.send_to_room = AsyncMock()
-                                with patch("backend.timers.stop_game_timer"):
-                                    await disconnect_timer(room_id, remaining_ws, "dc")
+                        with patch("backend.timers.finish_game", finish):
+                            await disconnect_timer(room_id, remaining_ws, "dc")
 
-        assert game["game_over"] is True
-        assert game["winner"] == "белый"
-        assert game["reason"] == "opponent_disconnected"
+        finish.assert_awaited_once()
+        call_kwargs = finish.await_args.kwargs
+        assert call_kwargs["reason"] == "opponent_disconnected"
+        assert call_kwargs["winner_color"] == "белый"
 
     async def test_no_game_over_if_already_finished(self, starting_board):
         game = {"board": starting_board, "game_over": True, "winner": "белый"}
         remaining_ws = AsyncMock()
 
+        finish = AsyncMock(return_value=True)
+
         with patch("backend.timers.asyncio.sleep", side_effect=lambda _: None):
             with patch("backend.timers.DISCONNECT_TIMEOUT", 1):
                 with patch("backend.timers.get_game", new_callable=AsyncMock, return_value=game):
-                    with patch("backend.timers.set_game", new_callable=AsyncMock) as set_game:
-                        with patch("backend.timers.manager") as mgr:
-                            mgr.send_to_room = AsyncMock()
-                            await disconnect_timer("r", remaining_ws, "x")
+                    with patch("backend.timers._finish_game_locked", finish) as finish_mock:
+                        await disconnect_timer("r", remaining_ws, "x")
 
-        set_game.assert_not_called()
-        mgr.send_to_room.assert_not_called()
+        finish_mock.assert_not_called()
 
 
 class TestOppositeColor:

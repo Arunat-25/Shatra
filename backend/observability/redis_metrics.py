@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import time
 from collections import Counter
 
 from backend import state
@@ -15,6 +16,8 @@ from backend.state import get_raw, scan_keys
 
 ROOM_TYPES = ("public", "private", "ai", "unknown")
 GAME_OVER_LABELS = ("true", "false")
+_GAUGE_CACHE_TTL_SECONDS = 10.0
+_gauge_cache_expires_at = 0.0
 
 
 def _zero_gauges() -> None:
@@ -25,8 +28,7 @@ def _zero_gauges() -> None:
         REDIS_GAMES_ACTIVE.labels(game_over=game_over).set(0)
 
 
-async def refresh_redis_gauges() -> None:
-    """Scan room:* and game:* keys and update Prometheus gauges."""
+async def _scan_and_update_gauges() -> None:
     if state.redis_client is None:
         _zero_gauges()
         return
@@ -71,3 +73,23 @@ async def refresh_redis_gauges() -> None:
     REDIS_ROOMS_WAITING.labels(room_type="public").set(waiting_public)
     for game_over, count in games_by_over.items():
         REDIS_GAMES_ACTIVE.labels(game_over=game_over).set(count)
+
+
+def invalidate_redis_gauges_cache() -> None:
+    """Drop TTL cache so the next refresh scans Redis."""
+    global _gauge_cache_expires_at
+    _gauge_cache_expires_at = 0.0
+
+
+async def refresh_redis_gauges(*, force: bool = False) -> None:
+    """Scan room:* and game:* keys and update Prometheus gauges."""
+    global _gauge_cache_expires_at
+    if state.redis_client is None:
+        _gauge_cache_expires_at = 0.0
+        await _scan_and_update_gauges()
+        return
+    now = time.monotonic()
+    if not force and now < _gauge_cache_expires_at:
+        return
+    await _scan_and_update_gauges()
+    _gauge_cache_expires_at = now + _GAUGE_CACHE_TTL_SECONDS

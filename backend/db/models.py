@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, LargeBinary, String, Text
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, LargeBinary, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -59,6 +59,9 @@ class RefreshToken(Base):
 
 class FinishedGame(Base):
     __tablename__ = "finished_games"
+    __table_args__ = (
+        UniqueConstraint("room_id", "started_at", name="uq_finished_games_room_started"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     room_id: Mapped[str] = mapped_column(String(8), index=True)

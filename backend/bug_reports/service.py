@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from urllib.parse import urlparse
 
 from fastapi import HTTPException, UploadFile
 from sqlalchemy import func, select
@@ -24,6 +25,18 @@ ALLOWED_SCREENSHOT_MIMES = frozenset({"image/png", "image/jpeg", "image/webp"})
 MAX_SCREENSHOT_BYTES = 3 * 1024 * 1024
 MIN_DESCRIPTION_LEN = 10
 MAX_DESCRIPTION_LEN = 5000
+
+
+def _sanitize_page_url(page_url: str | None) -> str | None:
+    if not page_url:
+        return None
+    text = page_url.strip()[:512]
+    if not text:
+        return None
+    parsed = urlparse(text)
+    if parsed.scheme not in ("http", "https") or not parsed.netloc:
+        return None
+    return text
 
 
 def _validate_description(description: str) -> str:
@@ -70,7 +83,7 @@ async def create_bug_report(
         screenshot_mime=screenshot_mime,
         user_id=user.id if user else None,
         client_id=(client_id or None),
-        page_url=(page_url or None)[:512] if page_url else None,
+        page_url=_sanitize_page_url(page_url),
         user_agent=(user_agent or None)[:512] if user_agent else None,
     )
     db.add(report)

@@ -154,7 +154,10 @@ async def test_create_room_with_user_sets_creator():
         stored[room_id] = data
 
     req = CreateRoomRequest(type="public", creator_client_id="client-abc")
-    with patch("backend.room_manager.set_room", side_effect=fake_set):
+    with (
+        patch("backend.room_manager.set_room", side_effect=fake_set),
+        patch("backend.room_manager.add_waiting_public_room", AsyncMock()),
+    ):
         result = await create_room(req, user=user)
     room = stored[result["room_id"]]
     assert room["creator_username"] == "creator"
@@ -169,7 +172,10 @@ async def test_create_room_without_user_anonymous_creator():
         stored[room_id] = data
 
     req = CreateRoomRequest(type="public", creator_client_id="guest-1")
-    with patch("backend.room_manager.set_room", side_effect=fake_set):
+    with (
+        patch("backend.room_manager.set_room", side_effect=fake_set),
+        patch("backend.room_manager.add_waiting_public_room", AsyncMock()),
+    ):
         result = await create_room(req, user=None)
     room = stored[result["room_id"]]
     assert room.get("creator_username") is None

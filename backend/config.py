@@ -67,6 +67,11 @@ def validate_production_settings(cfg: Settings) -> None:
             "JWT_SECRET must be set to a strong random value when APP_ENV=production"
         )
 
+    if not (cfg.metrics_token or "").strip():
+        raise RuntimeError(
+            "METRICS_TOKEN must be set when APP_ENV=production"
+        )
+
     if cfg.cors_allow_origins.strip() == "*":
         logger.warning(
             "CORS_ALLOW_ORIGINS is '*' in production; set explicit origins if API is split from frontend"

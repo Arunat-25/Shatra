@@ -88,11 +88,14 @@ class TestGameTimerCleanup:
         state.game_timers[room_id] = asyncio.create_task(asyncio.sleep(9999))
 
         with (
-            patch("backend.timers.get_game", new_callable=AsyncMock, return_value={"board": {}}),
+            patch("backend.timers.get_game", new_callable=AsyncMock, return_value={"board": {}, "game_over": False}),
             patch("backend.timers.get_room", new_callable=AsyncMock, return_value=None),
-            patch("backend.timers.set_game", new_callable=AsyncMock),
+            patch("backend.game_finish.get_game", new_callable=AsyncMock, return_value={"board": {}, "game_over": False}),
+            patch("backend.game_finish.set_game", new_callable=AsyncMock),
+            patch("backend.game_finish.get_room", new_callable=AsyncMock, return_value=None),
+            patch("backend.game_archive.on_game_finished", new_callable=AsyncMock),
         ):
-            with patch("backend.timers.manager") as mgr:
+            with patch("backend.game_finish.manager") as mgr:
                 mgr.send_to_room = AsyncMock()
                 await handle_timeout(room_id, "белый")
 
@@ -115,15 +118,16 @@ class TestGameTimerCleanup:
 
         with patch("backend.ws_manager.init_game", new_callable=AsyncMock):
             with patch("backend.player_identity.refresh_pvp_ratings_for_room", new_callable=AsyncMock):
-                with patch("backend.ws_manager.get_game", new_callable=AsyncMock, return_value={"board": {}, "mover": "белый"}):
-                    with patch("backend.ws_manager.set_room", new_callable=AsyncMock):
-                        with patch("backend.ws_manager.manager") as mgr:
-                            mgr.get_ws = MagicMock(return_value=None)
-                            mgr.send_to_player = AsyncMock()
-                            with patch("backend.ws_manager.asyncio.create_task") as create_task:
-                                new_task = MagicMock(done=MagicMock(return_value=False))
-                                create_task.return_value = new_task
-                                await handle_player2_join(room_id, room)
+                with patch("backend.ws_manager.remove_waiting_public_room", new_callable=AsyncMock):
+                    with patch("backend.ws_manager.get_game", new_callable=AsyncMock, return_value={"board": {}, "mover": "белый"}):
+                        with patch("backend.ws_manager.set_room", new_callable=AsyncMock):
+                            with patch("backend.ws_manager.manager") as mgr:
+                                mgr.get_ws = MagicMock(return_value=None)
+                                mgr.send_to_player = AsyncMock()
+                                with patch("backend.ws_manager.asyncio.create_task") as create_task:
+                                    new_task = MagicMock(done=MagicMock(return_value=False))
+                                    create_task.return_value = new_task
+                                    await handle_player2_join(room_id, room)
 
         await asyncio.sleep(0)
         assert old_task.cancelled() or old_task.done()
@@ -347,11 +351,14 @@ class TestRematchAndControlCleanup:
 
         with patch("backend.ws_control_handlers.get_game", new_callable=AsyncMock, return_value=game):
             with patch("backend.ws_control_handlers.get_room", new_callable=AsyncMock, return_value=room):
-                with patch("backend.ws_control_handlers.set_game", new_callable=AsyncMock):
-                    with patch("backend.ws_control_handlers.set_room", new_callable=AsyncMock):
-                        with patch("backend.ws_control_handlers.manager") as mgr:
-                            mgr.send_to_room = AsyncMock()
-                            await handle_resign(room_id, "p-white", ws, is_ai_room=False)
+                with patch("backend.game_finish.get_game", new_callable=AsyncMock, return_value=game):
+                    with patch("backend.game_finish.set_game", new_callable=AsyncMock):
+                        with patch("backend.game_finish.get_room", new_callable=AsyncMock, return_value=room):
+                            with patch("backend.game_finish.set_room", new_callable=AsyncMock):
+                                with patch("backend.game_archive.on_game_finished", new_callable=AsyncMock):
+                                    with patch("backend.game_finish.manager") as mgr:
+                                        mgr.send_to_room = AsyncMock()
+                                        await handle_resign(room_id, "p-white", ws, is_ai_room=False)
 
         assert room_id not in state.game_timers
 

@@ -5,10 +5,13 @@ import en from '../locales/en.json';
 import alt from '../locales/alt.json';
 
 const LOCALE_KEY = 'shatra_locale';
-export const SUPPORTED_LOCALES = ['ru', 'en', 'alt'];
+export const ALL_LOCALES = ['ru', 'en', 'alt'];
+/** Locales shown in the language switcher (alt hidden until translation is ready). */
+export const SELECTABLE_LOCALES = ['ru', 'en'];
 
 export function normalizeLocale(locale) {
-  return SUPPORTED_LOCALES.includes(locale) ? locale : 'ru';
+  if (!locale || locale === 'alt') return 'ru';
+  return SELECTABLE_LOCALES.includes(locale) ? locale : 'ru';
 }
 
 export function getStoredLocale() {

@@ -18,6 +18,7 @@ from backend.message_codes import (
     CANCEL_COLOR_UNKNOWN,
     CANCEL_TOO_LATE,
 )
+from backend.game_finish import _finish_game_locked
 from backend.state import get_game, set_game, get_room, set_room
 from backend.ws_manager import manager
 
@@ -119,26 +120,16 @@ async def handle_offer_draw(
     pending = game.get("draw_offer_from")
 
     if pending == other_color:
-        game["game_over"] = True
-        game["winner_color"] = ""
-        game["winner"] = ""
-        game["reason"] = "draw_agreed"
-        game.pop("draw_offer_from", None)
-        await set_game(room_id, game)
-        room_data["rematch_ready"] = []
-        await set_room(room_id, room_data)
-        try:
-            from backend.timers import stop_game_timer
-            stop_game_timer(room_id)
-        except Exception:
-            pass
-        await manager.send_to_room(room_id, {
-            "game_over": True,
-            "reason": "draw_agreed",
-            "desk": keys_int_to_str(game.get("board", {})),
-        })
-        from backend.game_archive import on_game_finished
-        await on_game_finished(room_id)
+        await _finish_game_locked(
+            room_id,
+            reason="draw_agreed",
+            winner_color="",
+            broadcast={
+                "game_over": True,
+                "reason": "draw_agreed",
+                "desk": keys_int_to_str(game.get("board", {})),
+            },
+        )
         return True
 
     if pending == my_color:
@@ -176,30 +167,18 @@ async def handle_resign(
     if not my_color:
         my_color = "белый"
     winner_color = opposite_color(my_color)
-    game["game_over"] = True
-    game["winner_color"] = winner_color
-    game["winner"] = winner_color
-    game["reason"] = "resign"
-    game.pop("draw_offer_from", None)
-    await set_game(room_id, game)
-    if not is_ai_room:
-        room_data = await get_room(room_id)
-        if room_data:
-            room_data["rematch_ready"] = []
-            await set_room(room_id, room_data)
-    try:
-        from backend.timers import stop_game_timer
-        stop_game_timer(room_id)
-    except Exception:
-        pass
-    await manager.send_to_room(room_id, {
-        "game_over": True,
-        "winner_color": winner_color,
-        "reason": "resign",
-        "desk": keys_int_to_str(game.get("board", {})),
-    })
-    from backend.game_archive import on_game_finished
-    await on_game_finished(room_id)
+    await _finish_game_locked(
+        room_id,
+        reason="resign",
+        winner_color=winner_color,
+        broadcast={
+            "game_over": True,
+            "winner_color": winner_color,
+            "reason": "resign",
+            "desk": keys_int_to_str(game.get("board", {})),
+        },
+        clear_rematch=not is_ai_room,
+    )
     return True
 
 

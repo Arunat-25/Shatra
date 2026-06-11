@@ -16,20 +16,17 @@ class TestTimerMetrics:
             "game_over": False,
             "move_history": [],
         }
+        finish = AsyncMock(return_value=True)
 
         with (
             patch("backend.timers.get_game", new_callable=AsyncMock, return_value=game),
             patch("backend.timers.get_room", new_callable=AsyncMock, return_value=None),
-            patch("backend.timers.set_game", new_callable=AsyncMock),
-            patch("backend.timers.manager") as mgr,
-            patch("backend.timers.stop_game_timer"),
-            patch("backend.game_archive.on_game_finished", new_callable=AsyncMock),
-            patch("backend.timers.record_timeout") as record_timeout,
+            patch("backend.timers._finish_game_locked", finish),
         ):
-            mgr.send_to_room = AsyncMock()
             await handle_timeout(room_id, "белый")
 
-        record_timeout.assert_called_once_with("clock")
+        finish.assert_awaited_once()
+        assert finish.await_args.kwargs["record_timeout_kind"] == "clock"
 
     async def test_disconnect_timer_records_disconnect_timeout(self):
         room_id = "dc-room"
@@ -37,20 +34,17 @@ class TestTimerMetrics:
         room_data = {"players": {"dc": "черный"}}
         ws = AsyncMock()
         ws.send_json = AsyncMock()
+        finish = AsyncMock(return_value=True)
 
         with (
             patch("backend.timers.DISCONNECT_TIMEOUT", 1),
             patch("backend.timers.TICK_INTERVAL_SECONDS", 0),
             patch("backend.timers.get_game", new_callable=AsyncMock, return_value=game),
             patch("backend.timers.get_room", new_callable=AsyncMock, return_value=room_data),
-            patch("backend.timers.set_game", new_callable=AsyncMock),
-            patch("backend.timers.manager") as mgr,
-            patch("backend.timers.stop_game_timer"),
-            patch("backend.game_archive.on_game_finished", new_callable=AsyncMock),
+            patch("backend.timers.finish_game", finish),
             patch("backend.timers.disconnect_timers", {}),
-            patch("backend.timers.record_timeout") as record_timeout,
         ):
-            mgr.send_to_room = AsyncMock()
             await disconnect_timer(room_id, ws, "dc")
 
-        record_timeout.assert_called_once_with("disconnect")
+        finish.assert_awaited_once()
+        assert finish.await_args.kwargs["record_timeout_kind"] == "disconnect"

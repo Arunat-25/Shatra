@@ -43,6 +43,9 @@ def ensure_redis(fn):
     return wrapper
 
 
+LOBBY_WAITING_PUBLIC_KEY = "lobby:waiting_public"
+
+
 # === REDIS UTILITY ===
 
 @ensure_redis
@@ -149,3 +152,22 @@ async def set_room(room_id: str, data: dict):
 async def delete_room(room_id: str):
     """Удаляет комнату из Redis."""
     await redis_client.delete(f"room:{room_id}")
+    await redis_client.srem(LOBBY_WAITING_PUBLIC_KEY, room_id)
+
+
+@ensure_redis
+async def add_waiting_public_room(room_id: str) -> None:
+    """Track a public room waiting for the second player."""
+    await redis_client.sadd(LOBBY_WAITING_PUBLIC_KEY, room_id)
+
+
+@ensure_redis
+async def remove_waiting_public_room(room_id: str) -> None:
+    """Remove a room from the waiting-public lobby index."""
+    await redis_client.srem(LOBBY_WAITING_PUBLIC_KEY, room_id)
+
+
+@ensure_redis
+async def get_waiting_public_room_ids() -> list[str]:
+    """Return room ids of public rooms waiting for an opponent."""
+    return list(await redis_client.smembers(LOBBY_WAITING_PUBLIC_KEY))

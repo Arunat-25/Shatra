@@ -1,8 +1,7 @@
+import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { getStoredLocale, normalizeLocale, setStoredLocale } from '../i18n';
+import { getStoredLocale, normalizeLocale, SELECTABLE_LOCALES, setStoredLocale } from '../i18n';
 import LocaleFlag, { LOCALE_ARIA } from './LocaleFlag';
-
-const LOCALES = ['ru', 'en', 'alt'];
 
 export default function LocaleSwitcher({ compact = false }) {
   const { i18n } = useTranslation();
@@ -20,7 +19,7 @@ export default function LocaleSwitcher({ compact = false }) {
 
   return (
     <div className={rootClass} role="group" aria-label="Language">
-      {LOCALES.map((lng, index) => (
+      {SELECTABLE_LOCALES.map((lng, index) => (
         <span key={lng} className="locale-switcher__item">
           {index > 0 && <span className="locale-switcher__sep" aria-hidden>|</span>}
           <button

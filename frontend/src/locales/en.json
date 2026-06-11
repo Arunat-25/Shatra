@@ -8,6 +8,7 @@
     "logout": "Log out",
     "account": "Account",
     "tutorial": "Tutorial",
+    "support": "Support",
     "reportBug": "Report a bug",
     "openMenu": "Open menu",
     "closeMenu": "Close menu"
@@ -27,6 +28,7 @@
     "descriptionTooShort": "Description must be at least 10 characters.",
     "descriptionTooLong": "Description is too long (max 5000 characters).",
     "invalidScreenshotServer": "Invalid image format.",
+    "rateLimit": "Too many reports. Please wait.",
     "charCount": "{{count}} / {{max}}",
     "minCharsHint": "At least {{min}} characters required to submit"
   },

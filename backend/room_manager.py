@@ -1,6 +1,5 @@
 from fastapi import HTTPException
 import uuid
-import json
 import logging
 from datetime import datetime
 
@@ -11,7 +10,13 @@ from backend.models import CreateRoomRequest, Room
 from backend.player_identity import meta_from_user
 from backend.rating.elo import DEFAULT_RATING
 from backend.observability.metrics import record_room_created
-from backend.state import get_room, set_room, scan_keys, get_raw, get_game
+from backend.state import (
+    add_waiting_public_room,
+    get_game,
+    get_room,
+    get_waiting_public_room_ids,
+    set_room,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +73,8 @@ async def create_room(request: CreateRoomRequest, user: User | None = None) -> d
         room.last_tick = now.timestamp()
 
     await set_room(room_id, room.model_dump())
+    if request.type == "public":
+        await add_waiting_public_room(room_id)
     record_room_created(request.type)
     logger.info("Room created: %s (type=%s, time_control=%s)", room_id, request.type, request.time_control)
     return {"room_id": room_id, "type": request.type}
@@ -93,22 +100,22 @@ async def count_active_games() -> int:
 
 async def list_rooms() -> dict:
     """Возвращает список активных комнат (ожидающих второго игрока)."""
-    keys = await scan_keys("room:*")
     rooms_data = []
-    for key in keys:
-        raw = await get_raw(key)
-        if raw:
-            r = json.loads(raw)
-            if not r.get("game_started") and r.get("type") == "public":
-                rooms_data.append({
-                    "room_id": r["room_id"],
-                    "type": r["type"],
-                    "created_at": r.get("created_at", ""),
-                    "time_control": r.get("time_control"),
-                    "increment": r.get("increment") or 0,
-                    "creator_username": _resolve_creator_username(r),
-                    "creator_rating": _resolve_creator_rating(r),
-                })
+    for room_id in await get_waiting_public_room_ids():
+        room_data = await get_room(room_id)
+        if not room_data:
+            continue
+        if room_data.get("game_started") or room_data.get("type") != "public":
+            continue
+        rooms_data.append({
+            "room_id": room_data["room_id"],
+            "type": room_data["type"],
+            "created_at": room_data.get("created_at", ""),
+            "time_control": room_data.get("time_control"),
+            "increment": room_data.get("increment") or 0,
+            "creator_username": _resolve_creator_username(room_data),
+            "creator_rating": _resolve_creator_rating(room_data),
+        })
     active_games = await count_active_games()
     return {
         "rooms": rooms_data,

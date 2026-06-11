@@ -2,7 +2,7 @@
 
 import uuid
 
-from fastapi import APIRouter, Depends, File, Form, Query, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,9 +11,14 @@ from backend.bug_reports import service
 from backend.bug_reports.schemas import BugReportCreated, BugReportListResponse
 from backend.db.models import User
 from backend.db.session import get_db
+from backend.message_codes import BUG_REPORT_RATE_LIMIT
+from backend.rate_limit import check_sliding_window_rate_limit
 
 public_router = APIRouter(tags=["bug-reports"])
 admin_router = APIRouter(tags=["admin-bug-reports"])
+
+BUG_REPORT_RATE_LIMIT_COUNT = 5
+BUG_REPORT_RATE_WINDOW_SECONDS = 600
 
 
 @public_router.post("", response_model=BugReportCreated, status_code=201)
@@ -26,6 +31,17 @@ async def submit_bug_report(
     db: AsyncSession = Depends(get_db),
     user: User | None = Depends(get_optional_user),
 ):
+    rate_key_id = (client_id or "").strip()
+    if not rate_key_id:
+        rate_key_id = request.client.host if request.client else "unknown"
+    allowed = await check_sliding_window_rate_limit(
+        f"bug_report_rate:{rate_key_id}",
+        limit=BUG_REPORT_RATE_LIMIT_COUNT,
+        window_seconds=BUG_REPORT_RATE_WINDOW_SECONDS,
+    )
+    if not allowed:
+        raise HTTPException(status_code=429, detail=BUG_REPORT_RATE_LIMIT)
+
     user_agent = request.headers.get("user-agent")
     return await service.create_bug_report(
         db,

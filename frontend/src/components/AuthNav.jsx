@@ -9,6 +9,7 @@ import LocaleSwitcher from './LocaleSwitcher';
 import HomeTab from './HomeTab';
 import TutorialTab from './TutorialTab';
 import BugReportModal from './BugReportModal';
+import SupportButton from './SupportButton';
 
 const COMPACT_MOBILE_NAV_QUERY = '(max-width: 1319px)';
 
@@ -44,6 +45,7 @@ export default function AuthNav() {
   const { t } = useTranslation();
   const { user, isAuthenticated, loading, logout } = useAuth();
   const topStartRef = useRef(null);
+  const topCenterRef = useRef(null);
   const topEndRef = useRef(null);
   const menuToggleRef = useRef(null);
   const isMobileLayout = useMediaQuery(COMPACT_MOBILE_NAV_QUERY);
@@ -69,6 +71,7 @@ export default function AuthNav() {
     topEndRef,
     menuToggleRef,
     compactMobileNav,
+    topCenterRef,
   );
 
   const onLoginPage = pathname === '/login';
@@ -169,6 +172,7 @@ export default function AuthNav() {
         <HomeTab />
         <TutorialTab />
       </div>
+      <SupportButton />
     </div>
   );
 
@@ -207,6 +211,11 @@ export default function AuthNav() {
   return (
     <>
       {topTools}
+      {compactMobileNav && (
+        <div ref={topCenterRef} className="app-top-center">
+          <SupportButton compact />
+        </div>
+      )}
       {!compactMobileNav && (
         <div ref={topEndRef} className="app-top-end">
           <div className="app-auth-nav">

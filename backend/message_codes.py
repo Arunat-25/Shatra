@@ -29,6 +29,7 @@ BUG_REPORT_INVALID_SCREENSHOT = "bug_report.invalid_screenshot"
 BUG_REPORT_SCREENSHOT_TOO_LARGE = "bug_report.screenshot_too_large"
 BUG_REPORT_NOT_FOUND = "bug_report.not_found"
 BUG_REPORT_NO_SCREENSHOT = "bug_report.no_screenshot"
+BUG_REPORT_RATE_LIMIT = "bug_report.rate_limit"
 
 # Draw / rematch / control
 DRAW_BOT_DECLINED = "draw.bot_declined"
