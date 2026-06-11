@@ -4,19 +4,28 @@ import { AuthProvider } from './context/AuthContext';
 import AuthNav from './components/AuthNav';
 import PageTransition from './components/PageTransition';
 import Lobby from './Lobby';
-import Game from './Game';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
-import Tutorial from './pages/Tutorial';
-import TutorialSection1 from './pages/TutorialSection1';
-import TutorialSection2 from './pages/TutorialSection2';
-import TutorialSection3 from './pages/TutorialSection3';
-import TutorialSection4 from './pages/TutorialSection4';
-import TutorialSection5 from './pages/TutorialSection5';
 import { isTutorialPath, isTutorialLessonPath } from './tutorialPaths';
 import { isGamePath } from './appPaths';
+
+const Game = lazy(() => import('./Game'));
+const Tutorial = lazy(() => import('./pages/Tutorial'));
+const TutorialSection1 = lazy(() => import('./pages/TutorialSection1'));
+const TutorialSection2 = lazy(() => import('./pages/TutorialSection2'));
+const TutorialSection3 = lazy(() => import('./pages/TutorialSection3'));
+const TutorialSection4 = lazy(() => import('./pages/TutorialSection4'));
+const TutorialSection5 = lazy(() => import('./pages/TutorialSection5'));
 const Admin = lazy(() => import('./pages/Admin'));
+
+function RouteFallback() {
+  return (
+    <div className="route-fallback" aria-busy="true" aria-live="polite">
+      <div className="waiting-spinner" />
+    </div>
+  );
+}
 
 function AdminFallback() {
   return (
@@ -26,17 +35,22 @@ function AdminFallback() {
   );
 }
 
+function suspend(element, withTransition = false) {
+  const deferred = <Suspense fallback={<RouteFallback />}>{element}</Suspense>;
+  return withTransition ? <PageTransition>{deferred}</PageTransition> : deferred;
+}
+
 const routes = [
   { path: '/', element: <Lobby /> },
   { path: '/login', element: <Login /> },
   { path: '/register', element: <Register /> },
   { path: '/profile', element: <Profile /> },
-  { path: '/tutorial', element: <Tutorial /> },
-  { path: '/tutorial/1', element: <TutorialSection1 /> },
-  { path: '/tutorial/2', element: <TutorialSection2 /> },
-  { path: '/tutorial/3', element: <TutorialSection3 /> },
-  { path: '/tutorial/4', element: <TutorialSection4 /> },
-  { path: '/tutorial/5', element: <TutorialSection5 /> },
+  { path: '/tutorial', element: suspend(<Tutorial />, true) },
+  { path: '/tutorial/1', element: suspend(<TutorialSection1 />, true) },
+  { path: '/tutorial/2', element: suspend(<TutorialSection2 />, true) },
+  { path: '/tutorial/3', element: suspend(<TutorialSection3 />, true) },
+  { path: '/tutorial/4', element: suspend(<TutorialSection4 />, true) },
+  { path: '/tutorial/5', element: suspend(<TutorialSection5 />, true) },
   {
     path: '/admin',
     element: (
@@ -45,7 +59,7 @@ const routes = [
       </Suspense>
     ),
   },
-  { path: '/:roomId', element: <Game /> },
+  { path: '/:roomId', element: suspend(<Game />) },
 ];
 
 const AUTH_FORM_PATHS = new Set(['/login', '/register', '/profile', '/admin', '/tutorial']);
@@ -77,9 +91,9 @@ function AppShell() {
               key={path}
               path={path}
               element={
-                path === '/:roomId' || path === '/admin'
-                  ? element
-                  : <PageTransition>{element}</PageTransition>
+                path === '/' || path === '/login' || path === '/register' || path === '/profile'
+                  ? <PageTransition>{element}</PageTransition>
+                  : element
               }
             />
           ))}

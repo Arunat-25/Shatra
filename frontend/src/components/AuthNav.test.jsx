@@ -59,15 +59,22 @@ describe('AuthNav compact mobile nav', () => {
     document.documentElement.classList.remove('app-shell--game-nav-compact');
   });
 
-  it('shows hamburger and centered support button on game route in mobile layout', () => {
+  it('shows hamburger without support button on game route in mobile layout', () => {
     renderNav('/room123');
     expect(screen.getByRole('button', { name: 'nav.openMenu' })).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'nav.support' })).toBeTruthy();
-    expect(document.querySelector('.app-top-center')).toBeTruthy();
+    expect(screen.queryByRole('link', { name: 'nav.support' })).toBeNull();
+    expect(document.querySelector('.app-top-center')).toBeNull();
     expect(document.querySelector('.app-top-start--compact')?.querySelector('.app-support-btn')).toBeNull();
     expect(screen.queryByText('nav.home')).toBeNull();
     expect(screen.queryByText('lobby.title')).toBeNull();
     expect(document.documentElement.classList.contains('app-shell--game-nav-compact')).toBe(true);
+  });
+
+  it('shows fixed support button on lobby in mobile layout', () => {
+    renderNav('/');
+    expect(screen.getByRole('link', { name: 'nav.support' })).toBeTruthy();
+    expect(document.querySelector('.app-top-center--lobby-mobile')).toBeTruthy();
+    expect(document.querySelector('.app-support-btn--fixed')).toBeTruthy();
   });
 
   it('does not show support button in mobile drawer', () => {

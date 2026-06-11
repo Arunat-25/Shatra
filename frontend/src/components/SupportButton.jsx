@@ -10,14 +10,19 @@ function IconHeart() {
   );
 }
 
-export default function SupportButton({ compact = false }) {
+export default function SupportButton({ compact = false, fixed = false }) {
   const { t } = useTranslation();
   const label = t('nav.support');
+  const className = [
+    'app-support-btn',
+    compact && 'app-support-btn--compact',
+    fixed && 'app-support-btn--fixed',
+  ].filter(Boolean).join(' ');
 
   return (
     <a
       href={SUPPORT_URL}
-      className={`app-support-btn${compact ? ' app-support-btn--compact' : ''}`}
+      className={className}
       target="_blank"
       rel="noopener noreferrer"
       aria-label={label}

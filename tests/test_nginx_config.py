@@ -111,3 +111,8 @@ def test_nginx_templates_include_websocket_proxy_settings():
     assert "connection_upgrade" in https
     assert "connection_upgrade" in http_only
     assert "shatra_app" in https
+    gzip = (SNIPPETS / "gzip.conf").read_text(encoding="utf-8")
+    assert "gzip on" in gzip
+    assert "gzip_proxied" in gzip
+    assert "snippets/gzip.conf" in https
+    assert "snippets/gzip.conf" in http_only

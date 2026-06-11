@@ -28,6 +28,8 @@ server {
     ssl_certificate     /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
 
+    include /etc/nginx/snippets/gzip.conf;
+
     location / {
         proxy_pass http://shatra_app;
         include /etc/nginx/snippets/proxy-params.conf;

@@ -11,6 +11,8 @@ server {
     listen 80;
     server_name ${DOMAIN};
 
+    include /etc/nginx/snippets/gzip.conf;
+
     location /.well-known/acme-challenge/ {
         root /var/www/certbot;
     }

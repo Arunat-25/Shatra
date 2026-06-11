@@ -71,6 +71,14 @@ body.in-game {
   align-items: stretch;
 }
 
+.route-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40vh;
+  padding: 24px;
+}
+
 .app-shell {
   display: flex;
   flex-direction: column;

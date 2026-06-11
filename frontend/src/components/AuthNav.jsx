@@ -74,10 +74,12 @@ export default function AuthNav() {
     topCenterRef,
   );
 
+  const onLobbyPage = pathname === '/';
   const onLoginPage = pathname === '/login';
   const onRegisterPage = pathname === '/register';
   const onProfilePage = pathname === '/profile';
   const onAdminPage = pathname === '/admin';
+  const showMobileSupport = compactMobileNav && onLobbyPage;
 
   const handleLogout = () => {
     closeMenu();
@@ -211,9 +213,9 @@ export default function AuthNav() {
   return (
     <>
       {topTools}
-      {compactMobileNav && (
-        <div ref={topCenterRef} className="app-top-center">
-          <SupportButton compact />
+      {showMobileSupport && (
+        <div ref={topCenterRef} className="app-top-center app-top-center--lobby-mobile">
+          <SupportButton compact fixed />
         </div>
       )}
       {!compactMobileNav && (

@@ -141,6 +141,10 @@
   html.app-shell--game-nav-compact .app-shell--lobby .lobby-subtitle {
     max-width: 100%;
   }
+
+  html.app-shell--game-nav-compact body:has(.app-shell--lobby) .lobby-page {
+    padding-bottom: calc(52px + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 /* Узкое окно на «широком» лобби: две колонки, но меньше отступы */

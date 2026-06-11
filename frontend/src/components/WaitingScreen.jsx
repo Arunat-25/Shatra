@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import QRCode from 'qrcode';
 import PlayerNick from './PlayerNick';
 import { playerNickname, playerRating } from '../utils/playerDisplay';
 
@@ -63,7 +62,8 @@ export default function WaitingScreen({
       return undefined;
     }
     let cancelled = false;
-    QRCode.toDataURL(inviteUrl, { width: 120, margin: 1 })
+    import('qrcode')
+      .then(({ default: QRCode }) => QRCode.toDataURL(inviteUrl, { width: 120, margin: 1 }))
       .then((url) => {
         if (!cancelled) setQrDataUrl(url);
       })
