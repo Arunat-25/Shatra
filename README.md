@@ -7,6 +7,7 @@
 - Python 3.11+
 - Node.js 18+
 - Redis и PostgreSQL (локально или через Docker)
+- **Docker Compose v2** (`docker compose`, не `docker-compose` v1)
 
 ## Быстрый старт (Docker)
 
@@ -104,7 +105,7 @@ DATABASE_URL=postgresql+asyncpg://shatra:shatra@localhost:5432/shatra
 | `LOG_FORMAT` | Формат логов: `json` или `text` | `text` (локально), `json` в Docker |
 | `APP_ENV` | Окружение для Sentry | `development` |
 | `APP_VERSION` | Release/version для Sentry | `dev` |
-| `GRAFANA_ADMIN_PASSWORD` | Пароль admin в Grafana (docker-compose) | `admin` |
+| `GRAFANA_ADMIN_PASSWORD` | Пароль admin в Grafana (Docker Compose) | `admin` |
 | `DATABASE_URL` | PostgreSQL (asyncpg) | `postgresql+asyncpg://shatra:shatra@localhost:5432/shatra` |
 | `JWT_SECRET` | Секрет для JWT | *(обязательно сменить в prod)* |
 | `METRICS_TOKEN` | Bearer token для `/metrics` (prod + monitoring) | — |

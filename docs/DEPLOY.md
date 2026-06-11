@@ -8,9 +8,20 @@ Dev/quick demo без своего домена: [README](../README.md) (Cloudfl
 
 ## Требования
 
-- VPS с Docker и Docker Compose v2
+- VPS с Docker Engine и **Docker Compose v2** (`docker compose`, без дефиса)
 - Домен с A-record на IP сервера (для Let's Encrypt)
 - Открыты порты **80** и **443** (nginx)
+
+> **Не используйте** устаревший `docker-compose` v1 — на новых Docker он падает с `KeyError: 'ContainerConfig'`.
+
+### Установка Compose v2 на VPS
+
+```bash
+./scripts/install-compose-v2.sh
+docker compose version
+```
+
+На Ubuntu без пакета `docker-compose-plugin` скрипт скачает плагин в `~/.docker/cli-plugins/`.
 
 ---
 
@@ -170,6 +181,16 @@ docker exec shatra-postgres pg_dump -U shatra shatra | gzip > /var/backups/shatr
 ---
 
 ## Troubleshooting
+
+**`KeyError: 'ContainerConfig'` при `docker-compose up`**
+
+Установлен Compose v1. Удалите его и используйте v2:
+
+```bash
+apt remove -y docker-compose 2>/dev/null || true
+./scripts/install-compose-v2.sh
+docker compose -f docker-compose.prod.yml up -d --build
+```
 
 **App не стартует: JWT_SECRET**
 
