@@ -1,10 +1,13 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
+  ensureLocaleLoaded,
   getStoredLocale,
+  initI18n,
   normalizeLocale,
   SELECTABLE_LOCALES,
   setStoredLocale,
 } from './index';
+import i18n from './index';
 
 const LOCALE_KEY = 'shatra_locale';
 
@@ -42,5 +45,22 @@ describe('locale helpers', () => {
     expect(localStorage.getItem(LOCALE_KEY)).toBe('en');
     setStoredLocale('alt');
     expect(localStorage.getItem(LOCALE_KEY)).toBe('ru');
+  });
+});
+
+describe('lazy locale bundles', () => {
+  beforeEach(async () => {
+    await initI18n();
+  });
+
+  it('ensureLocaleLoaded adds en bundle on demand', async () => {
+    await ensureLocaleLoaded('en');
+    expect(i18n.hasResourceBundle('en', 'translation')).toBe(true);
+    expect(i18n.t('nav.home', { lng: 'en' })).toBeTruthy();
+  });
+
+  it('does not bundle alt locale', async () => {
+    await ensureLocaleLoaded('alt');
+    expect(i18n.hasResourceBundle('alt', 'translation')).toBe(false);
   });
 });

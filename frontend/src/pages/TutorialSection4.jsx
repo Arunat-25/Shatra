@@ -1,3 +1,4 @@
+import '../styles/tutorial.css';
 import CaptureLesson from '../components/tutorial/CaptureLesson';
 
 const STEPS = {

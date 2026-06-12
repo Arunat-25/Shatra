@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
+from starlette.staticfiles import StaticFiles
 
 import json
 import logging
@@ -75,10 +75,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+IMMUTABLE_CACHE = "public, max-age=31536000, immutable"
+
+
+class ImmutableStaticFiles(StaticFiles):
+    """Hashed Vite assets — long-lived cache when served via app (dev / direct uvicorn)."""
+
+    async def get_response(self, path: str, scope):
+        response = await super().get_response(path, scope)
+        if response.status_code == 200:
+            response.headers["Cache-Control"] = IMMUTABLE_CACHE
+        return response
+
+
 # React production build
 REACT_DIST = Path(__file__).parent / "frontend" / "dist"
 if (REACT_DIST / "assets").exists():
-    app.mount("/assets", StaticFiles(directory=str(REACT_DIST / "assets")), name="react_assets")
+    app.mount(
+        "/assets",
+        ImmutableStaticFiles(directory=str(REACT_DIST / "assets")),
+        name="react_assets",
+    )
 else:
     # Не ломаем разработку (vite dev), но в проде это поможет понять, что build не сделан.
     logger.warning("React dist assets missing; static mount skipped: %s", REACT_DIST)

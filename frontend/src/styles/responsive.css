@@ -26,6 +26,7 @@
 
 @media (max-width: 960px) {
   :root {
+    --font-accent: Georgia, 'Times New Roman', serif;
     --auth-nav-inset-top: 10px;
     --auth-nav-inset-start: 10px;
     --auth-nav-inset-end: 10px;

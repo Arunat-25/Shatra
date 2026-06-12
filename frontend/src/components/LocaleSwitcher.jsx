@@ -1,15 +1,22 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { getStoredLocale, normalizeLocale, SELECTABLE_LOCALES, setStoredLocale } from '../i18n';
+import {
+  ensureLocaleLoaded,
+  getStoredLocale,
+  normalizeLocale,
+  SELECTABLE_LOCALES,
+  setStoredLocale,
+} from '../i18n';
 import LocaleFlag, { LOCALE_ARIA } from './LocaleFlag';
 
 export default function LocaleSwitcher({ compact = false }) {
   const { i18n } = useTranslation();
   const locale = normalizeLocale(i18n.language || getStoredLocale());
 
-  const setLocale = (lng) => {
+  const setLocale = async (lng) => {
+    await ensureLocaleLoaded(lng);
     setStoredLocale(lng);
-    i18n.changeLanguage(lng);
+    await i18n.changeLanguage(lng);
   };
 
   const rootClass = [

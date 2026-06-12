@@ -1,13 +1,15 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
-import ru from '../locales/ru.json';
-import en from '../locales/en.json';
-import alt from '../locales/alt.json';
 
 const LOCALE_KEY = 'shatra_locale';
 export const ALL_LOCALES = ['ru', 'en', 'alt'];
 /** Locales shown in the language switcher (alt hidden until translation is ready). */
 export const SELECTABLE_LOCALES = ['ru', 'en'];
+
+const localeLoaders = {
+  ru: () => import('../locales/ru.json'),
+  en: () => import('../locales/en.json'),
+};
 
 export function normalizeLocale(locale) {
   if (!locale || locale === 'alt') return 'ru';
@@ -29,15 +31,29 @@ export function setStoredLocale(locale) {
   localStorage.setItem(LOCALE_KEY, normalizeLocale(locale));
 }
 
-i18n.use(initReactI18next).init({
-  resources: {
-    ru: { translation: ru },
-    en: { translation: en },
-    alt: { translation: alt },
-  },
-  lng: getStoredLocale(),
-  fallbackLng: 'ru',
-  interpolation: { escapeValue: false },
-});
+export async function ensureLocaleLoaded(locale) {
+  const lng = normalizeLocale(locale);
+  if (!localeLoaders[lng]) return lng;
+  if (i18n.hasResourceBundle(lng, 'translation')) return lng;
+  const mod = await localeLoaders[lng]();
+  i18n.addResourceBundle(lng, 'translation', mod.default, true, true);
+  return lng;
+}
+
+export async function initI18n() {
+  const lng = getStoredLocale();
+  const mod = await localeLoaders[lng]();
+  if (!i18n.isInitialized) {
+    await i18n.use(initReactI18next).init({
+      resources: { [lng]: { translation: mod.default } },
+      lng,
+      fallbackLng: 'ru',
+      interpolation: { escapeValue: false },
+    });
+  }
+  if (lng !== 'ru') {
+    void ensureLocaleLoaded('ru');
+  }
+}
 
 export default i18n;

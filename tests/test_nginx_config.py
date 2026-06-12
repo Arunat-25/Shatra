@@ -116,3 +116,14 @@ def test_nginx_templates_include_websocket_proxy_settings():
     assert "gzip_proxied" in gzip
     assert "snippets/gzip.conf" in https
     assert "snippets/gzip.conf" in http_only
+
+
+def test_nginx_templates_serve_assets_with_gzip_static():
+    https = (TEMPLATES / "default.conf.template").read_text(encoding="utf-8")
+    http_only = (SNIPPETS / "http-only.conf.template").read_text(encoding="utf-8")
+
+    for template in (https, http_only):
+        assert "location ^~ /assets/" in template
+        assert "gzip_static on" in template
+        assert "max-age=31536000, immutable" in template
+        assert "/var/www/shatra/assets/" in template

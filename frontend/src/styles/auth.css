@@ -250,6 +250,24 @@
   pointer-events: auto;
 }
 
+/* Mobile lobby: pinned top center (safe-area), never bottom / scroll */
+html.app-shell--game-nav-compact body:has(.app-shell--lobby) .app-top-center--lobby-mobile {
+  position: fixed;
+  top: max(6px, env(safe-area-inset-top));
+  left: 50%;
+  right: auto;
+  bottom: auto;
+  transform: translateX(-50%);
+  z-index: 1001;
+  width: max-content;
+  max-width: calc(100vw - 88px);
+}
+
+html.app-shell--game-nav-compact body:has(.app-shell--lobby) .app-top-center--lobby-mobile .app-support-btn:hover,
+html.app-shell--game-nav-compact body:has(.app-shell--lobby) .app-top-center--lobby-mobile .app-support-btn:active {
+  transform: none;
+}
+
 .app-support-btn {
   position: relative;
   display: inline-flex;

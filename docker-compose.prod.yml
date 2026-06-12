@@ -47,6 +47,8 @@ services:
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.1}
       ADMIN_USER_IDS: ${ADMIN_USER_IDS:-}
+    volumes:
+      - shatra-static:/shatra-static
     depends_on:
       postgres:
         condition: service_healthy
@@ -66,6 +68,7 @@ services:
       - ./docker/nginx/templates:/etc/nginx/templates:ro
       - ./docker/nginx/snippets:/etc/nginx/snippets:ro
       - ./docker/nginx/entrypoint.sh:/docker-entrypoint.d/40-shatra-entrypoint.sh:ro
+      - shatra-static:/var/www/shatra:ro
       - certbot-www:/var/www/certbot:ro
       - certbot-certs:/etc/letsencrypt:ro
     depends_on:
@@ -155,5 +158,6 @@ volumes:
   postgres-data:
   redis-data:
   loki-data:
+  shatra-static:
   certbot-www:
   certbot-certs:

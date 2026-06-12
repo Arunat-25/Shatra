@@ -73,8 +73,10 @@ describe('AuthNav compact mobile nav', () => {
   it('shows fixed support button on lobby in mobile layout', () => {
     renderNav('/');
     expect(screen.getByRole('link', { name: 'nav.support' })).toBeTruthy();
-    expect(document.querySelector('.app-top-center')).toBeTruthy();
-    expect(document.querySelector('.app-top-center .app-support-btn--compact')).toBeTruthy();
+    expect(document.querySelector('.app-top-center--lobby-mobile')).toBeTruthy();
+    const support = document.querySelector('.app-top-center--lobby-mobile .app-support-btn--compact');
+    expect(support).toBeTruthy();
+    expect(support.className).toContain('app-support-btn--fixed');
   });
 
   it('does not show support button in mobile drawer', () => {

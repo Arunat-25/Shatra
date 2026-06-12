@@ -4,13 +4,13 @@ import { AuthProvider } from './context/AuthContext';
 import AuthNav from './components/AuthNav';
 import PageTransition from './components/PageTransition';
 import Lobby from './Lobby';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Profile from './pages/Profile';
 import { isTutorialPath, isTutorialLessonPath } from './tutorialPaths';
 import { isGamePath } from './appPaths';
 
 const Game = lazy(() => import('./Game'));
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const Profile = lazy(() => import('./pages/Profile'));
 const Tutorial = lazy(() => import('./pages/Tutorial'));
 const TutorialSection1 = lazy(() => import('./pages/TutorialSection1'));
 const TutorialSection2 = lazy(() => import('./pages/TutorialSection2'));
@@ -42,9 +42,9 @@ function suspend(element, withTransition = false) {
 
 const routes = [
   { path: '/', element: <Lobby /> },
-  { path: '/login', element: <Login /> },
-  { path: '/register', element: <Register /> },
-  { path: '/profile', element: <Profile /> },
+  { path: '/login', element: suspend(<Login />, true) },
+  { path: '/register', element: suspend(<Register />, true) },
+  { path: '/profile', element: suspend(<Profile />, true) },
   { path: '/tutorial', element: suspend(<Tutorial />, true) },
   { path: '/tutorial/1', element: suspend(<TutorialSection1 />, true) },
   { path: '/tutorial/2', element: suspend(<TutorialSection2 />, true) },
@@ -91,7 +91,7 @@ function AppShell() {
               key={path}
               path={path}
               element={
-                path === '/' || path === '/login' || path === '/register' || path === '/profile'
+                path === '/'
                   ? <PageTransition>{element}</PageTransition>
                   : element
               }

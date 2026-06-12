@@ -24,16 +24,18 @@ describe('initSentry', () => {
     expect(initMock).not.toHaveBeenCalled();
   });
 
-  it('initializes sentry with expected options when DSN is set', async () => {
+  it('initializes sentry without tracing when DSN is set', async () => {
     vi.stubEnv('VITE_SENTRY_DSN', 'https://example@sentry.io/1');
     vi.stubEnv('VITE_APP_VERSION', '1.0.0');
+    vi.stubEnv('PROD', 'true');
     const { initSentry } = await import('./sentry.js');
     initSentry();
     expect(initMock).toHaveBeenCalledWith(
       expect.objectContaining({
         dsn: 'https://example@sentry.io/1',
         release: '1.0.0',
-        tracesSampleRate: 0.1,
+        integrations: [],
+        tracesSampleRate: 0,
         replaysSessionSampleRate: 0,
         replaysOnErrorSampleRate: 0,
       }),
