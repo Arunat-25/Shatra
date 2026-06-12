@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { probeLobbySetup } from './debug/lobbySetupProbe';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { createRoom, listRooms, joinRoom } from './api';
@@ -107,6 +108,20 @@ export default function Lobby() {
   };
 
   const showLoading = refreshing && rooms.length === 0;
+
+  useEffect(() => {
+    const run = () => probeLobbySetup('lobby-state', {
+      pickerMode,
+      aiOnly: pickerMode === 'ai',
+    });
+    run();
+    const tId = window.setTimeout(run, 120);
+    window.addEventListener('resize', run);
+    return () => {
+      window.clearTimeout(tId);
+      window.removeEventListener('resize', run);
+    };
+  }, [showSetup, pickerMode]);
 
   return (
     <div className="lobby-page">
