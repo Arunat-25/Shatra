@@ -28,7 +28,6 @@ export default function useBoardInteraction({
 
   const registerDragGhostListener = useCallback((listener) => {
     onDragGhostRef.current = listener;
-    if (dragGhostRef.current) listener(dragGhostRef.current);
     return () => {
       if (onDragGhostRef.current === listener) {
         onDragGhostRef.current = null;

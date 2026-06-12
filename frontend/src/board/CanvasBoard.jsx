@@ -34,7 +34,12 @@ export default function CanvasBoard({
     return hitTestCell(layout.cells, x, y);
   }, []);
 
-  const { beginDrag, handleCellClick, registerDragGhostListener } = useBoardInteraction({
+  const {
+    beginDrag,
+    handleCellClick,
+    registerDragGhostListener,
+    dragGhostRef,
+  } = useBoardInteraction({
     board,
     onCellClick,
     moveFrom,
@@ -100,14 +105,7 @@ export default function CanvasBoard({
 
     const dpr = window.devicePixelRatio || 1;
     const w = Math.max(1, Math.floor(container.clientWidth));
-    let h = Math.floor(container.clientHeight);
-
-    if (h < 50) {
-      const innerW = Math.max(0, w - 6);
-      const unit = (innerW - 10) / 7;
-      h = Math.max(1, Math.ceil(unit * 13.6 + 10 + 6 + 5));
-      container.style.height = `${h}px`;
-    }
+    const h = Math.max(1, Math.floor(container.clientHeight));
 
     canvas.width = Math.floor(w * dpr);
     canvas.height = Math.floor(h * dpr);
@@ -139,13 +137,16 @@ export default function CanvasBoard({
     schedulePaint();
   }, [schedulePaint]);
 
-  useEffect(
-    () => registerDragGhostListener((ghost) => {
+  useEffect(() => {
+    const onGhost = (ghost) => {
       dragGhostDrawRef.current = ghost;
       schedulePaint();
-    }),
-    [registerDragGhostListener, schedulePaint],
-  );
+    };
+    const unregister = registerDragGhostListener(onGhost);
+    dragGhostDrawRef.current = dragGhostRef.current;
+    if (dragGhostRef.current) schedulePaint();
+    return unregister;
+  }, [registerDragGhostListener, schedulePaint, dragGhostRef]);
 
   const onPointerDown = useCallback((event) => {
     if (!interactive) return;

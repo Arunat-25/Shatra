@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { getBoardSections } from './constants';
 import Cell from './components/Cell';
 import ShatraPiece from './ShatraPiece';
@@ -45,7 +45,10 @@ export default function BoardGrid(props) {
   });
 
   const [dragGhost, setDragGhost] = useState(null);
-  registerDragGhostListener(useCallback((ghost) => setDragGhost(ghost), []));
+
+  useEffect(() => {
+    return registerDragGhostListener(setDragGhost);
+  }, [registerDragGhostListener]);
 
   const onPointerDown = useCallback((cellId, event) => {
     const cellEl = event.currentTarget;
