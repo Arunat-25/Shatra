@@ -369,6 +369,23 @@
   animation: pieceCapture 0.5s ease-out forwards;
 }
 
+.shatra-piece-lite {
+  display: block;
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.35));
+}
+.shatra-piece-lite--selected {
+  outline: 2px solid #40e0d0;
+  outline-offset: 1px;
+  border-radius: 50%;
+}
+.shatra-piece-lite--target {
+  outline: 2px solid #f87171;
+  outline-offset: 1px;
+  border-radius: 50%;
+}
+
 /* ===== LAST MOVE ===== */
 .kletka.last-move-from {
   background: rgba(100, 100, 100, 0.55) !important;

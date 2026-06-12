@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
+import useClockCountdown from '../hooks/useClockCountdown';
 import { formatClockTime, getBoardSideOrder, readTimerSeconds } from '../utils';
 import { playerDisplayForColor } from '../utils/playerDisplay';
 import PlayerNick from './PlayerNick';
@@ -64,6 +65,7 @@ function TimerRow({
 
 export default function GameClock({
   timer,
+  timerSyncedAt,
   moversColor,
   myColor,
   timeControl,
@@ -72,14 +74,23 @@ export default function GameClock({
   middleSlot,
   showRating = false,
   gameOver = false,
+  waiting = false,
 }) {
   const { t } = useTranslation();
+  const displayTimer = useClockCountdown({
+    timer,
+    timerSyncedAt,
+    moversColor,
+    timeControl,
+    gameOver,
+    waiting,
+  });
   const hasTimer = Boolean(timeControl && timer);
   if (!myColor && !playersInfo?.length) return null;
 
   const { top, bottom } = getBoardSideOrder(myColor);
-  const topSec = hasTimer ? readTimerSeconds(timer, top) : null;
-  const bottomSec = hasTimer ? readTimerSeconds(timer, bottom) : null;
+  const topSec = hasTimer ? readTimerSeconds(displayTimer, top) : null;
+  const bottomSec = hasTimer ? readTimerSeconds(displayTimer, bottom) : null;
   const topDisplay = playerDisplayForColor(playersInfo, top, t, gameOver);
   const bottomDisplay = playerDisplayForColor(playersInfo, bottom, t, gameOver);
 
@@ -133,6 +144,7 @@ export default function GameClock({
 
 GameClock.propTypes = {
   timer: PropTypes.object,
+  timerSyncedAt: PropTypes.number,
   moversColor: PropTypes.string,
   myColor: PropTypes.string,
   timeControl: PropTypes.number,
@@ -141,4 +153,5 @@ GameClock.propTypes = {
   middleSlot: PropTypes.node,
   showRating: PropTypes.bool,
   gameOver: PropTypes.bool,
+  waiting: PropTypes.bool,
 };

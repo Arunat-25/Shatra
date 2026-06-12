@@ -12,13 +12,14 @@ import useMessage from './hooks/useMessage';
 import useEscapeKey from './hooks/useEscapeKey';
 import useCellClick from './hooks/useCellClick';
 import useLowTimeSound from './hooks/useLowTimeSound';
-import useClockCountdown from './hooks/useClockCountdown';
 import useGameAudioUnlock from './hooks/useGameAudioUnlock';
+import useMediaQuery from './hooks/useMediaQuery';
 import WaitingScreen from './components/WaitingScreen';
 import GameActionsBar from './components/game/GameActionsBar';
 import GameViewport from './components/game/GameViewport';
 import GameDesktopLayout from './components/game/GameDesktopLayout';
-import { MSG_ERROR } from './constants';
+import GameMobilePanel from './components/game/GameMobilePanel';
+import { COMPACT_GAME_QUERY, MSG_ERROR } from './constants';
 import { buildHintPayload } from './utils/wsPayloads';
 import { shouldRequestChainHints } from './game/chainCaptureHints';
 import { getClientId } from './api';
@@ -31,6 +32,7 @@ export default function Game() {
   const [searchParams] = useSearchParams();
   const modeAi = searchParams.get('mode') === 'ai';
   const myColorRef = useRef(null);
+  const isCompactGame = useMediaQuery(COMPACT_GAME_QUERY);
 
   const { state, dispatch, handleServerMessage, deselectPiece } = useGameReducer(
     modeAi,
@@ -55,17 +57,11 @@ export default function Game() {
   });
 
   useGameAudioUnlock();
-  const displayTimer = useClockCountdown({
+  useLowTimeSound({
+    timeControl: state.timeControl,
     timer: state.timer,
     timerSyncedAt: state.timerSyncedAt,
     moversColor: state.moversColor,
-    timeControl: state.timeControl,
-    gameOver: state.gameOver,
-    waiting: state.waiting,
-  });
-  useLowTimeSound({
-    timeControl: state.timeControl,
-    timer: displayTimer,
     myColor: state.myColor,
     gameOver: state.gameOver,
     waiting: state.waiting,
@@ -165,7 +161,9 @@ export default function Game() {
 
   const actionsBarProps = { state, modeAi, resultText, actions };
   const viewportActions = <GameActionsBar slot="viewport" {...actionsBarProps} />;
-  const sidebarActions = <GameActionsBar slot="sidebar" {...actionsBarProps} />;
+  const sidebarActions = isCompactGame ? null : (
+    <GameActionsBar slot="sidebar" {...actionsBarProps} />
+  );
 
   return (
     <div className="game-page">
@@ -174,28 +172,40 @@ export default function Game() {
           boardTop={boardTop}
           boardBottom={boardBottom}
           state={state}
-          displayTimer={displayTimer}
           isBoardBlocked={isBoardBlocked}
           onCellClick={handleCellClickWrapped}
           actionsBar={viewportActions}
           moveHistoryProps={moveHistoryProps}
           showRating={!modeAi}
         />
-        <GameDesktopLayout
-          state={state}
-          displayTimer={displayTimer}
-          modeAi={modeAi}
-          wsReconnecting={wsReconnecting}
-          message={message}
-          messageType={messageType}
-          actionsBar={sidebarActions}
-          moveHistoryProps={moveHistoryProps}
-          onSendChat={actions.sendChat}
-          chatHidden={state.chatHidden}
-          onToggleChatHidden={actions.toggleChatHidden}
-          roomId={roomId}
-          showRating={!modeAi}
-        />
+        {isCompactGame ? (
+          <GameMobilePanel
+            state={state}
+            modeAi={modeAi}
+            wsReconnecting={wsReconnecting}
+            message={message}
+            messageType={messageType}
+            onSendChat={actions.sendChat}
+            chatHidden={state.chatHidden}
+            onToggleChatHidden={actions.toggleChatHidden}
+            roomId={roomId}
+          />
+        ) : (
+          <GameDesktopLayout
+            state={state}
+            modeAi={modeAi}
+            wsReconnecting={wsReconnecting}
+            message={message}
+            messageType={messageType}
+            actionsBar={sidebarActions}
+            moveHistoryProps={moveHistoryProps}
+            onSendChat={actions.sendChat}
+            chatHidden={state.chatHidden}
+            onToggleChatHidden={actions.toggleChatHidden}
+            roomId={roomId}
+            showRating={!modeAi}
+          />
+        )}
       </div>
     </div>
   );

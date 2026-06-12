@@ -1,28 +1,69 @@
-import React from 'react';
+import React, { memo, useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
+import { computeDisplayTimer } from '../game/clockUtils';
 import { formatClockTime, readTimerSeconds } from '../utils';
 import { playerDisplayForColor } from '../utils/playerDisplay';
 import PlayerNick from './PlayerNick';
 import { PieceCountRow } from './PieceCounts';
 
-export default function PlayerBar({
+function PlayerBar({
   color,
   position,
   playersInfo,
   timer,
+  timerSyncedAt,
   moversColor,
   myColor,
   timeControl,
   countsByType,
   showRating = false,
   gameOver = false,
+  waiting = false,
 }) {
   const { t } = useTranslation();
   const hasTimer = Boolean(timeControl && timer);
-  const seconds = hasTimer ? readTimerSeconds(timer, color) : null;
   const isActive = hasTimer && moversColor === color;
   const isSelf = myColor === color;
+
+  const [seconds, setSeconds] = useState(() => (
+    hasTimer
+      ? readTimerSeconds(
+        computeDisplayTimer({
+          timer,
+          timerSyncedAt,
+          moversColor,
+          timeControl,
+          gameOver,
+          waiting,
+        }),
+        color,
+      )
+      : null
+  ));
+
+  useEffect(() => {
+    const compute = () => readTimerSeconds(
+      computeDisplayTimer({
+        timer,
+        timerSyncedAt,
+        moversColor,
+        timeControl,
+        gameOver,
+        waiting,
+      }),
+      color,
+    );
+
+    setSeconds(compute());
+    if (!hasTimer || gameOver || waiting || !isActive) {
+      return undefined;
+    }
+
+    const id = setInterval(() => setSeconds(compute()), 100);
+    return () => clearInterval(id);
+  }, [timer, timerSyncedAt, moversColor, timeControl, gameOver, waiting, color, hasTimer, isActive]);
+
   const low = hasTimer && seconds != null && seconds <= 10;
   const { nickname, title, rating, ratingDelta } = playerDisplayForColor(
     playersInfo,
@@ -68,15 +109,19 @@ export default function PlayerBar({
   );
 }
 
+export default memo(PlayerBar);
+
 PlayerBar.propTypes = {
   color: PropTypes.string.isRequired,
   position: PropTypes.oneOf(['top', 'bottom']).isRequired,
   playersInfo: PropTypes.arrayOf(PropTypes.object),
   timer: PropTypes.object,
+  timerSyncedAt: PropTypes.number,
   moversColor: PropTypes.string,
   myColor: PropTypes.string,
   timeControl: PropTypes.number,
   countsByType: PropTypes.object,
   showRating: PropTypes.bool,
   gameOver: PropTypes.bool,
+  waiting: PropTypes.bool,
 };

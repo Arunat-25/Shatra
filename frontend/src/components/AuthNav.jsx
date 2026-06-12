@@ -10,8 +10,7 @@ import HomeTab from './HomeTab';
 import TutorialTab from './TutorialTab';
 import BugReportModal from './BugReportModal';
 import SupportButton from './SupportButton';
-
-const COMPACT_MOBILE_NAV_QUERY = '(max-width: 1319px)';
+import { COMPACT_GAME_QUERY } from '../constants';
 
 function IconProfile() {
   return (
@@ -47,7 +46,7 @@ export default function AuthNav() {
   const topStartRef = useRef(null);
   const topEndRef = useRef(null);
   const menuToggleRef = useRef(null);
-  const isMobileLayout = useMediaQuery(COMPACT_MOBILE_NAV_QUERY);
+  const isMobileLayout = useMediaQuery(COMPACT_GAME_QUERY);
   const compactMobileNav = isMobileLayout;
   const [menuOpen, setMenuOpen] = useState(false);
   const [bugReportOpen, setBugReportOpen] = useState(false);

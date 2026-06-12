@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { readTimerSeconds } from '../utils';
+import { computeDisplayTimer } from '../game/clockUtils';
 
 /**
  * Smooth local countdown between server clock syncs (Lichess-style).
@@ -16,22 +16,19 @@ export default function useClockCountdown({
   const [displayTimer, setDisplayTimer] = useState(timer);
 
   useEffect(() => {
+    const compute = () => computeDisplayTimer({
+      timer,
+      timerSyncedAt,
+      moversColor,
+      timeControl,
+      gameOver,
+      waiting,
+    });
+
     if (!timeControl || !timer || gameOver || waiting) {
       setDisplayTimer(timer);
       return undefined;
     }
-
-    const compute = () => {
-      if (!timer || timerSyncedAt == null) return timer;
-      const elapsedSec = (Date.now() - timerSyncedAt) / 1000;
-      const next = { ...timer };
-      if (moversColor === 'белый' && next.белый != null) {
-        next.белый = Math.max(0, Number(next.белый) - elapsedSec);
-      } else if (moversColor === 'черный' && next.черный != null) {
-        next.черный = Math.max(0, Number(next.черный) - elapsedSec);
-      }
-      return next;
-    };
 
     setDisplayTimer(compute());
     const id = setInterval(() => setDisplayTimer(compute()), 100);
@@ -41,4 +38,4 @@ export default function useClockCountdown({
   return displayTimer;
 }
 
-export { readTimerSeconds };
+export { computeDisplayTimer } from '../game/clockUtils';

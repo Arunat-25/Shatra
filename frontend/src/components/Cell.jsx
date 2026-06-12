@@ -19,7 +19,7 @@ const Cell = memo(function Cell(props) {
   const { id, className, board, moveFrom, highlightedEssential = [], highlightedCaptured = [],
           lastMove = null, historyFrom = null, historyTo = null, onCellClick,
           onCellPointerDown, shouldIgnoreClick, isDragOrigin, isTutorialDimmed,
-          capturedGhostPiece = null } = props;
+          capturedGhostPiece = null, pieceVariant = 'full' } = props;
   const piece = board[id];
   const renderedPiece = piece || capturedGhostPiece;
   const isCapturedGhost = !piece && !!capturedGhostPiece;
@@ -60,6 +60,7 @@ const Cell = memo(function Cell(props) {
             isSelected={!isCapturedGhost && moveFrom === id}
             isTarget={!isCapturedGhost && highlightedCaptured.includes(id)}
             positionNum={id}
+            variant={pieceVariant}
           />
         </div>
       )}

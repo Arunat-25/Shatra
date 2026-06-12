@@ -3,8 +3,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render } from '@testing-library/react';
 import GameViewport from './GameViewport';
 
-vi.mock('../../BoardGrid', () => ({
-  default: () => <div data-testid="board-grid" />,
+vi.mock('../BoardSurface', () => ({
+  default: () => <div data-testid="board-surface" />,
 }));
 
 vi.mock('../MoveHistory', () => ({

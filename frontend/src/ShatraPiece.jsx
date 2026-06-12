@@ -7,7 +7,63 @@ const GOLD_COLOR = '#FFD700';
 const FIRE_RED = '#B22222';
 const TURQUOISE = '#40E0D0';
 
-export default function ShatraPiece({ type, color, isSelected, isTarget, positionNum }) {
+function ShatraPieceLite({ type, color, isSelected, isTarget }) {
+  const isWhite = color === COLOR_WHITE;
+  const fill = isWhite ? '#fffdd0' : '#2a2a2a';
+  const stroke = type === PIECE_BIY ? GOLD_COLOR : (isWhite ? WHITE_STROKE : BLACK_STROKE);
+  const isBiy = type === PIECE_BIY;
+  const isBatyr = type === PIECE_BATYR;
+
+  const stonePath = isBiy
+    ? 'M15 2 C20 0, 30 0, 35 2 C42 5, 45 10, 44 18 C43 26, 40 32, 36 36 C32 40, 28 42, 25 42 C22 42, 18 40, 14 36 C10 32, 7 26, 6 18 C5 10, 8 5, 15 2Z'
+    : 'M12 4 C18 1, 32 1, 38 4 C44 7, 46 14, 45 22 C44 30, 40 35, 34 38 C28 41, 22 41, 16 38 C10 35, 6 30, 5 22 C4 14, 6 7, 12 4Z';
+
+  const viewBox = isBiy ? '0 0 50 44' : '0 0 50 42';
+  const highlightClass = [
+    'shatra-piece-lite',
+    isSelected ? 'shatra-piece-lite--selected' : '',
+    isTarget ? 'shatra-piece-lite--target' : '',
+  ].filter(Boolean).join(' ');
+
+  return (
+    <svg viewBox={viewBox} className={highlightClass} style={{ display: 'block' }}>
+      {isBiy && (
+        <circle cx="25" cy="22" r="21" fill="none" stroke={GOLD_COLOR} strokeWidth="1.2" opacity={0.7} />
+      )}
+      <path d={stonePath} fill={fill} stroke={stroke} strokeWidth={isBiy ? 1.5 : 1} />
+      {isBatyr && (
+        <circle
+          cx="25"
+          cy="20"
+          r="4"
+          fill="none"
+          stroke={isWhite ? FIRE_RED : TURQUOISE}
+          strokeWidth="1.2"
+        />
+      )}
+    </svg>
+  );
+}
+
+export default function ShatraPiece({
+  type,
+  color,
+  isSelected,
+  isTarget,
+  positionNum,
+  variant = 'full',
+}) {
+  if (variant === 'lite') {
+    return (
+      <ShatraPieceLite
+        type={type}
+        color={color}
+        isSelected={isSelected}
+        isTarget={isTarget}
+      />
+    );
+  }
+
   const uid = useId();
   const idBase = `${uid}-${positionNum ?? type}`;
   const strokeColor = color === COLOR_WHITE ? WHITE_STROKE : BLACK_STROKE;
@@ -46,10 +102,6 @@ export default function ShatraPiece({ type, color, isSelected, isTarget, positio
             <feMergeNode in="SourceGraphic" />
           </feMerge>
         </filter>
-
-        <pattern id={`antler-${idBase}`} x="0" y="0" width="50" height="44" patternUnits="userSpaceOnUse">
-          {goldenAntlerPath()}
-        </pattern>
 
         <linearGradient id={`stone-grad-${color}-${idBase}`} x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor={color === COLOR_WHITE ? '#FFFDD0' : '#2A2A2A'} />

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import BoardGrid from '../../BoardGrid';
+import BoardSurface from '../BoardSurface';
 import MoveHistory from '../MoveHistory';
 import OpponentDisconnectStatus from './OpponentDisconnectStatus';
 import PlayerBar from '../PlayerBar';
@@ -9,15 +9,22 @@ export default function GameViewport({
   boardTop,
   boardBottom,
   state,
-  displayTimer,
   isBoardBlocked,
   onCellClick,
   actionsBar,
   moveHistoryProps,
   showRating = false,
-  gameOver = false,
 }) {
   const { t } = useTranslation();
+
+  const clockProps = {
+    timer: state.timer,
+    timerSyncedAt: state.timerSyncedAt,
+    moversColor: state.moversColor,
+    timeControl: state.timeControl,
+    gameOver: state.gameOver,
+    waiting: state.waiting,
+  };
 
   return (
     <div className="game-viewport-column">
@@ -28,13 +35,10 @@ export default function GameViewport({
               position="top"
               color={boardTop}
               playersInfo={state.playersInfo}
-              timer={displayTimer ?? state.timer}
-              moversColor={state.moversColor}
               myColor={state.myColor}
-              timeControl={state.timeControl}
               countsByType={state.countsByType}
               showRating={showRating}
-              gameOver={state.gameOver}
+              {...clockProps}
             />
             <div className="room-board-wrap">
               <div className="room-board">
@@ -45,7 +49,7 @@ export default function GameViewport({
                     state.aiThinking ? 'board-dimmed board-ai-thinking' : '',
                   ].filter(Boolean).join(' ')}
                 >
-                  <BoardGrid
+                  <BoardSurface
                     board={state.board}
                     onCellClick={onCellClick}
                     moveFrom={state.moveFrom}
@@ -71,13 +75,10 @@ export default function GameViewport({
               position="bottom"
               color={boardBottom}
               playersInfo={state.playersInfo}
-              timer={displayTimer ?? state.timer}
-              moversColor={state.moversColor}
               myColor={state.myColor}
-              timeControl={state.timeControl}
               countsByType={state.countsByType}
               showRating={showRating}
-              gameOver={state.gameOver}
+              {...clockProps}
             />
           </div>
         </div>

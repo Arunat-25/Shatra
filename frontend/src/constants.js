@@ -1,3 +1,6 @@
+/** Compact game + mobile nav layout (matches game-mobile.css). */
+export const COMPACT_GAME_QUERY = '(max-width: 1319px)';
+
 // ===== Цвета фигур =====
 export const COLOR_WHITE = 'белый';
 export const COLOR_BLACK = 'черный';

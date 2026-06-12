@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { getBoardSections } from './constants';
 import Cell from './components/Cell';
 import ShatraPiece from './ShatraPiece';
 import { getPieceColor, getPieceType } from './utils';
+import useBoardInteraction from './hooks/useBoardInteraction';
 
 function cellIdFromPoint(x, y) {
   const el = document.elementFromPoint(x, y);
@@ -27,98 +28,32 @@ export default function BoardGrid(props) {
     interactive = true,
     enablePieceDrag = true,
     tutorialDimmedCells = null,
+    pieceVariant = 'full',
   } = props;
   const sections = getBoardSections(myColor);
   const tutorialDimmedSet = tutorialDimmedCells ? new Set(tutorialDimmedCells) : null;
 
-  const dragFromRef = useRef(null);
-  const dragStartedAtRef = useRef(0);
-  const activePointerIdRef = useRef(null);
-  const ignoreClickUntilRef = useRef(0);
-  const dragListenersRef = useRef(null);
+  const resolveCellAt = useCallback((x, y) => cellIdFromPoint(x, y), []);
+
+  const { beginDrag, handleCellClick, registerDragGhostListener } = useBoardInteraction({
+    board,
+    onCellClick,
+    moveFrom,
+    interactive,
+    enablePieceDrag,
+    resolveCellAt,
+  });
+
   const [dragGhost, setDragGhost] = useState(null);
+  registerDragGhostListener(useCallback((ghost) => setDragGhost(ghost), []));
 
-  const clearDragListeners = useCallback(() => {
-    const listeners = dragListenersRef.current;
-    if (!listeners) return;
-    window.removeEventListener('pointermove', listeners.onMove);
-    window.removeEventListener('pointerup', listeners.onFinish);
-    window.removeEventListener('pointercancel', listeners.onFinish);
-    dragListenersRef.current = null;
-  }, []);
-
-  const finishDrag = useCallback((event) => {
-    if (activePointerIdRef.current != null && event.pointerId !== activePointerIdRef.current) {
-      return;
-    }
-
-    clearDragListeners();
-
-    const from = dragFromRef.current;
-    dragFromRef.current = null;
-    activePointerIdRef.current = null;
-    setDragGhost(null);
-
-    if (from == null) return;
-
-    const elapsed = Date.now() - (dragStartedAtRef.current || 0);
-    if (elapsed < 50) return;
-
-    const targetCellId = cellIdFromPoint(event.clientX, event.clientY);
-    if (targetCellId != null && from !== targetCellId) {
-      ignoreClickUntilRef.current = Date.now() + 250;
-      onCellClick(targetCellId);
-    }
-  }, [clearDragListeners, onCellClick]);
-
-  const beginDrag = useCallback((cellId, event) => {
-    if (!interactive) return;
-    const piece = board[cellId];
-    if (!piece || !event) return;
-    if (event.button != null && event.button !== 0) return;
-
-    event.preventDefault();
-
-    clearDragListeners();
-
-    dragFromRef.current = cellId;
-    dragStartedAtRef.current = Date.now();
-    activePointerIdRef.current = event.pointerId;
-    ignoreClickUntilRef.current = Date.now() + 250;
-    if (moveFrom !== cellId) {
-      onCellClick(cellId);
-    }
-
+  const onPointerDown = useCallback((cellId, event) => {
     const cellEl = event.currentTarget;
     const cellSize = cellEl ? Math.round(cellEl.getBoundingClientRect().width) : undefined;
-    setDragGhost({
-      fromId: cellId,
-      piece,
-      x: event.clientX,
-      y: event.clientY,
-      size: cellSize,
-    });
+    beginDrag(cellId, event, cellSize);
+  }, [beginDrag]);
 
-    const onMove = (e) => {
-      if (e.pointerId !== event.pointerId) return;
-      setDragGhost((ghost) => (ghost ? { ...ghost, x: e.clientX, y: e.clientY } : ghost));
-    };
-
-    const onFinish = (e) => {
-      if (e.pointerId !== event.pointerId) return;
-      finishDrag(e);
-    };
-
-    window.addEventListener('pointermove', onMove, { passive: true });
-    window.addEventListener('pointerup', onFinish);
-    window.addEventListener('pointercancel', onFinish);
-    dragListenersRef.current = { onMove, onFinish };
-  }, [board, interactive, moveFrom, onCellClick, clearDragListeners, finishDrag]);
-
-  const shouldIgnoreClick = useCallback(() => Date.now() < ignoreClickUntilRef.current, []);
-
-  useEffect(() => () => clearDragListeners(), [clearDragListeners]);
-
+  const shouldIgnoreClick = useCallback(() => false, []);
   const noop = useCallback(() => {}, []);
 
   return (
@@ -142,6 +77,7 @@ export default function BoardGrid(props) {
               isSelected={false}
               isTarget={false}
               positionNum={dragGhost.fromId}
+              variant={pieceVariant}
             />
           </div>
         </div>
@@ -160,9 +96,10 @@ export default function BoardGrid(props) {
                   className={cell.color}
                   isDragOrigin={interactive && dragGhost?.fromId === cell.id}
                   isTutorialDimmed={tutorialDimmedSet?.has(cell.id)}
-                  onCellPointerDown={interactive && enablePieceDrag ? beginDrag : undefined}
+                  onCellPointerDown={interactive && enablePieceDrag ? onPointerDown : undefined}
                   shouldIgnoreClick={interactive && enablePieceDrag ? shouldIgnoreClick : undefined}
-                  onCellClick={interactive ? onCellClick : noop}
+                  onCellClick={interactive ? handleCellClick : noop}
+                  pieceVariant={pieceVariant}
                   {...{
                     board,
                     moveFrom: interactive ? moveFrom : null,
