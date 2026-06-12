@@ -175,10 +175,16 @@
     padding-top: 0;
   }
 
-  /* Game choice / setup: fit inside left panel frame, no inner scroll */
+  /* Mobile lobby: panel grows with content; page scrolls (no clipped buttons). */
+  .lobby-left {
+    overflow: visible;
+  }
+
   .lobby-left-inner {
-    overflow: hidden;
-    overflow-y: hidden;
+    flex: 0 0 auto;
+    min-height: auto;
+    height: auto;
+    overflow: visible;
     justify-content: flex-start;
   }
 
@@ -195,49 +201,51 @@
   }
 
   .lobby-left--setup .game-setup-picker {
-    flex: 1 1 auto;
-    min-height: 0;
+    flex: 0 0 auto;
+    width: 100%;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
   }
 
   .lobby-left--setup .game-setup-section {
-    margin-bottom: 4px;
+    margin-bottom: 3px;
   }
 
   .lobby-left--setup .game-setup-section:last-of-type {
-    margin-bottom: 6px;
+    margin-bottom: 4px;
   }
 
   .lobby-left--setup .timer-picker-title {
-    margin-bottom: 6px;
-    font-size: 0.78rem;
+    margin-bottom: 4px;
+    font-size: 0.74rem;
   }
 
   .lobby-left--setup .game-setup-label {
-    margin-bottom: 4px;
-    font-size: 0.65rem;
+    margin-bottom: 2px;
+    font-size: 0.62rem;
   }
 
   .lobby-left--setup .game-setup-picker .timer-presets {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 4px;
-    margin-bottom: 4px;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 3px;
+    margin-bottom: 3px;
   }
 
   .lobby-left--setup .game-setup-picker .btn-timer-preset {
-    padding: 5px 2px;
-    font-size: 0.68rem;
+    padding: 4px 1px;
+    font-size: 0.62rem;
     min-width: 0;
     width: 100%;
+    line-height: 1.15;
   }
 
   .lobby-left--setup .game-setup-picker .btn-timer-none {
-    padding: 5px 8px;
-    font-size: 0.72rem;
-    margin-bottom: 4px;
+    padding: 4px 6px;
+    font-size: 0.66rem;
+    margin-bottom: 3px;
+    width: 100%;
   }
 
   .lobby-left--setup .game-setup-picker .color-picker-options {
@@ -270,12 +278,9 @@
     margin-top: 0;
   }
 
+  /* Hide disabled increment grid until a timer is chosen — saves ~45px on short viewports. */
   .lobby-left--setup .game-setup-section--disabled {
-    margin-bottom: 2px;
-  }
-
-  .lobby-left--setup .game-setup-section--disabled .timer-presets {
-    margin-bottom: 2px;
+    display: none;
   }
 }
 

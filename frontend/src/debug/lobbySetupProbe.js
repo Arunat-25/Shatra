@@ -34,6 +34,22 @@ function buttonVisibility(root, selector) {
   });
 }
 
+function clipAgainst(el, selector) {
+  const clipR = el?.getBoundingClientRect();
+  if (!clipR) return [];
+  return [...document.querySelectorAll(selector)].map((btn, index) => {
+    const r = btn.getBoundingClientRect();
+    const text = (btn.textContent || '').trim().slice(0, 24);
+    return {
+      index,
+      text,
+      clipped: r.bottom > clipR.bottom + 1 || r.top < clipR.top - 1,
+      bottom: Math.round(r.bottom),
+      clipBottom: Math.round(clipR.bottom),
+    };
+  });
+}
+
 export function probeLobbySetup(trigger, extra = {}) {
   if (typeof window === 'undefined') return;
 
@@ -59,9 +75,12 @@ export function probeLobbySetup(trigger, extra = {}) {
       innerClipped: lobbyInner ? lobbyInner.scrollHeight > lobbyInner.clientHeight + 2 : null,
       pickerClipped: picker ? picker.scrollHeight > picker.clientHeight + 2 : null,
       actionCards: buttonVisibility(lobbyButtons, '.action-card'),
+      actionCardsClippedByInner: clipAgainst(lobbyInner, '.action-card'),
       timerPresets: buttonVisibility(picker, '.btn-timer-preset'),
+      timerClippedByLeft: clipAgainst(lobbyLeft, '.btn-timer-preset'),
       colorPicks: buttonVisibility(picker, '.btn-color-pick'),
       createCancel: buttonVisibility(picker, '.btn-setup-create, .btn-timer-cancel'),
+      createCancelClippedByLeft: clipAgainst(lobbyLeft, '.btn-setup-create, .btn-timer-cancel'),
       runId: extra.runId ?? 'pre-fix',
       ...extra,
     },
