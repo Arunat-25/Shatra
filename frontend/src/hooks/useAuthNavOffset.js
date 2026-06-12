@@ -14,6 +14,7 @@ export default function useAuthNavOffset(
   menuToggleRef = null,
   compactMode = false,
   topCenterRef = null,
+  lobbyMode = false,
 ) {
   const navRef = useRef(null);
 
@@ -33,7 +34,7 @@ export default function useAuthNavOffset(
         } else if (menuToggle) {
           chromeBottom = menuToggle.getBoundingClientRect().bottom;
         }
-        if (topCenter) {
+        if (topCenter && !(lobbyMode && compactMode)) {
           chromeBottom = Math.max(chromeBottom, topCenter.getBoundingClientRect().bottom);
         }
       } else {
@@ -56,7 +57,8 @@ export default function useAuthNavOffset(
         chromeBottom > 0 ? Math.ceil(chromeBottom + gap) : DEFAULT_CHROME_OFFSET;
 
       root.style.setProperty('--app-top-chrome-offset', `${offset}px`);
-      root.style.setProperty('--lobby-nav-clear-top', `${offset}px`);
+      const lobbyClearTop = lobbyMode && compactMode ? 0 : offset;
+      root.style.setProperty('--lobby-nav-clear-top', `${lobbyClearTop}px`);
 
       if (nav) {
         const top = Number.parseFloat(getComputedStyle(nav).top) || 16;

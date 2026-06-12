@@ -142,6 +142,19 @@
   html.app-shell--game-nav-compact .app-shell--lobby .lobby-subtitle {
     max-width: 100%;
   }
+
+  /* Fixed support CTA overlays header — no dead scroll band under chrome */
+  html.app-shell--game-nav-compact body:has(.app-shell--lobby) {
+    overscroll-behavior-y: none;
+  }
+
+  html.app-shell--game-nav-compact body:has(.app-shell--lobby) .app-shell--lobby .app-main {
+    padding-top: 0;
+  }
+
+  html.app-shell--game-nav-compact body:has(.app-shell--lobby) .lobby-left {
+    padding-top: max(36px, calc(env(safe-area-inset-top, 0px) + 28px));
+  }
 }
 
 /* Узкое окно на «широком» лобби: две колонки, но меньше отступы */

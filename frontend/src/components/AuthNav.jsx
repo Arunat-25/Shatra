@@ -65,16 +65,17 @@ export default function AuthNav() {
     if (!compactMobileNav) setMenuOpen(false);
   }, [compactMobileNav, pathname]);
 
+  const onLobbyPage = pathname === '/';
+
   const navRef = useAuthNavOffset(
-    [loading, isAuthenticated, pathname, user?.username, compactMobileNav, menuOpen],
+    [loading, isAuthenticated, pathname, user?.username, compactMobileNav, menuOpen, onLobbyPage],
     topStartRef,
     topEndRef,
     menuToggleRef,
     compactMobileNav,
     topCenterRef,
+    onLobbyPage,
   );
-
-  const onLobbyPage = pathname === '/';
   const onLoginPage = pathname === '/login';
   const onRegisterPage = pathname === '/register';
   const onProfilePage = pathname === '/profile';
