@@ -166,7 +166,7 @@ docker compose -f docker-compose.prod.yml up -d --build
 
 ### Автодеплой при push в `main`
 
-Workflow [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml) запускается **после успешного CI** и по SSH выполняет `scripts/deploy-prod.sh` на VPS.
+Workflow [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml) запускается **при каждом push в `main`** и по SSH выполняет `scripts/deploy-prod.sh` на VPS. CI продолжает гоняться параллельно для проверки качества.
 
 **1. На сервере** (один раз):
 
@@ -198,7 +198,7 @@ cat shatra-deploy.pub >> ~/.ssh/authorized_keys
 | `DEPLOY_PATH` | `/root/Shatra` | нет (по умолчанию `/root/Shatra`) |
 | `DEPLOY_PORT` | `22` | нет |
 
-После этого каждый **push в `main`** с зелёным CI пересобирает prod (`docker compose … up -d --build`).
+После этого каждый **push в `main`** пересобирает prod (`docker compose … up -d --build`).
 
 ---
 
