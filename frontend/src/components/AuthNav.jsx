@@ -214,8 +214,8 @@ export default function AuthNav() {
     <>
       {topTools}
       {showMobileSupport && (
-        <div ref={topCenterRef} className="app-top-center app-top-center--lobby-mobile">
-          <SupportButton compact fixed />
+        <div ref={topCenterRef} className="app-top-center">
+          <SupportButton compact />
         </div>
       )}
       {!compactMobileNav && (

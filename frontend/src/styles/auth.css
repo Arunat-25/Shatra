@@ -250,13 +250,6 @@
   pointer-events: auto;
 }
 
-/* Mobile lobby: pinned support CTA (does not scroll with lobby content) */
-html.app-shell--game-nav-compact body:has(.app-shell--lobby) .app-top-center--lobby-mobile {
-  top: auto;
-  bottom: max(16px, env(safe-area-inset-bottom));
-  z-index: 1001;
-}
-
 .app-support-btn {
   position: relative;
   display: inline-flex;
