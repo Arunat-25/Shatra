@@ -291,6 +291,17 @@
     font-size: 1.4rem;
   }
 
+  .room-board .board:has(.board-content--canvas) {
+    flex: 1 1 0;
+    flex-shrink: 0;
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+  }
+
   .room-board .board {
     flex: 0 1 auto;
     flex-shrink: 1;
@@ -338,11 +349,15 @@
 
   .room-board .board-content--canvas {
     width: 100%;
-    height: min(100cqh, calc(100cqw * 13.6 / 7));
+    max-width: 100%;
     max-height: 100%;
+    height: min(100cqh, calc(100cqw * 13.6 / 7));
+    min-height: calc(100cqw * 13.6 / 7);
+    aspect-ratio: 7 / 13.6;
     position: relative;
-    flex-shrink: 0;
-    min-height: 0;
+    flex: 0 0 auto;
+    align-self: center;
+    contain: layout style paint;
   }
 
   .room-board .board-canvas {

@@ -3,6 +3,26 @@ import { computeBoardLayout, hitTestCell } from './layoutMetrics';
 import { drawBoardFrame, drawBoardState } from './drawBoard';
 import useBoardInteraction from '../hooks/useBoardInteraction';
 
+const BOARD_ASPECT = 13.6 / 7;
+
+function measureCanvasSize(container) {
+  const w = Math.max(1, Math.floor(container.clientWidth));
+  let h = Math.floor(container.clientHeight);
+
+  if (h >= 50) {
+    return { w, h };
+  }
+
+  const slot = container.closest('.room-board');
+  const slotW = slot ? Math.floor(slot.clientWidth) : w;
+  const slotH = slot ? Math.floor(slot.clientHeight) : 0;
+  const width = Math.max(1, w || slotW);
+  const byAspect = Math.floor((width * BOARD_ASPECT));
+  const hFromSlot = slotH > 0 ? Math.min(byAspect, slotH) : byAspect;
+
+  return { w: width, h: Math.max(1, hFromSlot) };
+}
+
 export default function CanvasBoard({
   board,
   onCellClick,
@@ -22,13 +42,25 @@ export default function CanvasBoard({
   const layoutRef = useRef(null);
   const rafRef = useRef(null);
   const dragGhostDrawRef = useRef(null);
+  const lastSizeRef = useRef({ w: 0, h: 0 });
+  const paintStateRef = useRef({});
+
+  paintStateRef.current = {
+    board,
+    moveFrom,
+    highlightedEssential,
+    highlightedCaptured,
+    capturedGhostPieces,
+    lastMove,
+    historyFrom,
+    historyTo,
+  };
 
   const resolveCellAt = useCallback((clientX, clientY) => {
     const canvas = canvasRef.current;
     const layout = layoutRef.current;
     if (!canvas || !layout) return null;
     const rect = canvas.getBoundingClientRect();
-    // Layout is in CSS pixels (ctx.setTransform(dpr) scales drawing, not coords).
     const x = clientX - rect.left;
     const y = clientY - rect.top;
     return hitTestCell(layout.cells, x, y);
@@ -55,6 +87,7 @@ export default function CanvasBoard({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    const state = paintStateRef.current;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     drawBoardFrame(ctx, layout);
 
@@ -69,62 +102,56 @@ export default function CanvasBoard({
     }
 
     drawBoardState(ctx, layout, {
-      board,
-      moveFrom,
-      highlightedEssential,
-      highlightedCaptured,
-      capturedGhostPieces,
-      lastMove,
-      historyFrom,
-      historyTo,
+      ...state,
       dragGhost,
     });
-  }, [
-    board,
-    moveFrom,
-    highlightedEssential,
-    highlightedCaptured,
-    capturedGhostPieces,
-    lastMove,
-    historyFrom,
-    historyTo,
-  ]);
+  }, []);
+
+  const paintRef = useRef(paint);
+  paintRef.current = paint;
 
   const schedulePaint = useCallback(() => {
     if (rafRef.current != null) return;
     rafRef.current = requestAnimationFrame(() => {
       rafRef.current = null;
-      paint();
+      paintRef.current();
     });
-  }, [paint]);
+  }, []);
 
   const resizeCanvas = useCallback(() => {
     const container = containerRef.current;
     const canvas = canvasRef.current;
     if (!container || !canvas) return;
 
-    const dpr = window.devicePixelRatio || 1;
-    const w = Math.max(1, Math.floor(container.clientWidth));
-    const h = Math.max(1, Math.floor(container.clientHeight));
+    const { w, h } = measureCanvasSize(container);
+    const sizeChanged = lastSizeRef.current.w !== w || lastSizeRef.current.h !== h;
+    lastSizeRef.current = { w, h };
 
-    canvas.width = Math.floor(w * dpr);
-    canvas.height = Math.floor(h * dpr);
-    canvas.style.width = `${w}px`;
-    canvas.style.height = `${h}px`;
+    if (sizeChanged) {
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.floor(w * dpr);
+      canvas.height = Math.floor(h * dpr);
+      canvas.style.width = `${w}px`;
+      canvas.style.height = `${h}px`;
 
-    const ctx = canvas.getContext('2d');
-    if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const ctx = canvas.getContext('2d');
+      if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    layoutRef.current = computeBoardLayout(myColor, w, h);
+      layoutRef.current = computeBoardLayout(myColor, w, h);
+    }
+
     schedulePaint();
   }, [myColor, schedulePaint]);
 
   useEffect(() => {
     resizeCanvas();
-    const ro = typeof ResizeObserver !== 'undefined'
+    const container = containerRef.current;
+    const slot = container?.closest('.room-board');
+    const observeTarget = slot ?? container;
+    const ro = typeof ResizeObserver !== 'undefined' && observeTarget
       ? new ResizeObserver(resizeCanvas)
       : null;
-    if (containerRef.current) ro?.observe(containerRef.current);
+    if (observeTarget) ro?.observe(observeTarget);
     window.addEventListener('resize', resizeCanvas);
     return () => {
       ro?.disconnect();
@@ -135,18 +162,25 @@ export default function CanvasBoard({
 
   useEffect(() => {
     schedulePaint();
-  }, [schedulePaint]);
+  }, [
+    board,
+    moveFrom,
+    highlightedEssential,
+    highlightedCaptured,
+    capturedGhostPieces,
+    lastMove,
+    historyFrom,
+    historyTo,
+    schedulePaint,
+  ]);
 
   useEffect(() => {
     const onGhost = (ghost) => {
       dragGhostDrawRef.current = ghost;
       schedulePaint();
     };
-    const unregister = registerDragGhostListener(onGhost);
-    dragGhostDrawRef.current = dragGhostRef.current;
-    if (dragGhostRef.current) schedulePaint();
-    return unregister;
-  }, [registerDragGhostListener, schedulePaint, dragGhostRef]);
+    return registerDragGhostListener(onGhost);
+  }, [registerDragGhostListener, schedulePaint]);
 
   const onPointerDown = useCallback((event) => {
     if (!interactive) return;
