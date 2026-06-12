@@ -116,20 +116,22 @@ export default function Lobby() {
         </div>
       )}
     <div className="lobby-layout">
-      <div className="lobby-left">
+      <div className={`lobby-left${showSetup ? ' lobby-left--setup' : ''}`}>
         <div className="lobby-left-inner">
-          <div className="lobby-emblem">
-            <GameEmblem size={72} className="lobby-emblem-svg" />
+          <div className="lobby-hero-chrome">
+            <div className="lobby-emblem">
+              <GameEmblem size={72} className="lobby-emblem-svg" />
+            </div>
+            <h1>{t('lobby.title')}</h1>
+            <p className="lobby-subtitle">{t('lobby.subtitle')}</p>
+            {stats && (
+              <p className="lobby-stats" aria-live="polite">
+                {t('lobby.onlineCount', { count: stats.online_total ?? 0 })}
+                {' · '}
+                {t('lobby.activeGamesCount', { count: stats.active_games ?? 0 })}
+              </p>
+            )}
           </div>
-          <h1>{t('lobby.title')}</h1>
-          <p className="lobby-subtitle">{t('lobby.subtitle')}</p>
-          {stats && (
-            <p className="lobby-stats" aria-live="polite">
-              {t('lobby.onlineCount', { count: stats.online_total ?? 0 })}
-              {' · '}
-              {t('lobby.activeGamesCount', { count: stats.active_games ?? 0 })}
-            </p>
-          )}
 
           <RatingGainBlockedNotice />
 

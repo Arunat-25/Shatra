@@ -119,7 +119,35 @@
   .lobby-right { order: 2; }
 
   .lobby-left {
-    padding: 32px 24px;
+    padding: 20px 16px;
+  }
+
+  .lobby-emblem {
+    width: 56px;
+    height: 56px;
+    margin-bottom: 10px;
+  }
+
+  .lobby-left h1 {
+    margin-bottom: 4px;
+  }
+
+  .lobby-subtitle {
+    margin-bottom: 6px;
+    font-size: 0.9rem;
+  }
+
+  .lobby-stats {
+    margin-bottom: 10px;
+    font-size: 0.8rem;
+  }
+
+  .lobby-buttons {
+    gap: 8px;
+  }
+
+  .action-card {
+    padding: 10px 12px;
   }
 
   .lobby-right {
@@ -145,6 +173,109 @@
 
   html.app-shell--game-nav-compact body:has(.app-shell--lobby) .app-shell--lobby .app-main {
     padding-top: 0;
+  }
+
+  /* Game choice / setup: fit inside left panel frame, no inner scroll */
+  .lobby-left-inner {
+    overflow: hidden;
+    overflow-y: hidden;
+    justify-content: flex-start;
+  }
+
+  .lobby-left--setup .lobby-hero-chrome {
+    display: none;
+  }
+
+  .lobby-left--setup .lobby-rating-blocked {
+    display: none;
+  }
+
+  .lobby-left--setup {
+    padding: 14px 14px;
+  }
+
+  .lobby-left--setup .game-setup-picker {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .lobby-left--setup .game-setup-section {
+    margin-bottom: 4px;
+  }
+
+  .lobby-left--setup .game-setup-section:last-of-type {
+    margin-bottom: 6px;
+  }
+
+  .lobby-left--setup .timer-picker-title {
+    margin-bottom: 6px;
+    font-size: 0.78rem;
+  }
+
+  .lobby-left--setup .game-setup-label {
+    margin-bottom: 4px;
+    font-size: 0.65rem;
+  }
+
+  .lobby-left--setup .game-setup-picker .timer-presets {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+    margin-bottom: 4px;
+  }
+
+  .lobby-left--setup .game-setup-picker .btn-timer-preset {
+    padding: 5px 2px;
+    font-size: 0.68rem;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .lobby-left--setup .game-setup-picker .btn-timer-none {
+    padding: 5px 8px;
+    font-size: 0.72rem;
+    margin-bottom: 4px;
+  }
+
+  .lobby-left--setup .game-setup-picker .color-picker-options {
+    gap: 6px;
+  }
+
+  .lobby-left--setup .game-setup-picker .btn-color-pick {
+    padding: 6px 6px;
+    min-width: 0;
+    flex: 1 1 0;
+  }
+
+  .lobby-left--setup .game-setup-picker .btn-color-pick__icon {
+    width: 32px;
+    height: 28px;
+  }
+
+  .lobby-left--setup .game-setup-picker .btn-color-pick__label {
+    font-size: 0.68rem;
+  }
+
+  .lobby-left--setup .game-setup-picker .btn-setup-create {
+    padding: 7px 10px;
+    font-size: 0.78rem;
+  }
+
+  .lobby-left--setup .game-setup-picker .btn-timer-cancel {
+    padding: 2px 0 0;
+    font-size: 0.72rem;
+    margin-top: 0;
+  }
+
+  .lobby-left--setup .game-setup-section--disabled {
+    margin-bottom: 2px;
+  }
+
+  .lobby-left--setup .game-setup-section--disabled .timer-presets {
+    margin-bottom: 2px;
   }
 }
 
