@@ -21,4 +21,13 @@ describe('layoutMetrics', () => {
     expect(hitTestCell(layout.cells, cx, cy)).toBe(25);
     expect(hitTestCell(layout.cells, -1, -1)).toBeNull();
   });
+
+  it('hit-tests in CSS pixels (not device pixels)', () => {
+    const layout = computeBoardLayout('белый', 350, 520);
+    const cell = layout.cells[10];
+    const cssX = cell.x + cell.w * 0.5;
+    const cssY = cell.y + cell.h * 0.5;
+    expect(hitTestCell(layout.cells, cssX * 2, cssY * 2)).toBeNull();
+    expect(hitTestCell(layout.cells, cssX, cssY)).toBe(10);
+  });
 });

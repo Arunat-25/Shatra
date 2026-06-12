@@ -31,16 +31,8 @@ function ShatraPieceLite({ type, color, isSelected, isTarget }) {
         <circle cx="25" cy="22" r="21" fill="none" stroke={GOLD_COLOR} strokeWidth="1.2" opacity={0.7} />
       )}
       <path d={stonePath} fill={fill} stroke={stroke} strokeWidth={isBiy ? 1.5 : 1} />
-      {isBatyr && (
-        <circle
-          cx="25"
-          cy="20"
-          r="4"
-          fill="none"
-          stroke={isWhite ? FIRE_RED : TURQUOISE}
-          strokeWidth="1.2"
-        />
-      )}
+      {isBatyr && solarRune(isWhite, isWhite ? FIRE_RED : TURQUOISE, isSelected)}
+      {isBiy && goldenAntlerPath(GOLD_COLOR, isSelected)}
     </svg>
   );
 }

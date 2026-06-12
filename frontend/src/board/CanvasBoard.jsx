@@ -28,11 +28,10 @@ export default function CanvasBoard({
     const layout = layoutRef.current;
     if (!canvas || !layout) return null;
     const rect = canvas.getBoundingClientRect();
+    // Layout is in CSS pixels (ctx.setTransform(dpr) scales drawing, not coords).
     const x = clientX - rect.left;
     const y = clientY - rect.top;
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    return hitTestCell(layout.cells, x * scaleX, y * scaleY);
+    return hitTestCell(layout.cells, x, y);
   }, []);
 
   const { beginDrag, handleCellClick, registerDragGhostListener } = useBoardInteraction({
@@ -101,7 +100,15 @@ export default function CanvasBoard({
 
     const dpr = window.devicePixelRatio || 1;
     const w = Math.max(1, Math.floor(container.clientWidth));
-    const h = Math.max(1, Math.floor(container.clientHeight));
+    let h = Math.floor(container.clientHeight);
+
+    if (h < 50) {
+      const innerW = Math.max(0, w - 6);
+      const unit = (innerW - 10) / 7;
+      h = Math.max(1, Math.ceil(unit * 13.6 + 10 + 6 + 5));
+      container.style.height = `${h}px`;
+    }
+
     canvas.width = Math.floor(w * dpr);
     canvas.height = Math.floor(h * dpr);
     canvas.style.width = `${w}px`;
@@ -142,13 +149,16 @@ export default function CanvasBoard({
 
   const onPointerDown = useCallback((event) => {
     if (!interactive) return;
+    if (event.button != null && event.button !== 0) return;
     const cellId = resolveCellAt(event.clientX, event.clientY);
     if (cellId == null) return;
+    event.preventDefault();
     const piece = board[cellId];
     if (piece && enablePieceDrag) {
       const layout = layoutRef.current;
       const cell = layout?.cells[cellId];
       const size = cell ? Math.round(cell.w) : undefined;
+      event.currentTarget.setPointerCapture?.(event.pointerId);
       beginDrag(cellId, event, size);
       schedulePaint();
       return;

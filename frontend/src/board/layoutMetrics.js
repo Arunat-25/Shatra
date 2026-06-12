@@ -10,7 +10,7 @@ export function computeBoardLayout(myColor, width, height) {
   const sections = getBoardSections(myColor);
   const innerW = Math.max(0, width - BOARD_PADDING * 2);
   const innerH = Math.max(0, height - BOARD_PADDING * 2);
-  const unit = Math.min((innerH - 10) / 13.6, (innerW - 10) / 7);
+  const unit = Math.max(0, Math.min((innerH - 10) / 13.6, (innerW - 10) / 7));
   const cellSize = unit;
   const reserveSize = unit * 0.86;
   const gateGap = unit * 0.08;

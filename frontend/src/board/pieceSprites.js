@@ -13,6 +13,31 @@ const SPRITE_PATHS = {
 const cache = new Map();
 let preloadPromise = null;
 
+function drawStone(ctx, cx, cy, radius, fill, stroke, strokeWidth = 1) {
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, radius * 0.92, radius * 0.82, 0, 0, Math.PI * 2);
+  ctx.fillStyle = fill;
+  ctx.fill();
+  ctx.strokeStyle = stroke;
+  ctx.lineWidth = strokeWidth;
+  ctx.stroke();
+}
+
+function drawBiyAntlers(ctx, cx, cy, color) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - 8);
+  ctx.lineTo(cx - 8, cy - 18);
+  ctx.moveTo(cx, cy - 8);
+  ctx.lineTo(cx + 8, cy - 18);
+  ctx.moveTo(cx - 3, cy - 12);
+  ctx.lineTo(cx - 10, cy - 16);
+  ctx.moveTo(cx + 3, cy - 12);
+  ctx.lineTo(cx + 10, cy - 16);
+  ctx.stroke();
+}
+
 function drawVectorPiece(ctx, type, color) {
   const isWhite = color === COLOR_WHITE;
   const fill = isWhite ? '#fffdd0' : '#2a2a2a';
@@ -22,32 +47,38 @@ function drawVectorPiece(ctx, type, color) {
   const radius = SPRITE_SIZE * 0.38;
 
   ctx.clearRect(0, 0, SPRITE_SIZE, SPRITE_SIZE);
-  ctx.beginPath();
-  ctx.ellipse(cx, cy, radius * 0.92, radius * 0.82, 0, 0, Math.PI * 2);
-  ctx.fillStyle = fill;
-  ctx.fill();
-  ctx.strokeStyle = type === PIECE_BIY ? '#ffd700' : stroke;
-  ctx.lineWidth = type === PIECE_BIY ? 1.5 : 1;
-  ctx.stroke();
 
   if (type === PIECE_BIY) {
+    drawStone(ctx, cx, cy, radius, fill, '#ffd700', 1.5);
     ctx.beginPath();
     ctx.arc(cx, cy, radius * 0.78, 0, Math.PI * 2);
     ctx.strokeStyle = '#ffd700';
     ctx.lineWidth = 1;
     ctx.stroke();
-  } else if (type === PIECE_BATYR) {
-    ctx.fillStyle = isWhite ? '#b22222' : '#40e0d0';
-    ctx.beginPath();
-    ctx.arc(cx, cy - radius * 0.15, radius * 0.18, 0, Math.PI * 2);
-    ctx.fill();
-  } else if (type === PIECE_SHATRA) {
-    ctx.fillStyle = isWhite ? '#9a6600' : '#40e0d0';
-    ctx.font = `bold ${Math.round(radius * 0.5)}px sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('♔', cx, cy);
+    drawBiyAntlers(ctx, cx, cy, '#ffd700');
+    return;
   }
+
+  drawStone(ctx, cx, cy, radius, fill, stroke, 1);
+
+  if (type === PIECE_BATYR) {
+    ctx.strokeStyle = isWhite ? '#b22222' : '#40e0d0';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.arc(cx, cy - 3, radius * 0.18, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - 8);
+    ctx.lineTo(cx, cy - 14);
+    ctx.moveTo(cx - 4, cy - 10);
+    ctx.lineTo(cx + 4, cy - 10);
+    ctx.moveTo(cx, cy - 14);
+    ctx.lineTo(cx - 3, cy - 18);
+    ctx.moveTo(cx, cy - 14);
+    ctx.lineTo(cx + 3, cy - 18);
+    ctx.stroke();
+  }
+  // шатра — plain stone only (matches DOM ShatraPiece)
 }
 
 function createVectorSprite(type, color) {
@@ -99,4 +130,9 @@ export function getPieceSprite(type, color) {
     }
   }
   return cache.get(key);
+}
+
+/** @internal test hook */
+export function __drawVectorPieceForTest(ctx, type, color) {
+  drawVectorPiece(ctx, type, color);
 }
