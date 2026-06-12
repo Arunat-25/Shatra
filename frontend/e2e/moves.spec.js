@@ -20,23 +20,23 @@ test.describe('game room moves', () => {
     await expect(page.locator('.move-history-line', { hasText: '45-37' })).not.toHaveCount(0);
   });
 
-  test('AI game (mobile canvas): white plays 45-37', async ({ page }) => {
+  test('AI game (mobile): white plays 45-37 and board stays visible', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await startAiGame(page, { asWhite: true });
-    await expect(page.locator('.board-canvas')).toBeVisible();
-    await expect(page.locator('.room-board .kletka')).toHaveCount(0);
+    await expect(page.locator('.room-board .kletka').first()).toBeVisible();
     await clickBoardCell(page, WHITE_OPENING.from, 'белый');
     await page.waitForTimeout(400);
-    const boxAfterSelect = await page.locator('.board-canvas').boundingBox();
+    const boxAfterSelect = await page.locator('.room-board .board').boundingBox();
     expect(boxAfterSelect?.height ?? 0).toBeGreaterThan(80);
+    await expect(page.locator('.room-board .kletka').first()).toBeVisible();
     await clickBoardCell(page, WHITE_OPENING.to, 'белый');
     await expectMoveHistoryContains(page, '45-37');
-    const boxAfterMove = await page.locator('.board-canvas').boundingBox();
+    const boxAfterMove = await page.locator('.room-board .board').boundingBox();
     expect(boxAfterMove?.height ?? 0).toBeGreaterThan(80);
     await expect(page.locator('.game-viewport-below-fold')).toBeVisible();
   });
 
-  test('PvP (mobile canvas): host move visible to guest', async ({ browser }) => {
+  test('PvP (mobile): host move visible to guest', async ({ browser }) => {
     const viewport = { width: 390, height: 844 };
     const hostContext = await browser.newContext({ viewport });
     const guestContext = await browser.newContext({ viewport });
@@ -45,8 +45,8 @@ test.describe('game room moves', () => {
 
     await startPvpGame(hostPage, guestPage);
 
-    await expect(hostPage.locator('.board-canvas')).toBeVisible();
-    await expect(guestPage.locator('.board-canvas')).toBeVisible();
+    await expect(hostPage.locator('.room-board .kletka').first()).toBeVisible();
+    await expect(guestPage.locator('.room-board .kletka').first()).toBeVisible();
 
     await makeBoardMove(hostPage, WHITE_OPENING.from, WHITE_OPENING.to, 'белый');
     await expectMoveHistoryContains(hostPage, '45-37');
