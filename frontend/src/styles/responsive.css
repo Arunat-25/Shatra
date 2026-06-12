@@ -152,8 +152,12 @@
     padding-top: 0;
   }
 
-  html.app-shell--game-nav-compact body:has(.app-shell--lobby) .lobby-left {
-    padding-top: max(36px, calc(env(safe-area-inset-top, 0px) + 28px));
+  /* Gap below fixed support CTA before lobby cards (measured in useAuthNavOffset) */
+  html.app-shell--game-nav-compact body:has(.app-shell--lobby) .lobby-layout {
+    margin-top: var(
+      --lobby-support-clear-top,
+      calc(max(6px, env(safe-area-inset-top, 0px)) + 28px + 8px)
+    );
   }
 }
 
