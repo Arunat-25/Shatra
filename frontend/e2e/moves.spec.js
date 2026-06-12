@@ -20,16 +20,25 @@ test.describe('game room moves', () => {
     await expect(page.locator('.move-history-line', { hasText: '45-37' })).not.toHaveCount(0);
   });
 
+  async function expectBoardCellsSized(page, minHeight = 20) {
+    await expect.poll(async () => page.evaluate(() => {
+      const heights = [...document.querySelectorAll('.room-board .kletka')]
+        .map((c) => c.getBoundingClientRect().height);
+      return heights.length ? Math.min(...heights) : 0;
+    }), { message: 'Board cells collapsed to zero height' }).toBeGreaterThan(minHeight);
+  }
+
   test('AI game (mobile): white plays 45-37 and board stays visible', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await startAiGame(page, { asWhite: true });
     await expect(page.locator('.room-board .kletka').first()).toBeVisible();
     await clickBoardCell(page, WHITE_OPENING.from, 'белый');
-    await page.waitForTimeout(400);
+    await expectBoardCellsSized(page);
     const boxAfterSelect = await page.locator('.room-board .board').boundingBox();
     expect(boxAfterSelect?.height ?? 0).toBeGreaterThan(80);
     await expect(page.locator('.room-board .kletka').first()).toBeVisible();
     await clickBoardCell(page, WHITE_OPENING.to, 'белый');
+    await expectBoardCellsSized(page);
     await expectMoveHistoryContains(page, '45-37');
     const boxAfterMove = await page.locator('.room-board .board').boundingBox();
     expect(boxAfterMove?.height ?? 0).toBeGreaterThan(80);

@@ -10,6 +10,23 @@ export async function waitForGameBoard(page, { timeout = 60_000 } = {}) {
   return board;
 }
 
+/** Доска + интерактив (чат/WS) готовы к действиям. */
+export async function waitForGameReady(page, opts) {
+  await waitForGameBoard(page, opts);
+  const chat = page.locator('.game-chat');
+  if (await chat.count() === 0) return;
+
+  const input = chat.getByRole('textbox');
+  const sendBtn = chat.getByRole('button', { name: /отпр|send/i });
+  await expect.poll(async () => {
+    if (!(await input.isEnabled())) return false;
+    await input.fill('…');
+    const canSend = await sendBtn.isEnabled();
+    await input.fill('');
+    return canSend;
+  }, { timeout: 15_000, message: 'Chat input never became ready' }).toBe(true);
+}
+
 export async function isCanvasBoard(page) {
   return (await page.locator('.board-canvas').count()) > 0;
 }
@@ -73,17 +90,21 @@ export async function startPvpGame(hostPage, guestPage) {
   await expect(hostPage).toHaveURL(/\/[a-f0-9]{8}(?:\?|$)/);
   const roomId = new URL(hostPage.url()).pathname.slice(1);
   await guestPage.goto(`/${roomId}`);
-  await waitForGameBoard(hostPage);
-  await waitForGameBoard(guestPage);
+  await waitForGameReady(hostPage);
+  await waitForGameReady(guestPage);
   return roomId;
 }
 
 /** Отправить сообщение в чат PvP (форма в боковой панели). */
 export async function sendChatMessage(page, text) {
+  await waitForGameReady(page);
   const chat = page.locator('.game-chat');
+  await chat.scrollIntoViewIfNeeded();
   await expect(chat).toBeVisible();
   const input = chat.getByRole('textbox');
+  await input.click();
   await input.fill(text);
+  await expect(input).toHaveValue(text);
   const sendBtn = chat.getByRole('button', { name: /отпр|send/i });
   await expect(sendBtn).toBeEnabled({ timeout: 5000 });
   await sendBtn.click();
@@ -91,5 +112,10 @@ export async function sendChatMessage(page, text) {
 
 /** Дождаться текста в ленте чата. */
 export async function expectChatMessage(page, text, { timeout = 15_000 } = {}) {
-  await expect(page.locator('.game-chat-text', { hasText: text })).toBeVisible({ timeout });
+  const chat = page.locator('.game-chat');
+  await chat.scrollIntoViewIfNeeded();
+  await expect.poll(async () => {
+    const texts = await page.locator('.game-chat-text').allTextContents();
+    return texts.some((line) => line.includes(text));
+  }, { timeout, message: `Expected chat to contain "${text}"` }).toBe(true);
 }

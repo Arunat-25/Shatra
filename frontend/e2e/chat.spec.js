@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { expectChatMessage, sendChatMessage, waitForGameBoard } from './helpers.js';
+import { expectChatMessage, sendChatMessage, startPvpGame } from './helpers.js';
 
 test('private invite shows QR code', async ({ page }) => {
   await page.goto('/');
@@ -20,16 +20,7 @@ test('PvP chat: guest sees host message', async ({ browser }) => {
   const hostPage = await hostContext.newPage();
   const guestPage = await guestContext.newPage();
 
-  await hostPage.goto('/');
-  await hostPage.getByRole('button', { name: /создать игру|create game|ойун түз/i }).click();
-  await hostPage.locator('.btn-setup-create').click();
-  await expect(hostPage).toHaveURL(/\/[a-f0-9]{8}(?:\?|$)/);
-  const roomId = new URL(hostPage.url()).pathname.slice(1);
-
-  await guestPage.goto(`/${roomId}`);
-
-  await waitForGameBoard(hostPage);
-  await waitForGameBoard(guestPage);
+  await startPvpGame(hostPage, guestPage);
 
   await sendChatMessage(hostPage, 'playwright hello');
   await expectChatMessage(hostPage, 'playwright hello');

@@ -302,9 +302,10 @@
     justify-content: center;
   }
 
-  .room-board .board {
+  /* Beat game.css height:100% + cqh sizing — width-only cells survive flex reflow. */
+  .app-shell--game .room-board .board {
     flex: 0 1 auto;
-    flex-shrink: 1;
+    flex-shrink: 0;
     width: 100%;
     height: auto;
     max-width: 100%;
@@ -315,16 +316,19 @@
     box-sizing: border-box;
     border-radius: var(--radius-lg);
     overflow: hidden;
-    --board-unit: min(
-      calc((100cqh - 10px) / 13.6),
-      calc((100cqw - 10px) / 7)
-    );
+    animation: none;
+    transition: opacity var(--duration-slow) ease;
+    --board-unit: calc((100cqw - 10px) / 7);
     --cell-size: var(--board-unit);
     --reserve-cell-size: calc(var(--board-unit) * 0.86);
   }
 
-  .room-board .board .board-content {
-    height: 100%;
+  .app-shell--game .room-board .board.board-dimmed {
+    transform: none;
+  }
+
+  .app-shell--game .room-board .board .board-content {
+    height: auto;
     width: 100%;
     display: flex;
     flex-direction: column;
