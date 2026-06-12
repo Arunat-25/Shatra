@@ -84,6 +84,9 @@ export function probeLobbySetup(trigger, extra = {}) {
       panelSpill: clipAgainst(lobbyLeft, '.action-card, .btn-timer-preset, .btn-color-pick, .btn-setup-create, .btn-timer-cancel')
         .filter((b) => b.clipped),
       leftOverflow: lobbyLeft ? getComputedStyle(lobbyLeft).overflow : null,
+      fluidScale: extra.fluidScale ?? null,
+      fluidHostHeight: extra.fluidHostHeight ?? null,
+      computedFluidZoom: document.querySelector('.lobby-left-inner--fluid')?.style.zoom || null,
       runId: extra.runId ?? 'post-fix',
       ...extra,
     },

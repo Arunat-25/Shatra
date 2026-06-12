@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { createRoom, listRooms, joinRoom } from './api';
 import useRoomPolling from './hooks/useRoomPolling';
 import useMediaQuery from './hooks/useMediaQuery';
+import useLobbyFluidScale from './hooks/useLobbyFluidScale';
 import RoomCard from './components/RoomCard';
 import GameEmblem from './components/GameEmblem';
 import GameSetupPicker from './components/GameSetupPicker';
@@ -22,10 +23,18 @@ export default function Lobby() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const compactMobileNav = useMediaQuery(COMPACT_GAME_QUERY);
+  const fluidLobby = useMediaQuery('(max-width: 960px)');
   const { rooms, stats, error, refreshing, dismissError, setExternalError, fetchRooms } = useRoomPolling(listRooms, POLL_INTERVAL);
   const [joinerRoomId, setJoinerRoomId] = useState(null);
   const [showSetup, setShowSetup] = useState(false);
   const [pickerMode, setPickerMode] = useState(null);
+  const { hostRef, contentRef, scale, hostHeight } = useLobbyFluidScale(fluidLobby, [
+    showSetup,
+    pickerMode,
+    stats,
+    error,
+    compactMobileNav,
+  ]);
 
   const lobbyActions = [
     {
@@ -113,6 +122,8 @@ export default function Lobby() {
     const run = () => probeLobbySetup('lobby-state', {
       pickerMode,
       aiOnly: pickerMode === 'ai',
+      fluidScale: scale,
+      fluidHostHeight: hostHeight,
     });
     run();
     const tId = window.setTimeout(run, 120);
@@ -121,7 +132,7 @@ export default function Lobby() {
       window.clearTimeout(tId);
       window.removeEventListener('resize', run);
     };
-  }, [showSetup, pickerMode]);
+  }, [showSetup, pickerMode, scale, hostHeight]);
 
   return (
     <div className="lobby-page">
@@ -132,7 +143,18 @@ export default function Lobby() {
       )}
     <div className="lobby-layout">
       <div className={`lobby-left${showSetup ? ' lobby-left--setup' : ''}`}>
-        <div className="lobby-left-inner">
+        <div
+          ref={fluidLobby ? hostRef : undefined}
+          className={fluidLobby ? 'lobby-fluid-host' : undefined}
+          style={fluidLobby ? {
+            height: hostHeight ?? undefined,
+            '--lobby-fluid-scale': scale,
+          } : undefined}
+        >
+        <div
+          ref={fluidLobby ? contentRef : undefined}
+          className={`lobby-left-inner${fluidLobby ? ' lobby-left-inner--fluid' : ''}`}
+        >
           <div className="lobby-hero-chrome">
             <div className="lobby-emblem">
               <GameEmblem size={72} className="lobby-emblem-svg" />
@@ -183,6 +205,7 @@ export default function Lobby() {
               <button type="button" className="error-dismiss" onClick={dismissError} aria-label={t('lobby.closeError')}>✕</button>
             </div>
           )}
+        </div>
         </div>
       </div>
 

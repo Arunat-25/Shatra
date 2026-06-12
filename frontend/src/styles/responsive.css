@@ -182,6 +182,11 @@
     display: block;
   }
 
+  .lobby-fluid-host {
+    width: 100%;
+    overflow: hidden;
+  }
+
   .lobby-left-inner {
     display: block;
     flex: none;
@@ -190,36 +195,9 @@
     overflow: visible;
   }
 
-  /* Compact hero so three action cards fit inside the panel (360×760). */
-  .lobby-hero-chrome .lobby-emblem {
-    width: 48px;
-    height: 48px;
-    margin-bottom: 6px;
-  }
-
-  .lobby-left h1 {
-    font-size: 1.65rem;
-    line-height: 1.15;
-    margin-bottom: 2px;
-  }
-
-  .lobby-subtitle {
-    font-size: 0.82rem;
-    margin-bottom: 4px;
-    line-height: 1.25;
-  }
-
-  .lobby-stats {
-    margin-bottom: 8px;
-  }
-
-  .lobby-buttons {
-    gap: 6px;
-  }
-
-  .action-card {
-    padding: 10px 12px;
-    gap: 10px;
+  .lobby-left-inner--fluid {
+    zoom: var(--lobby-fluid-scale, 1);
+    transition: zoom 0.18s ease-out;
   }
 
   .lobby-left--setup .lobby-hero-chrome {
@@ -231,91 +209,26 @@
   }
 
   .lobby-left--setup {
-    padding: 10px 12px 12px;
+    padding: 12px 14px;
   }
 
   .lobby-left--setup .game-setup-picker {
-    flex: 0 0 auto;
     width: 100%;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    max-height: min(58dvh, 420px);
-    overflow-x: hidden;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .lobby-left--setup .game-setup-section {
-    margin-bottom: 2px;
-  }
-
-  .lobby-left--setup .game-setup-section:last-of-type {
-    margin-bottom: 2px;
-  }
-
-  .lobby-left--setup .timer-picker-title {
-    margin-bottom: 4px;
-    font-size: 0.74rem;
-  }
-
-  .lobby-left--setup .game-setup-label {
-    margin-bottom: 2px;
-    font-size: 0.62rem;
   }
 
   .lobby-left--setup .game-setup-picker .timer-presets {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 3px;
-    margin-bottom: 3px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 5px;
   }
 
-  .lobby-left--setup .game-setup-picker .btn-timer-preset {
-    padding: 4px 1px;
-    font-size: 0.62rem;
-    min-width: 0;
-    width: 100%;
-    line-height: 1.15;
-  }
-
+  .lobby-left--setup .game-setup-picker .btn-timer-preset,
   .lobby-left--setup .game-setup-picker .btn-timer-none {
-    padding: 4px 6px;
-    font-size: 0.66rem;
-    margin-bottom: 3px;
-    width: 100%;
-  }
-
-  .lobby-left--setup .game-setup-picker .color-picker-options {
-    gap: 6px;
-  }
-
-  .lobby-left--setup .game-setup-picker .btn-color-pick {
-    padding: 4px 4px;
     min-width: 0;
-    flex: 1 1 0;
-  }
-
-  .lobby-left--setup .game-setup-picker .btn-color-pick__icon {
-    width: 28px;
-    height: 24px;
-  }
-
-  .lobby-left--setup .game-setup-picker .btn-color-pick__label {
-    font-size: 0.68rem;
-  }
-
-  .lobby-left--setup .game-setup-picker .btn-setup-create {
-    padding: 6px 10px;
-    font-size: 0.76rem;
-    margin-bottom: 0;
-  }
-
-  .lobby-left--setup .game-setup-picker .btn-timer-cancel {
-    padding: 0;
-    font-size: 0.68rem;
-    margin-top: 0;
-    line-height: 1.2;
+    width: 100%;
   }
 
   /* Hide disabled increment grid until a timer is chosen — saves ~45px on short viewports. */
