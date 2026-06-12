@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
@@ -211,14 +212,18 @@ export default function AuthNav() {
     </div>
   ) : null;
 
+  const mobileSupportButton = showMobileSupport ? (
+    <div ref={topCenterRef} className="app-top-center app-top-center--lobby-mobile">
+      <SupportButton compact fixed />
+    </div>
+  ) : null;
+
   return (
     <>
       {topTools}
-      {showMobileSupport && (
-        <div ref={topCenterRef} className="app-top-center app-top-center--lobby-mobile">
-          <SupportButton compact fixed />
-        </div>
-      )}
+      {mobileSupportButton
+        && typeof document !== 'undefined'
+        && createPortal(mobileSupportButton, document.body)}
       {!compactMobileNav && (
         <div ref={topEndRef} className="app-top-end">
           <div className="app-auth-nav">
