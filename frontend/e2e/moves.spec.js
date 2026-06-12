@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import {
+  clickBoardCell,
   expectMoveHistoryContains,
   makeBoardMove,
   startAiGame,
@@ -24,8 +25,14 @@ test.describe('game room moves', () => {
     await startAiGame(page, { asWhite: true });
     await expect(page.locator('.board-canvas')).toBeVisible();
     await expect(page.locator('.room-board .kletka')).toHaveCount(0);
-    await makeBoardMove(page, WHITE_OPENING.from, WHITE_OPENING.to, 'белый');
+    await clickBoardCell(page, WHITE_OPENING.from, 'белый');
+    await page.waitForTimeout(400);
+    const boxAfterSelect = await page.locator('.board-canvas').boundingBox();
+    expect(boxAfterSelect?.height ?? 0).toBeGreaterThan(80);
+    await clickBoardCell(page, WHITE_OPENING.to, 'белый');
     await expectMoveHistoryContains(page, '45-37');
+    const boxAfterMove = await page.locator('.board-canvas').boundingBox();
+    expect(boxAfterMove?.height ?? 0).toBeGreaterThan(80);
     await expect(page.locator('.game-viewport-below-fold')).toBeVisible();
   });
 

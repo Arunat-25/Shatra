@@ -115,11 +115,19 @@ export function drawBoardState(ctx, layout, {
   for (const [id, rect] of Object.entries(cells)) {
     const cellId = Number(id);
     const piece = board[cellId] || capturedGhostPieces[cellId];
-    if (!piece || (dragGhost && dragGhost.fromId === cellId)) continue;
+    if (!piece) continue;
     const cx = rect.x + rect.w / 2;
     const cy = rect.y + rect.h / 2;
     const r = Math.min(rect.w, rect.h) * 0.38;
+    const isDragOrigin = dragGhost && dragGhost.fromId === cellId;
+    if (isDragOrigin) {
+      ctx.save();
+      ctx.globalAlpha = 0.35;
+    }
     drawPieceShape(ctx, cx, cy, r, getPieceType(piece), getPieceColor(piece));
+    if (isDragOrigin) {
+      ctx.restore();
+    }
   }
 
   if (dragGhost?.piece) {

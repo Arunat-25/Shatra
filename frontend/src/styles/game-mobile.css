@@ -351,13 +351,11 @@
     width: 100%;
     max-width: 100%;
     max-height: 100%;
-    height: min(100cqh, calc(100cqw * 13.6 / 7));
-    min-height: calc(100cqw * 13.6 / 7);
     aspect-ratio: 7 / 13.6;
+    height: auto;
     position: relative;
     flex: 0 0 auto;
     align-self: center;
-    contain: layout style paint;
   }
 
   .room-board .board-canvas {

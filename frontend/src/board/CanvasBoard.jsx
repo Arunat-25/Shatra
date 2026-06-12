@@ -17,7 +17,7 @@ function measureCanvasSize(container) {
   const slotW = slot ? Math.floor(slot.clientWidth) : w;
   const slotH = slot ? Math.floor(slot.clientHeight) : 0;
   const width = Math.max(1, w || slotW);
-  const byAspect = Math.floor((width * BOARD_ASPECT));
+  const byAspect = Math.floor(width * BOARD_ASPECT);
   const hFromSlot = slotH > 0 ? Math.min(byAspect, slotH) : byAspect;
 
   return { w: width, h: Math.max(1, hFromSlot) };
@@ -35,7 +35,6 @@ export default function CanvasBoard({
   historyTo = null,
   myColor,
   interactive = true,
-  enablePieceDrag = true,
 }) {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
@@ -66,17 +65,12 @@ export default function CanvasBoard({
     return hitTestCell(layout.cells, x, y);
   }, []);
 
-  const {
-    beginDrag,
-    handleCellClick,
-    registerDragGhostListener,
-    dragGhostRef,
-  } = useBoardInteraction({
+  const { handleCellClick, registerDragGhostListener } = useBoardInteraction({
     board,
     onCellClick,
     moveFrom,
     interactive,
-    enablePieceDrag,
+    enablePieceDrag: false,
     resolveCellAt,
   });
 
@@ -88,7 +82,14 @@ export default function CanvasBoard({
     if (!ctx) return;
 
     const state = paintStateRef.current;
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+
+    const dpr = window.devicePixelRatio || 1;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
     drawBoardFrame(ctx, layout);
 
     let dragGhost = dragGhostDrawRef.current;
@@ -133,10 +134,6 @@ export default function CanvasBoard({
       canvas.height = Math.floor(h * dpr);
       canvas.style.width = `${w}px`;
       canvas.style.height = `${h}px`;
-
-      const ctx = canvas.getContext('2d');
-      if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
       layoutRef.current = computeBoardLayout(myColor, w, h);
     }
 
@@ -174,13 +171,10 @@ export default function CanvasBoard({
     schedulePaint,
   ]);
 
-  useEffect(() => {
-    const onGhost = (ghost) => {
-      dragGhostDrawRef.current = ghost;
-      schedulePaint();
-    };
-    return registerDragGhostListener(onGhost);
-  }, [registerDragGhostListener, schedulePaint]);
+  useEffect(() => registerDragGhostListener((ghost) => {
+    dragGhostDrawRef.current = ghost;
+    schedulePaint();
+  }), [registerDragGhostListener, schedulePaint]);
 
   const onPointerDown = useCallback((event) => {
     if (!interactive) return;
@@ -188,26 +182,9 @@ export default function CanvasBoard({
     const cellId = resolveCellAt(event.clientX, event.clientY);
     if (cellId == null) return;
     event.preventDefault();
-    const piece = board[cellId];
-    if (piece && enablePieceDrag) {
-      const layout = layoutRef.current;
-      const cell = layout?.cells[cellId];
-      const size = cell ? Math.round(cell.w) : undefined;
-      event.currentTarget.setPointerCapture?.(event.pointerId);
-      beginDrag(cellId, event, size);
-      schedulePaint();
-      return;
-    }
     handleCellClick(cellId);
-  }, [
-    interactive,
-    resolveCellAt,
-    board,
-    enablePieceDrag,
-    beginDrag,
-    handleCellClick,
-    schedulePaint,
-  ]);
+    schedulePaint();
+  }, [interactive, resolveCellAt, handleCellClick, schedulePaint]);
 
   return (
     <div ref={containerRef} className="board-content board-content--canvas">
