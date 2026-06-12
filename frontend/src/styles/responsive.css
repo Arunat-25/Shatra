@@ -143,21 +143,8 @@
     max-width: 100%;
   }
 
-  /* Fixed support CTA overlays header — no dead scroll band under chrome */
-  html.app-shell--game-nav-compact body:has(.app-shell--lobby) {
-    overscroll-behavior-y: none;
-  }
-
   html.app-shell--game-nav-compact body:has(.app-shell--lobby) .app-shell--lobby .app-main {
     padding-top: 0;
-  }
-
-  /* Gap below fixed support CTA before lobby cards (measured in useAuthNavOffset) */
-  html.app-shell--game-nav-compact body:has(.app-shell--lobby) .lobby-layout {
-    margin-top: var(
-      --lobby-support-clear-top,
-      calc(max(6px, env(safe-area-inset-top, 0px)) + 28px + 8px)
-    );
   }
 }
 

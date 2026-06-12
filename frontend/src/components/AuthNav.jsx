@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
@@ -46,7 +45,6 @@ export default function AuthNav() {
   const { t } = useTranslation();
   const { user, isAuthenticated, loading, logout } = useAuth();
   const topStartRef = useRef(null);
-  const topCenterRef = useRef(null);
   const topEndRef = useRef(null);
   const menuToggleRef = useRef(null);
   const isMobileLayout = useMediaQuery(COMPACT_MOBILE_NAV_QUERY);
@@ -74,15 +72,13 @@ export default function AuthNav() {
     topEndRef,
     menuToggleRef,
     compactMobileNav,
-    topCenterRef,
+    null,
     onLobbyPage,
   );
   const onLoginPage = pathname === '/login';
   const onRegisterPage = pathname === '/register';
   const onProfilePage = pathname === '/profile';
   const onAdminPage = pathname === '/admin';
-  const showMobileSupport = compactMobileNav && onLobbyPage;
-
   const handleLogout = () => {
     closeMenu();
     logout();
@@ -212,18 +208,9 @@ export default function AuthNav() {
     </div>
   ) : null;
 
-  const mobileSupportButton = showMobileSupport ? (
-    <div ref={topCenterRef} className="app-top-center app-top-center--lobby-mobile">
-      <SupportButton compact fixed />
-    </div>
-  ) : null;
-
   return (
     <>
       {topTools}
-      {mobileSupportButton
-        && typeof document !== 'undefined'
-        && createPortal(mobileSupportButton, document.body)}
       {!compactMobileNav && (
         <div ref={topEndRef} className="app-top-end">
           <div className="app-auth-nav">

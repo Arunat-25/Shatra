@@ -70,13 +70,10 @@ describe('AuthNav compact mobile nav', () => {
     expect(document.documentElement.classList.contains('app-shell--game-nav-compact')).toBe(true);
   });
 
-  it('shows fixed support button on lobby in mobile layout', () => {
+  it('does not show support button in AuthNav on lobby mobile (rendered in Lobby)', () => {
     renderNav('/');
-    expect(screen.getByRole('link', { name: 'nav.support' })).toBeTruthy();
-    expect(document.querySelector('.app-top-center--lobby-mobile')).toBeTruthy();
-    const support = document.querySelector('.app-top-center--lobby-mobile .app-support-btn--compact');
-    expect(support).toBeTruthy();
-    expect(support.className).toContain('app-support-btn--fixed');
+    expect(screen.queryByRole('link', { name: 'nav.support' })).toBeNull();
+    expect(document.querySelector('.app-top-center--lobby-mobile')).toBeNull();
   });
 
   it('does not show support button in mobile drawer', () => {

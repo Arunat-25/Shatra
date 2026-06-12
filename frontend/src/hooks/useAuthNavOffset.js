@@ -2,8 +2,6 @@ import { useLayoutEffect, useRef } from 'react';
 
 const DEFAULT_CHROME_OFFSET = 72;
 const COMPACT_CHROME_GAP = 6;
-const LOBBY_SUPPORT_GAP = 8;
-
 /**
  * Measures fixed top chrome and sets --app-top-chrome-offset on :root.
  * When menuToggleRef is provided (compact game nav), only the toggle button is measured.
@@ -61,15 +59,6 @@ export default function useAuthNavOffset(
       const lobbyClearTop = lobbyMode && compactMode ? 0 : offset;
       root.style.setProperty('--lobby-nav-clear-top', `${lobbyClearTop}px`);
 
-      if (lobbyMode && compactMode && topCenterRef?.current) {
-        const supportClear = Math.ceil(
-          topCenterRef.current.getBoundingClientRect().bottom + LOBBY_SUPPORT_GAP,
-        );
-        root.style.setProperty('--lobby-support-clear-top', `${supportClear}px`);
-      } else {
-        root.style.removeProperty('--lobby-support-clear-top');
-      }
-
       if (nav) {
         const top = Number.parseFloat(getComputedStyle(nav).top) || 16;
         root.style.setProperty('--auth-nav-inset-top', `${top}px`);
@@ -96,7 +85,6 @@ export default function useAuthNavOffset(
       window.removeEventListener('resize', update);
       root.style.removeProperty('--app-top-chrome-offset');
       root.style.removeProperty('--lobby-nav-clear-top');
-      root.style.removeProperty('--lobby-support-clear-top');
       root.style.removeProperty('--auth-nav-inset-top');
       root.style.removeProperty('--auth-nav-block-height');
     };

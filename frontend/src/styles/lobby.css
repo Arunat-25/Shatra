@@ -52,7 +52,18 @@ body:has(.app-shell--lobby) #root {
   min-height: 0;
   height: 100%;
   display: flex;
+  flex-direction: column;
   width: 100%;
+}
+
+/* Mobile: support CTA scrolls away with lobby (not fixed) */
+.lobby-support-row {
+  display: flex;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 100%;
+  padding: max(6px, env(safe-area-inset-top, 0px)) 12px 10px;
+  box-sizing: border-box;
 }
 
 .lobby-layout {

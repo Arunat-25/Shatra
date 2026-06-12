@@ -3,14 +3,20 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { createRoom, listRooms, joinRoom } from './api';
 import useRoomPolling from './hooks/useRoomPolling';
+import useMediaQuery from './hooks/useMediaQuery';
 import RoomCard from './components/RoomCard';
 import GameEmblem from './components/GameEmblem';
 import GameSetupPicker from './components/GameSetupPicker';
 import RatingGainBlockedNotice from './components/RatingGainBlockedNotice';
+import SupportButton from './components/SupportButton';
 import { ROOM_PUBLIC, ROOM_PRIVATE, ROOM_AI, POLL_INTERVAL } from './constants';
+
+const COMPACT_MOBILE_NAV_QUERY = '(max-width: 1319px)';
+
 export default function Lobby() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const compactMobileNav = useMediaQuery(COMPACT_MOBILE_NAV_QUERY);
   const { rooms, stats, error, refreshing, dismissError, setExternalError, fetchRooms } = useRoomPolling(listRooms, POLL_INTERVAL);
   const [joinerRoomId, setJoinerRoomId] = useState(null);
   const [showSetup, setShowSetup] = useState(false);
@@ -100,6 +106,11 @@ export default function Lobby() {
 
   return (
     <div className="lobby-page">
+      {compactMobileNav && (
+        <div className="lobby-support-row">
+          <SupportButton compact />
+        </div>
+      )}
     <div className="lobby-layout">
       <div className="lobby-left">
         <div className="lobby-left-inner">

@@ -250,30 +250,6 @@
   pointer-events: auto;
 }
 
-/* Mobile lobby: portaled to body — stays fixed while lobby scrolls */
-html.app-shell--game-nav-compact body:has(.app-shell--lobby) .app-top-center--lobby-mobile {
-  position: fixed;
-  top: max(6px, env(safe-area-inset-top));
-  left: 50%;
-  right: auto;
-  bottom: auto;
-  transform: translate3d(-50%, 0, 0);
-  z-index: 1100;
-  width: max-content;
-  max-width: calc(100vw - 88px);
-  margin: 0;
-  padding: 0;
-}
-
-html.app-shell--game-nav-compact body:has(.app-shell--lobby) .app-top-center--lobby-mobile .app-support-btn {
-  animation: none;
-}
-
-html.app-shell--game-nav-compact body:has(.app-shell--lobby) .app-top-center--lobby-mobile .app-support-btn:hover,
-html.app-shell--game-nav-compact body:has(.app-shell--lobby) .app-top-center--lobby-mobile .app-support-btn:active {
-  transform: none;
-}
-
 .app-support-btn {
   position: relative;
   display: inline-flex;
