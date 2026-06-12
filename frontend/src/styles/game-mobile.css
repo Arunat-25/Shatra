@@ -302,7 +302,7 @@
     justify-content: center;
   }
 
-  /* Beat game.css height:100% + cqh sizing — width-only cells survive flex reflow. */
+  /* Width-only fallback; when slot has height, shrink to fit full board (incl. fortresses). */
   .app-shell--game .room-board .board {
     flex: 0 1 auto;
     flex-shrink: 0;
@@ -321,6 +321,18 @@
     --board-unit: calc((100cqw - 10px) / 7);
     --cell-size: var(--board-unit);
     --reserve-cell-size: calc(var(--board-unit) * 0.86);
+  }
+
+  @container board-slot (min-height: 120px) {
+    .app-shell--game .room-board .board {
+      width: min(100%, calc((100cqh - 16px) * 7 / 13.6));
+      --board-unit: min(
+        calc((100cqw - 10px) / 7),
+        calc((100cqh - 16px) / 13.6)
+      );
+      --cell-size: var(--board-unit);
+      --reserve-cell-size: calc(var(--board-unit) * 0.86);
+    }
   }
 
   .app-shell--game .room-board .board.board-dimmed {

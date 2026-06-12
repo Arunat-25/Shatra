@@ -149,12 +149,56 @@ Grafana → 127.0.0.1:3000 only
 
 ## 5. Обновление
 
+Вручную:
+
+```bash
+./scripts/deploy-prod.sh
+```
+
+или:
+
 ```bash
 git pull
 docker compose -f docker-compose.prod.yml up -d --build
 ```
 
 Миграции применяются автоматически при старте `app` (`alembic upgrade head`).
+
+### Автодеплой при push в `main`
+
+Workflow [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml) запускается **после успешного CI** и по SSH выполняет `scripts/deploy-prod.sh` на VPS.
+
+**1. На сервере** (один раз):
+
+```bash
+chmod +x ~/Shatra/scripts/deploy-prod.sh
+```
+
+Убедитесь, что `git pull` работает (для приватного репозитория — [deploy key](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/managing-deploy-keys) с read-доступом в `~/.ssh`).
+
+**2. SSH-ключ для GitHub Actions** (на своём компьютере):
+
+```bash
+ssh-keygen -t ed25519 -f shatra-deploy -N "" -C "github-actions-deploy"
+```
+
+Публичный ключ `shatra-deploy.pub` добавьте на сервер:
+
+```bash
+cat shatra-deploy.pub >> ~/.ssh/authorized_keys
+```
+
+**3. Secrets в GitHub** (Settings → Secrets and variables → Actions):
+
+| Secret | Пример | Обязателен |
+|--------|--------|------------|
+| `DEPLOY_HOST` | `136.234.124.150` | да |
+| `DEPLOY_USER` | `root` | да |
+| `DEPLOY_SSH_KEY` | содержимое `shatra-deploy` (приватный) | да |
+| `DEPLOY_PATH` | `/root/Shatra` | нет (по умолчанию `/root/Shatra`) |
+| `DEPLOY_PORT` | `22` | нет |
+
+После этого каждый **push в `main`** с зелёным CI пересобирает prod (`docker compose … up -d --build`).
 
 ---
 

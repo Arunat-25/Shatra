@@ -3,6 +3,29 @@ import { clickBoardCell, startAiGame } from './helpers.js';
 
 const WHITE_OPENING = { from: 45, to: 37 };
 
+test('short mobile viewport shows both fortresses', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 700 });
+  await startAiGame(page, { asWhite: true });
+
+  const stats = await page.evaluate(() => {
+    const slot = document.querySelector('.room-board');
+    const board = document.querySelector('.room-board .board');
+    const slotR = slot.getBoundingClientRect();
+    const reserves = [...document.querySelectorAll('.field-of-reserve .kletka')];
+    const top = reserves[0];
+    const bottom = reserves[reserves.length - 1];
+    return {
+      clipped: board.scrollHeight > slot.clientHeight + 2,
+      fortTop: top.getBoundingClientRect().top >= slotR.top - 1,
+      fortBottom: bottom.getBoundingClientRect().bottom <= slotR.bottom + 1,
+    };
+  });
+
+  expect(stats.clipped).toBe(false);
+  expect(stats.fortTop).toBe(true);
+  expect(stats.fortBottom).toBe(true);
+});
+
 test('mobile board stays visually full during AI thinking', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await startAiGame(page, { asWhite: true });

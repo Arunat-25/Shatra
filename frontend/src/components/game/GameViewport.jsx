@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { probeBoardLayout } from '../../debug/boardLayoutProbe';
 import BoardSurface from '../BoardSurface';
 import MoveHistory from '../MoveHistory';
 import OpponentDisconnectStatus from './OpponentDisconnectStatus';
@@ -25,6 +26,21 @@ export default function GameViewport({
     gameOver: state.gameOver,
     waiting: state.waiting,
   };
+
+  useEffect(() => {
+    if (state.waiting) return undefined;
+    const run = () => probeBoardLayout('state-change', {
+      moveFrom: state.moveFrom,
+      aiThinking: state.aiThinking,
+      runId: 'post-fix',
+    });
+    run();
+    const slot = document.querySelector('.room-board');
+    if (!slot) return undefined;
+    const ro = new ResizeObserver(() => probeBoardLayout('resize'));
+    ro.observe(slot);
+    return () => ro.disconnect();
+  }, [state.waiting, state.moveFrom, state.aiThinking, state.myColor]);
 
   return (
     <div className="game-viewport-column">
