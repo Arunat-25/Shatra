@@ -81,7 +81,10 @@ export function probeLobbySetup(trigger, extra = {}) {
       colorPicks: buttonVisibility(picker, '.btn-color-pick'),
       createCancel: buttonVisibility(picker, '.btn-setup-create, .btn-timer-cancel'),
       createCancelClippedByLeft: clipAgainst(lobbyLeft, '.btn-setup-create, .btn-timer-cancel'),
-      runId: extra.runId ?? 'pre-fix',
+      panelSpill: clipAgainst(lobbyLeft, '.action-card, .btn-timer-preset, .btn-color-pick, .btn-setup-create, .btn-timer-cancel')
+        .filter((b) => b.clipped),
+      leftOverflow: lobbyLeft ? getComputedStyle(lobbyLeft).overflow : null,
+      runId: extra.runId ?? 'post-fix',
       ...extra,
     },
     timestamp: Date.now(),
