@@ -5,8 +5,11 @@ import viteCompression from 'vite-plugin-compression'
 const API_HOST = process.env.API_HOST || 'localhost:8000'
 
 export default defineConfig({
+  esbuild: {
+    jsx: 'automatic',
+  },
   plugins: [
-    react(),
+    react({ jsxRuntime: 'automatic' }),
     viteCompression({ algorithm: 'gzip', ext: '.gz' }),
   ],
   optimizeDeps: {

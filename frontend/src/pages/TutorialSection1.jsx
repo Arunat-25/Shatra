@@ -151,7 +151,7 @@ export default function TutorialSection1() {
 
     const empty = getEmptyBoard();
     let dimmed = null;
-    let txt = t('tutorial.section1.step1.text');
+    let txt;
 
     if (step === STEP_BATYR_TYPE) {
       txt = t('tutorial.section1.step10.text');

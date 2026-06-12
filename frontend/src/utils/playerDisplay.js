@@ -1,4 +1,4 @@
-import { COLOR_WHITE, COLOR_BLACK } from '../constants';
+import { COLOR_WHITE } from '../constants';
 
 export function playerForColor(playersInfo, color) {
   return playersInfo?.find((p) => p.color === color) ?? null;

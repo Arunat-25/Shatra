@@ -18,7 +18,7 @@ export default function useCellClick({
   showMessage,
   isBlocked,
 }) {
-  const selectPiece = useCallback((positionNum, s) => {
+  const selectPiece = useCallback((positionNum) => {
     dispatch({ type: GAME_ACTIONS.SET_MOVE_FROM, payload: positionNum });
     if (!send(buildHintPayload(positionNum))) {
       showMessage(i18n.t('game.connectionLost'), MSG_WARNING);

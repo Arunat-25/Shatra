@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { probeBoardLayout } from '../../debug/boardLayoutProbe';
 import BoardSurface from '../BoardSurface';

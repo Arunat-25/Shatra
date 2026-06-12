@@ -45,6 +45,8 @@ export default function ShatraPiece({
   positionNum,
   variant = 'full',
 }) {
+  const uid = useId();
+
   if (variant === 'lite') {
     return (
       <ShatraPieceLite
@@ -55,8 +57,6 @@ export default function ShatraPiece({
       />
     );
   }
-
-  const uid = useId();
   const idBase = `${uid}-${positionNum ?? type}`;
   const strokeColor = color === COLOR_WHITE ? WHITE_STROKE : BLACK_STROKE;
   const runeColor = color === COLOR_WHITE ? FIRE_RED : TURQUOISE;

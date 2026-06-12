@@ -1,5 +1,4 @@
 /** Minimal recharts stub for component tests. */
-import React from 'react';
 
 export function ResponsiveContainer({ children }) {
   return <div data-testid="recharts-container">{children}</div>;

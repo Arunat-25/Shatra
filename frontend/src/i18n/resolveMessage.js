@@ -88,7 +88,6 @@ const CODE_TO_I18N = {
   room_not_found: 'errors.roomNotFound',
   room_full: 'errors.roomFull',
   already_in_game: 'errors.alreadyInGame',
-  room_closed: 'errors.roomNotFound',
   connection_lost: 'errors.connectionLost',
   reconnect_failed: 'errors.reconnectFailed',
 };

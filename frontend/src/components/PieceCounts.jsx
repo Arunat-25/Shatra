@@ -1,10 +1,5 @@
 import ShatraPiece from '../ShatraPiece';
-import {
-  COLOR_WHITE,
-  COLOR_BLACK,
-  PIECE_BATYR,
-  PIECE_SHATRA,
-} from '../constants';
+import { PIECE_BATYR, PIECE_SHATRA } from '../constants';
 import { colorToCountsKey, getBoardSideOrder } from '../utils';
 
 function CountCell({ type, color, count }) {

@@ -84,8 +84,7 @@ export function drawBoardState(ctx, layout, {
 }) {
   const { cells } = layout;
 
-  for (const [id, rect] of Object.entries(cells)) {
-    const cellId = Number(id);
+  for (const [, rect] of Object.entries(cells)) {
     ctx.fillStyle = cellFill(rect.colorClass);
     ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
   }

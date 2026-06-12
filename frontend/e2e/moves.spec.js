@@ -5,7 +5,6 @@ import {
   makeBoardMove,
   startAiGame,
   startPvpGame,
-  waitForGameBoard,
 } from './helpers.js';
 
 /** Легальный дебют белых (tests/test_ai.py). */

@@ -7,7 +7,7 @@ from game_engine.models import GameEvent, GameEventResult
 from game_engine.game_logic import logic
 from backend.state import get_game, set_game, set_room, game_timers
 from backend.ws_manager import manager, init_game
-from backend.timers import game_ticker, stop_game_timer
+from backend.timers import game_ticker
 from backend.ai_trained import get_best_move as get_ai_move
 from backend.game_helpers import (
     build_game_started_response,
