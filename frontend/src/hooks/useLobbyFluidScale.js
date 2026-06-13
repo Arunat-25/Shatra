@@ -49,10 +49,9 @@ export default function useLobbyFluidScale(enabled, deps = []) {
 
       content.style.zoom = String(scale);
       const hostHeight = content.scrollHeight;
-      const panelHeight = hostHeight + padY;
 
       host.style.height = `${hostHeight}px`;
-      panel.style.height = `${panelHeight}px`;
+      panel.style.height = '';
 
       setLayout({ scale, hostHeight, natural, maxInnerH });
     };

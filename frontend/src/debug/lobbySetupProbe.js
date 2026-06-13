@@ -83,6 +83,11 @@ export function probeLobbySetup(trigger, extra = {}) {
       createCancelClippedByLeft: clipAgainst(lobbyLeft, '.btn-setup-create, .btn-timer-cancel'),
       panelSpill: clipAgainst(lobbyLeft, '.action-card, .btn-timer-preset, .btn-color-pick, .btn-setup-create, .btn-timer-cancel')
         .filter((b) => b.clipped),
+      panelGapPx: (() => {
+        const right = document.querySelector('.lobby-right');
+        if (!lobbyLeft || !right) return null;
+        return Math.round(right.getBoundingClientRect().top - lobbyLeft.getBoundingClientRect().bottom);
+      })(),
       leftOverflow: lobbyLeft ? getComputedStyle(lobbyLeft).overflow : null,
       fluidScale: extra.fluidScale ?? null,
       fluidHostHeight: extra.fluidHostHeight ?? null,
