@@ -1,14 +1,26 @@
 /* ===== LOBBY SHELL (full viewport, below auth nav) ===== */
-body:has(.app-shell--lobby) {
-  overflow: hidden;
+@media (min-width: 961px) {
+  body:has(.app-shell--lobby) {
+    overflow: hidden;
+  }
+
+  body:has(.app-shell--lobby) #root {
+    padding: 0;
+    align-items: stretch;
+    min-height: 100dvh;
+    height: 100dvh;
+    max-height: 100dvh;
+  }
+
+  .app-shell--lobby {
+    height: 100dvh;
+    max-height: 100dvh;
+  }
 }
 
 body:has(.app-shell--lobby) #root {
   padding: 0;
   align-items: stretch;
-  min-height: 100dvh;
-  height: 100dvh;
-  max-height: 100dvh;
 }
 
 .app-shell--lobby {
@@ -18,8 +30,6 @@ body:has(.app-shell--lobby) #root {
   flex: 1;
   width: 100%;
   min-height: 0;
-  height: 100dvh;
-  max-height: 100dvh;
 }
 
 .app-shell--lobby .app-main {
@@ -125,9 +135,18 @@ body:has(.app-shell--lobby) #root {
   overflow-y: auto;
 }
 
+.lobby-hero-chrome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  text-align: center;
+}
+
 .lobby-emblem {
   width: 72px;
   height: 72px;
+  margin-inline: auto;
   margin-bottom: 20px;
   animation: float 4s ease-in-out infinite;
 }
@@ -138,28 +157,16 @@ body:has(.app-shell--lobby) #root {
 }
 
 @keyframes hearth-flicker {
-  0%, 100% { opacity: 0.9; transform: scale(1); }
-  25% { opacity: 1; transform: scale(1.03, 1.06); }
-  50% { opacity: 0.94; transform: scale(0.97, 1.02); }
-  75% { opacity: 1; transform: scale(1.02, 1.05); }
+  0%, 100% { opacity: 0.9; transform: scale(1, 1); }
+  25% { opacity: 1; transform: scale(1.02, 1.04); }
+  50% { opacity: 0.94; transform: scale(0.98, 1.01); }
+  75% { opacity: 1; transform: scale(1.01, 1.03); }
 }
 
 .game-emblem-flame {
   transform-box: fill-box;
-  transform-origin: center 95%;
+  transform-origin: 50% 100%;
   animation: hearth-flicker 1.1s ease-in-out infinite;
-}
-
-.game-emblem-flame path:nth-child(2) {
-  animation: hearth-flicker 1.3s ease-in-out infinite 0.15s;
-}
-
-.game-emblem-flame path:nth-child(3) {
-  animation: hearth-flicker 1.2s ease-in-out infinite 0.3s;
-}
-
-.game-emblem-flame path:nth-child(4) {
-  animation: hearth-flicker 1.25s ease-in-out infinite 0.1s;
 }
 
 .lobby-left h1 {

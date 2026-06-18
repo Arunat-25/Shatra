@@ -2,19 +2,20 @@ import { useLayoutEffect, useRef, useState } from 'react';
 
 const MIN_SCALE = 0.68;
 const MAX_SCALE = 1;
+const LOBBY_PANEL_GAP_PX = 10;
 
 /**
  * Scales lobby left-panel content to fit the viewport (mobile).
- * Uses `zoom` so layout height shrinks with the visual scale ("step back" effect).
+ * Syncs waiting-hall panel height to match mode-selection panel height.
  */
 export default function useLobbyFluidScale(enabled, deps = []) {
   const hostRef = useRef(null);
   const contentRef = useRef(null);
-  const [layout, setLayout] = useState({ scale: 1, hostHeight: null });
+  const [layout, setLayout] = useState({ scale: 1, hostHeight: null, panelHeight: null });
 
   useLayoutEffect(() => {
     if (!enabled) {
-      setLayout({ scale: 1, hostHeight: null });
+      setLayout({ scale: 1, hostHeight: null, panelHeight: null });
       return undefined;
     }
 
@@ -26,11 +27,13 @@ export default function useLobbyFluidScale(enabled, deps = []) {
       if (!host || !content) return;
 
       const panel = host.closest('.lobby-left');
-      if (!panel) return;
+      const layoutEl = panel?.closest('.lobby-layout');
+      if (!panel || !layoutEl) return;
 
       content.style.zoom = '1';
       host.style.height = 'auto';
       panel.style.height = 'auto';
+      layoutEl.style.removeProperty('--lobby-panel-height');
       void content.offsetHeight;
 
       const natural = content.scrollHeight;
@@ -38,9 +41,14 @@ export default function useLobbyFluidScale(enabled, deps = []) {
       const padY = parseFloat(panelCs.paddingTop) + parseFloat(panelCs.paddingBottom);
       const panelTop = panel.getBoundingClientRect().top;
       const viewportH = window.visualViewport?.height ?? window.innerHeight;
-      const isSetup = panel.classList.contains('lobby-left--setup');
-      const reserveBottom = isSetup ? 48 : 120;
-      const maxInnerH = Math.max(120, viewportH - panelTop - reserveBottom - padY);
+      const edgeBottom = parseFloat(
+        getComputedStyle(document.documentElement).getPropertyValue('--lobby-edge') || '8',
+      );
+      // Left panel uses the first screen; waiting hall (same height) extends below.
+      const maxInnerH = Math.max(
+        120,
+        viewportH - panelTop - padY - LOBBY_PANEL_GAP_PX - edgeBottom,
+      );
 
       const scale = Math.max(
         MIN_SCALE,
@@ -49,11 +57,12 @@ export default function useLobbyFluidScale(enabled, deps = []) {
 
       content.style.zoom = String(scale);
       const hostHeight = content.scrollHeight;
-
       host.style.height = `${hostHeight}px`;
-      panel.style.height = '';
 
-      setLayout({ scale, hostHeight, natural, maxInnerH });
+      const panelHeight = panel.offsetHeight;
+      layoutEl.style.setProperty('--lobby-panel-height', `${panelHeight}px`);
+
+      setLayout({ scale, hostHeight, panelHeight, natural, maxInnerH });
     };
 
     const schedule = () => {
@@ -64,6 +73,8 @@ export default function useLobbyFluidScale(enabled, deps = []) {
     schedule();
     const ro = new ResizeObserver(schedule);
     if (contentRef.current) ro.observe(contentRef.current);
+    const panel = hostRef.current?.closest('.lobby-left');
+    if (panel) ro.observe(panel);
     window.addEventListener('resize', schedule);
     window.visualViewport?.addEventListener('resize', schedule);
 
@@ -75,6 +86,7 @@ export default function useLobbyFluidScale(enabled, deps = []) {
       if (contentRef.current) contentRef.current.style.zoom = '';
       const panel = hostRef.current?.closest('.lobby-left');
       if (panel) panel.style.height = '';
+      panel?.closest('.lobby-layout')?.style.removeProperty('--lobby-panel-height');
     };
   }, [enabled, ...deps]);
 

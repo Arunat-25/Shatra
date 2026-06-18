@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { probeLobbySetup } from './debug/lobbySetupProbe';
+import { probeEmblemFlame } from './debug/emblemFlameProbe';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { createRoom, listRooms, joinRoom } from './api';
@@ -28,7 +28,7 @@ export default function Lobby() {
   const [joinerRoomId, setJoinerRoomId] = useState(null);
   const [showSetup, setShowSetup] = useState(false);
   const [pickerMode, setPickerMode] = useState(null);
-  const { hostRef, contentRef, scale, hostHeight } = useLobbyFluidScale(fluidLobby, [
+  const { hostRef, contentRef, scale, hostHeight, panelHeight } = useLobbyFluidScale(fluidLobby, [
     showSetup,
     pickerMode,
     stats,
@@ -119,20 +119,15 @@ export default function Lobby() {
   const showLoading = refreshing && rooms.length === 0;
 
   useEffect(() => {
-    const run = () => probeLobbySetup('lobby-state', {
-      pickerMode,
-      aiOnly: pickerMode === 'ai',
-      fluidScale: scale,
-      fluidHostHeight: hostHeight,
-    });
+    const run = () => probeEmblemFlame('lobby-emblem');
     run();
-    const tId = window.setTimeout(run, 120);
+    const tId = window.setTimeout(run, 150);
     window.addEventListener('resize', run);
     return () => {
       window.clearTimeout(tId);
       window.removeEventListener('resize', run);
     };
-  }, [showSetup, pickerMode, scale, hostHeight]);
+  }, [scale, hostHeight]);
 
   return (
     <div className="lobby-page">

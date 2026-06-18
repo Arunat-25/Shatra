@@ -1,4 +1,7 @@
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import '../../styles/board.css';
+import { probeTutorialLayout } from '../../debug/tutorialLayoutProbe';
 import BoardGrid from '../../BoardGrid';
 
 const noop = () => {};
@@ -24,6 +27,17 @@ export default function TutorialLessonLayout({
   onPassTurn,
 }) {
   const { t } = useTranslation();
+
+  useEffect(() => {
+    const run = () => probeTutorialLayout('tutorial-lesson');
+    run();
+    const tId = window.setTimeout(run, 150);
+    window.addEventListener('resize', run);
+    return () => {
+      window.clearTimeout(tId);
+      window.removeEventListener('resize', run);
+    };
+  }, [text, instruction, interactive, canProceed]);
 
   const boardClass = ['board', interactive ? '' : 'disabled'].filter(Boolean).join(' ');
 

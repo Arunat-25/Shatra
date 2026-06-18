@@ -74,29 +74,45 @@
     padding: 22px 20px 28px;
   }
 
-  /* Лобби: три блока столбиком, прокрутка страницы (не три равные полосы в 100dvh) */
-  body:has(.app-shell--lobby) {
+  /* Лобби: столбик панелей, прокрутка главной страницы (нижняя часть зала ожидания). */
+  html:has(.app-shell--lobby) {
+    height: auto;
+    min-height: 100dvh;
     overflow-x: hidden;
     overflow-y: auto;
+  }
+
+  body:has(.app-shell--lobby) {
+    overflow: visible;
+    height: auto;
+    min-height: 100dvh;
   }
 
   body:has(.app-shell--lobby) #root {
     height: auto;
     max-height: none;
     min-height: 100dvh;
+    align-items: stretch;
+    flex: 0 0 auto;
   }
 
   .app-shell--lobby {
     height: auto;
-    min-height: 100dvh;
+    min-height: 0;
     max-height: none;
+    flex: 0 0 auto;
   }
 
   .app-shell--lobby .app-main,
   .app-shell--lobby .page-transition,
   .lobby-page {
-    height: auto;
-    flex: 1 1 auto;
+    height: auto !important;
+    flex: 0 0 auto;
+    min-height: 0;
+  }
+
+  .app-shell--lobby .app-main {
+    padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
   }
 
   .lobby-layout {
@@ -115,9 +131,28 @@
     flex: 0 0 auto;
     grid-column: unset;
     grid-row: unset;
-    height: auto;
     min-height: 0;
     align-self: stretch;
+  }
+
+  .lobby-left {
+    height: fit-content;
+  }
+
+  .lobby-right {
+    height: var(--lobby-panel-height, auto);
+    min-height: var(--lobby-panel-height, auto);
+    max-height: none;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .lobby-right .rooms-list {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .lobby-left { order: 1; }
@@ -156,7 +191,6 @@
   }
 
   .lobby-right {
-    max-height: min(42vh, 380px);
     padding: 22px 20px;
   }
 
@@ -183,7 +217,6 @@
   /* Mobile lobby: panel wraps content; clip stays inside rounded frame. */
   .lobby-left {
     overflow: hidden;
-    height: fit-content;
     display: block;
   }
 
@@ -298,7 +331,6 @@
   }
   .lobby-left h1 { font-size: 1.75rem; }
   .lobby-subtitle { margin-bottom: 24px; }
-  .lobby-right { max-height: min(38vh, 340px); }
   .action-card { padding: 12px 14px; }
   .action-card__icon { width: 36px; height: 36px; }
 
