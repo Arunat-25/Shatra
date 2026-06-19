@@ -54,7 +54,7 @@ describe('drawBoard', () => {
     expect(ctx.fillRect).toHaveBeenCalledWith(0, 0, layout.width, layout.contentHeight);
   });
 
-  it('draws cell numbers when showCellNumbers is set', () => {
+  it('draws compact cell numbers with smaller scale', () => {
     const layout = computeBoardLayout('белый', TEST_LAYOUT_METRICS);
     const ctx = createMockCtx();
     ctx.font = '';
@@ -62,9 +62,9 @@ describe('drawBoard', () => {
       set(v) { ctx._font = v; },
       get() { return ctx._font; },
     });
-    drawCellNumbers(ctx, layout);
+    drawCellNumbers(ctx, layout, { scale: 0.12 });
     expect(ctx.fillText).toHaveBeenCalled();
-    expect(ctx._font).toMatch(/700/);
+    expect(ctx._font).toMatch(/700 5px/);
   });
 
   it('draws board state with cell numbers when enabled', () => {

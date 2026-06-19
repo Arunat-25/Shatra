@@ -24,6 +24,7 @@
   --piece-outline-width: 2px;
   --piece-outline-offset: 1px;
   --fort-cell-border: 2px;
+  --cell-number-scale: 0.19;
 }
 
 .board .board-content {
@@ -199,7 +200,7 @@
   position: absolute;
   top: 2px;
   left: 3px;
-  font-size: max(6px, calc(var(--cell-size, 52px) * 0.19));
+  font-size: max(6px, calc(var(--cell-size, 52px) * var(--cell-number-scale, 0.19)));
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: rgba(40, 28, 16, 0.72);
@@ -430,5 +431,12 @@
     --piece-outline-width: max(1px, calc(var(--cell-size, 40px) * 0.032));
     --piece-outline-offset: max(0.5px, calc(var(--cell-size, 40px) * 0.01));
     --fort-cell-border: max(1px, calc(var(--cell-size, 40px) * 0.032));
+    --cell-number-scale: 0.12;
+  }
+
+  .cell-number {
+    top: 1px;
+    left: 2px;
+    font-size: max(5px, calc(var(--cell-size, 40px) * var(--cell-number-scale, 0.12)));
   }
 }

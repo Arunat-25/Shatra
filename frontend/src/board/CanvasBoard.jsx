@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { COMPACT_GAME_QUERY } from '../constants';
 import useMediaQuery from '../hooks/useMediaQuery';
-import { computeBoardLayout, hitTestCell, readBoardUnitMetrics, deriveMetricsFromBoardSlot } from './layoutMetrics';
+import { computeBoardLayout, hitTestCell, readBoardUnitMetrics, readCellNumberScale, deriveMetricsFromBoardSlot } from './layoutMetrics';
 import { drawBoardFrame, drawBoardState } from './drawBoard';
 import useBoardInteraction from '../hooks/useBoardInteraction';
 import usePieceSlideOverlay from '../hooks/usePieceSlideOverlay';
@@ -63,7 +63,6 @@ export default function CanvasBoard({
   getDragLegalDests = null,
 }) {
   const isCompactViewport = useMediaQuery(COMPACT_GAME_QUERY);
-  const showCellNumbers = !isCompactViewport;
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const layoutRef = useRef(null);
@@ -181,6 +180,9 @@ export default function CanvasBoard({
 
     drawBoardFrame(ctx, layout, drawTheme, myColor);
 
+    const boardEl = containerRef.current?.closest?.('.board');
+    const cellNumberScale = readCellNumberScale(boardEl);
+
     const hiddenPieceCells = new Set();
     if (slideOverlayDrawRef.current?.toCell != null) {
       hiddenPieceCells.add(slideOverlayDrawRef.current.toCell);
@@ -191,11 +193,12 @@ export default function CanvasBoard({
       dragGhost: dragGhostDrawRef.current,
       slideOverlay: slideOverlayDrawRef.current,
       hiddenPieceCells,
-      showCellNumbers,
+      showCellNumbers: true,
+      cellNumberScale,
       theme: drawTheme,
       vectorOnlySprites,
     });
-  }, [drawTheme, vectorOnlySprites, showCellNumbers, myColor]);
+  }, [drawTheme, vectorOnlySprites, isCompactViewport, myColor]);
 
   const paintRef = useRef(paint);
   paintRef.current = paint;
@@ -262,7 +265,7 @@ export default function CanvasBoard({
     historyFrom,
     historyTo,
     slideOverlay,
-    showCellNumbers,
+    isCompactViewport,
     schedulePaint,
   ]);
 

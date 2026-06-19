@@ -362,10 +362,6 @@
     flex-shrink: 0;
   }
 
-  html.app-shell--game-nav-compact .app-shell--game .cell-number {
-    display: none;
-  }
-
   .room-board .board-content--canvas {
     width: fit-content;
     height: fit-content;

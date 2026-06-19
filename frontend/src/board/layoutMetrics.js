@@ -7,6 +7,18 @@ export const BOARD_WIDTH_CELLS = 7;
 const DEFAULT_RESERVE_MARGIN = 3;
 const DEFAULT_MAIN_MARGIN = 1;
 const DEFAULT_KING_MARGIN = '1mm';
+const DEFAULT_CELL_NUMBER_SCALE = 0.19;
+
+/**
+ * Mirrors `--cell-number-scale` on `.board` (board.css).
+ * @param {HTMLElement | null | undefined} boardEl
+ */
+export function readCellNumberScale(boardEl) {
+  if (!boardEl || typeof getComputedStyle === 'undefined') return DEFAULT_CELL_NUMBER_SCALE;
+  const raw = getComputedStyle(boardEl).getPropertyValue('--cell-number-scale').trim();
+  const scale = parseFloat(raw);
+  return Number.isFinite(scale) && scale > 0 ? scale : DEFAULT_CELL_NUMBER_SCALE;
+}
 
 function parseCssLengthToPx(value, refEl, fallbackPx) {
   if (!value?.trim() || !refEl) return fallbackPx;

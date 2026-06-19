@@ -70,8 +70,13 @@ const KING_FIELD_NUMBER_COLOR = 'rgba(120, 53, 10, 0.8)';
 const LIGHT_CELL_NUMBER_COLOR = 'rgba(40, 28, 16, 0.72)';
 const DARK_CELL_NUMBER_COLOR = 'rgba(255, 255, 255, 0.88)';
 
-function cellNumberFontSize(cellSize) {
-  return Math.max(6, cellSize * 0.19);
+function cellNumberFontSize(cellSize, scale = 0.19) {
+  const minPx = scale <= 0.12 ? 5 : 6;
+  return Math.max(minPx, cellSize * scale);
+}
+
+function cellNumberInsets(scale = 0.19) {
+  return scale <= 0.12 ? { x: 2, y: 1 } : { x: 3, y: 2 };
 }
 
 function cellNumberColors(rect) {
@@ -96,26 +101,28 @@ function cellNumberColors(rect) {
 /**
  * Cell labels — mirrors `.cell-number` in board.css (top-left, tabular).
  */
-export function drawCellNumbers(ctx, layout) {
-  const fontSize = cellNumberFontSize(layout.cellSize);
-  const insetX = 3;
-  const insetY = 2;
+export function drawCellNumbers(ctx, layout, { scale = 0.19 } = {}) {
+  const { x: insetX, y: insetY } = cellNumberInsets(scale);
+  const compact = scale <= 0.12;
+  const shadowBlur = compact ? 1 : 2;
+  const shadowOffsetY = compact ? 0.5 : 1;
 
   ctx.save();
-  ctx.font = `700 ${fontSize}px system-ui, -apple-system, sans-serif`;
   ctx.textBaseline = 'top';
   ctx.textAlign = 'left';
 
   for (const [id, rect] of Object.entries(layout.cells)) {
+    const fontSize = cellNumberFontSize(rect.w, scale);
+    ctx.font = `700 ${fontSize}px system-ui, -apple-system, sans-serif`;
     const { fill, shadow } = cellNumberColors(rect);
     const x = rect.x + insetX;
     const y = rect.y + insetY;
     const label = String(id);
 
     ctx.shadowColor = shadow;
-    ctx.shadowBlur = 2;
+    ctx.shadowBlur = shadowBlur;
     ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 1;
+    ctx.shadowOffsetY = shadowOffsetY;
     ctx.fillStyle = fill;
     ctx.fillText(label, x, y);
   }
@@ -173,6 +180,7 @@ export function drawBoardState(ctx, layout, {
   slideOverlay = null,
   hiddenPieceCells = null,
   showCellNumbers = false,
+  cellNumberScale = 0.19,
   theme = 'default',
   vectorOnlySprites = false,
 }) {
@@ -211,7 +219,7 @@ export function drawBoardState(ctx, layout, {
   }
 
   if (showCellNumbers) {
-    drawCellNumbers(ctx, layout);
+    drawCellNumbers(ctx, layout, { scale: cellNumberScale });
   }
 
   for (const essentialId of essentialSet) {
