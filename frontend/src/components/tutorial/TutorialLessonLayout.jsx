@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { useLiteUi } from '../../context/LiteUiContext';
 import BoardGrid from '../../BoardGrid';
 
 const noop = () => {};
@@ -24,6 +25,7 @@ export default function TutorialLessonLayout({
   onPassTurn,
 }) {
   const { t } = useTranslation();
+  const { enabled: liteUi } = useLiteUi();
 
   const boardClass = ['board', interactive ? '' : 'disabled'].filter(Boolean).join(' ');
 
@@ -39,6 +41,7 @@ export default function TutorialLessonLayout({
                 myColor="белый"
                 interactive={interactive}
                 enablePieceDrag={false}
+                pieceVariant={liteUi ? 'lite' : 'full'}
                 tutorialDimmedCells={tutorialDimmedCells}
                 highlightedEssential={highlightedEssential}
                 highlightedCaptured={highlightedCaptured}

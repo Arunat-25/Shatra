@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render } from '@testing-library/react';
+import { LiteUiProvider } from '../../context/LiteUiContext';
 import GameViewport from './GameViewport';
 
 vi.mock('../BoardSurface', () => ({
@@ -40,15 +41,17 @@ describe('GameViewport', () => {
 
   it('does not render full-board overlay when opponent disconnected', () => {
     const { container } = render(
-      <GameViewport
-        boardTop="белый"
-        boardBottom="черный"
-        state={baseState}
-        isBoardBlocked
-        onCellClick={vi.fn()}
-        actionsBar={null}
-        moveHistoryProps={{}}
-      />,
+      <LiteUiProvider>
+        <GameViewport
+          boardTop="белый"
+          boardBottom="черный"
+          state={baseState}
+          isBoardBlocked
+          onCellClick={vi.fn()}
+          actionsBar={null}
+          moveHistoryProps={{}}
+        />
+      </LiteUiProvider>,
     );
     expect(container.querySelector('.opponent-disconnected-overlay')).toBeNull();
     expect(container.querySelector('.opponent-disconnect-status--board-edge')).toBeTruthy();

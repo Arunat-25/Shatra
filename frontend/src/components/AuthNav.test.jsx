@@ -1,7 +1,9 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { fireEvent, render, screen, cleanup } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { LiteUiProvider } from '../context/LiteUiContext';
 import AuthNav from './AuthNav';
+import { LITE_UI_KEY } from '../ui/liteUiSettings';
 
 const matchMediaMock = vi.fn();
 
@@ -36,13 +38,17 @@ vi.mock('./TutorialTab', () => ({
 function renderNav(pathname) {
   return render(
     <MemoryRouter initialEntries={[pathname]}>
-      <AuthNav />
+      <LiteUiProvider>
+        <AuthNav />
+      </LiteUiProvider>
     </MemoryRouter>,
   );
 }
 
 describe('AuthNav compact mobile nav', () => {
   beforeEach(() => {
+    localStorage.removeItem(LITE_UI_KEY);
+    document.documentElement.classList.remove('app-shell--lite-ui');
     matchMediaMock.mockImplementation((query) => ({
       matches: query.includes('1319px'),
       media: query,
@@ -55,7 +61,9 @@ describe('AuthNav compact mobile nav', () => {
 
   afterEach(() => {
     cleanup();
+    localStorage.removeItem(LITE_UI_KEY);
     document.documentElement.classList.remove('app-shell--game-nav-compact');
+    document.documentElement.classList.remove('app-shell--lite-ui');
   });
 
   it('shows hamburger without support button on game route in mobile layout', () => {
@@ -106,5 +114,20 @@ describe('AuthNav compact mobile nav', () => {
     expect(document.querySelector('.app-top-center')).toBeNull();
     expect(document.querySelector('.app-chrome-nav-tabs .app-support-btn')).toBeNull();
     expect(document.querySelector('.app-top-start > .app-support-btn')).toBeTruthy();
+  });
+
+  it('toggles lite UI from desktop top bar', () => {
+    matchMediaMock.mockImplementation((query) => ({
+      matches: false,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }));
+    renderNav('/');
+    const btn = screen.getByRole('button', { name: 'nav.liteUiOff' });
+    expect(btn.getAttribute('aria-pressed')).toBe('false');
+    fireEvent.click(btn);
+    expect(document.documentElement.classList.contains('app-shell--lite-ui')).toBe(true);
+    expect(screen.getByRole('button', { name: 'nav.liteUiOn' }).getAttribute('aria-pressed')).toBe('true');
   });
 });

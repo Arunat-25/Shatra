@@ -16,6 +16,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  --hint-dot-size: 11px;
+  --cell-highlight-ring: 3px;
+  --cell-highlight-glow: 16px;
+  --cell-border-width: 1px;
+  --capture-ring-width: 2px;
+  --piece-outline-width: 2px;
+  --piece-outline-offset: 1px;
+  --fort-cell-border: 2px;
 }
 
 .board .board-content {
@@ -229,7 +237,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  border: 1px solid rgba(61, 40, 23, 0.2);
+  border: var(--cell-border-width) solid rgba(61, 40, 23, 0.2);
   pointer-events: none;
   z-index: 0;
 }
@@ -241,8 +249,8 @@
   width: 52px;
   height: 52px;
   background: linear-gradient(155deg, #fef9c3, #fde68a);
-  border: 2px solid var(--fort-gold);
-  outline: 2px solid rgba(212, 175, 55, 0.25);
+  border: var(--fort-cell-border) solid var(--fort-gold);
+  outline: var(--fort-cell-border) solid rgba(212, 175, 55, 0.25);
   outline-offset: -1px;
   border-radius: 5px;
   box-shadow: inset 0 0 16px rgba(212, 175, 55, 0.12), 0 0 12px rgba(212, 175, 55, 0.1);
@@ -279,7 +287,9 @@
 
 /* ===== HIGHLIGHTS ===== */
 .highlight-black {
-  box-shadow: inset 0 0 0 3px rgba(45, 212, 191, 0.75), 0 0 16px rgba(45, 212, 191, 0.25) !important;
+  box-shadow:
+    inset 0 0 0 var(--cell-highlight-ring) rgba(45, 212, 191, 0.75),
+    0 0 var(--cell-highlight-glow) rgba(45, 212, 191, 0.25) !important;
   z-index: 3;
 }
 .highlight-essential { animation: pulseTurquoise 1.2s ease-in-out infinite; z-index: 2; }
@@ -289,8 +299,8 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 11px;
-  height: 11px;
+  width: var(--hint-dot-size);
+  height: var(--hint-dot-size);
   background: rgba(45, 212, 191, 0.5);
   border-radius: 50%;
   pointer-events: none;
@@ -302,8 +312,8 @@
   left: 50%;
   right: auto;
   transform: translate(-50%, -50%);
-  width: 11px;
-  height: 11px;
+  width: var(--hint-dot-size);
+  height: var(--hint-dot-size);
   background: rgba(45, 212, 191, 0.5);
   border-radius: 50%;
   font-size: 0;
@@ -313,7 +323,7 @@
 .highlight-captured {
   opacity: 0.55;
   filter: grayscale(40%) brightness(0.8);
-  box-shadow: inset 0 0 0 2px rgba(248, 113, 113, 0.45);
+  box-shadow: inset 0 0 0 var(--capture-ring-width) rgba(248, 113, 113, 0.45);
 }
 
 /* ===== PIECES ===== */
@@ -374,14 +384,9 @@
   height: 100%;
   filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.35));
 }
-.shatra-piece-lite--selected {
-  outline: 2px solid #40e0d0;
-  outline-offset: 1px;
-  border-radius: 50%;
-}
 .shatra-piece-lite--target {
-  outline: 2px solid #f87171;
-  outline-offset: 1px;
+  outline: var(--piece-outline-width) solid #f87171;
+  outline-offset: var(--piece-outline-offset);
   border-radius: 50%;
 }
 
@@ -401,4 +406,18 @@
 }
 .field-of-king .kletka.last-move-to {
   background: rgba(45, 212, 191, 0.4) !important;
+}
+
+/* Scale hint dots and cell rings with fluid cell size on narrow viewports */
+@media (max-width: 1319px) {
+  .board {
+    --hint-dot-size: max(5px, calc(var(--cell-size, 40px) * 0.18));
+    --cell-highlight-ring: max(1.5px, calc(var(--cell-size, 40px) * 0.04));
+    --cell-highlight-glow: max(5px, calc(var(--cell-size, 40px) * 0.2));
+    --cell-border-width: max(0.5px, calc(var(--cell-size, 40px) * 0.014));
+    --capture-ring-width: max(1px, calc(var(--cell-size, 40px) * 0.028));
+    --piece-outline-width: max(1px, calc(var(--cell-size, 40px) * 0.032));
+    --piece-outline-offset: max(0.5px, calc(var(--cell-size, 40px) * 0.01));
+    --fort-cell-border: max(1px, calc(var(--cell-size, 40px) * 0.032));
+  }
 }

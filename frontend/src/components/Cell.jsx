@@ -39,10 +39,10 @@ const Cell = memo(function Cell(props) {
         onCellClick(id);
       }}
       onPointerDown={(e) => {
-        if (!piece) return;
+        if (!piece || !onCellPointerDown) return;
         if (e.button != null && e.button !== 0) return;
         e.preventDefault();
-        onCellPointerDown?.(id, e);
+        onCellPointerDown(id, e);
       }}
     >
       <span className="cell-number">{id}</span>

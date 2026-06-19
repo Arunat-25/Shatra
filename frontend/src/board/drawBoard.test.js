@@ -42,4 +42,16 @@ describe('drawBoard', () => {
     })).not.toThrow();
     expect(ctx.fillRect).toHaveBeenCalled();
   });
+
+  it('draws lite theme frame with lite palette', () => {
+    const layout = computeBoardLayout('белый', 320, 480);
+    const ctx = createMockCtx();
+    let fillColor = '';
+    Object.defineProperty(ctx, 'fillStyle', {
+      set(v) { fillColor = v; },
+      get() { return fillColor; },
+    });
+    drawBoardFrame(ctx, layout, 'lite');
+    expect(fillColor).toBe('#ddd2c2');
+  });
 });

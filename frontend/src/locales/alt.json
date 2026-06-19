@@ -11,7 +11,10 @@
     "support": "Колдоо",
     "reportBug": "Кемчиликти билдири",
     "openMenu": "Меню",
-    "closeMenu": "Менюны чыгар"
+    "closeMenu": "Менюны чыгар",
+    "liteUi": "Јенил UI",
+    "liteUiOn": "Јенил UI јанды — canvas доска, јенил графика, анимация жок",
+    "liteUiOff": "Јенил UI ӧчӱк"
   },
   "bugReport": {
     "title": "Кемчиликти билдири",

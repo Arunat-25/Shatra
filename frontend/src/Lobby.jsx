@@ -6,6 +6,7 @@ import { createRoom, listRooms, joinRoom } from './api';
 import useRoomPolling from './hooks/useRoomPolling';
 import useMediaQuery from './hooks/useMediaQuery';
 import useLobbyFluidScale from './hooks/useLobbyFluidScale';
+import { useLiteUi } from './context/LiteUiContext';
 import RoomCard from './components/RoomCard';
 import GameEmblem from './components/GameEmblem';
 import GameSetupPicker from './components/GameSetupPicker';
@@ -23,7 +24,8 @@ export default function Lobby() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const compactMobileNav = useMediaQuery(COMPACT_GAME_QUERY);
-  const fluidLobby = useMediaQuery('(max-width: 960px)');
+  const { enabled: liteUi } = useLiteUi();
+  const fluidLobby = useMediaQuery('(max-width: 960px)') && !liteUi;
   const { rooms, stats, error, refreshing, dismissError, setExternalError, fetchRooms } = useRoomPolling(listRooms, POLL_INTERVAL);
   const [joinerRoomId, setJoinerRoomId] = useState(null);
   const [showSetup, setShowSetup] = useState(false);

@@ -11,7 +11,9 @@ const SPRITE_PATHS = {
 };
 
 const cache = new Map();
+const vectorOnlyCache = new Map();
 let preloadPromise = null;
+let preloadVectorOnlyPromise = null;
 
 function drawStone(ctx, cx, cy, radius, fill, stroke, strokeWidth = 1) {
   ctx.beginPath();
@@ -38,7 +40,7 @@ function drawBiyAntlers(ctx, cx, cy, color) {
   ctx.stroke();
 }
 
-function drawVectorPiece(ctx, type, color) {
+function drawVectorPiece(ctx, type, color, { simplified = false } = {}) {
   const isWhite = color === COLOR_WHITE;
   const fill = isWhite ? '#fffdd0' : '#2a2a2a';
   const stroke = isWhite ? '#d2b48c' : '#444';
@@ -50,12 +52,19 @@ function drawVectorPiece(ctx, type, color) {
 
   if (type === PIECE_BIY) {
     drawStone(ctx, cx, cy, radius, fill, '#ffd700', 1.5);
-    ctx.beginPath();
-    ctx.arc(cx, cy, radius * 0.78, 0, Math.PI * 2);
-    ctx.strokeStyle = '#ffd700';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    drawBiyAntlers(ctx, cx, cy, '#ffd700');
+    if (!simplified) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius * 0.78, 0, Math.PI * 2);
+      ctx.strokeStyle = '#ffd700';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      drawBiyAntlers(ctx, cx, cy, '#ffd700');
+    } else {
+      ctx.beginPath();
+      ctx.arc(cx, cy - 4, 3, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffd700';
+      ctx.fill();
+    }
     return;
   }
 
@@ -67,28 +76,29 @@ function drawVectorPiece(ctx, type, color) {
     ctx.beginPath();
     ctx.arc(cx, cy - 3, radius * 0.18, 0, Math.PI * 2);
     ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(cx, cy - 8);
-    ctx.lineTo(cx, cy - 14);
-    ctx.moveTo(cx - 4, cy - 10);
-    ctx.lineTo(cx + 4, cy - 10);
-    ctx.moveTo(cx, cy - 14);
-    ctx.lineTo(cx - 3, cy - 18);
-    ctx.moveTo(cx, cy - 14);
-    ctx.lineTo(cx + 3, cy - 18);
-    ctx.stroke();
+    if (!simplified) {
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - 8);
+      ctx.lineTo(cx, cy - 14);
+      ctx.moveTo(cx - 4, cy - 10);
+      ctx.lineTo(cx + 4, cy - 10);
+      ctx.moveTo(cx, cy - 14);
+      ctx.lineTo(cx - 3, cy - 18);
+      ctx.moveTo(cx, cy - 14);
+      ctx.lineTo(cx + 3, cy - 18);
+      ctx.stroke();
+    }
   }
-  // шатра — plain stone only (matches DOM ShatraPiece)
 }
 
-function createVectorSprite(type, color) {
+function createVectorSprite(type, color, options = {}) {
   if (typeof document === 'undefined') return null;
   const canvas = document.createElement('canvas');
   canvas.width = SPRITE_SIZE;
   canvas.height = SPRITE_SIZE;
   const ctx = canvas.getContext('2d');
   if (!ctx) return null;
-  drawVectorPiece(ctx, type, color);
+  drawVectorPiece(ctx, type, color, options);
   return canvas;
 }
 
@@ -101,10 +111,30 @@ function loadImage(src) {
   });
 }
 
+function spriteKeys() {
+  return Object.keys(SPRITE_PATHS);
+}
+
 /**
  * Preload piece sprites (webp with vector fallback per piece).
+ * @param {{ vectorOnly?: boolean }} [options]
  */
-export function preloadPieceSprites() {
+export function preloadPieceSprites(options = {}) {
+  const { vectorOnly = false } = options;
+
+  if (vectorOnly) {
+    if (preloadVectorOnlyPromise) return preloadVectorOnlyPromise;
+    preloadVectorOnlyPromise = Promise.all(
+      spriteKeys().map(async (key) => {
+        const [color, type] = key.split(':');
+        if (!vectorOnlyCache.has(key)) {
+          vectorOnlyCache.set(key, createVectorSprite(type, color, { simplified: true }));
+        }
+      }),
+    );
+    return preloadVectorOnlyPromise;
+  }
+
   if (preloadPromise) return preloadPromise;
 
   preloadPromise = Promise.all(
@@ -118,8 +148,17 @@ export function preloadPieceSprites() {
   return preloadPromise;
 }
 
-export function getPieceSprite(type, color) {
+export function getPieceSprite(type, color, options = {}) {
+  const { vectorOnly = false } = options;
   const key = `${color}:${type}`;
+
+  if (vectorOnly) {
+    if (!vectorOnlyCache.has(key)) {
+      vectorOnlyCache.set(key, createVectorSprite(type, color, { simplified: true }));
+    }
+    return vectorOnlyCache.get(key);
+  }
+
   if (!cache.has(key)) {
     cache.set(key, createVectorSprite(type, color));
     const src = SPRITE_PATHS[key];

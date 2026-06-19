@@ -694,11 +694,11 @@ html.app-shell--game-nav-compact .app-shell--game .waiting-screen--invite {
 
   html.app-shell--game-nav-compact .app-shell--game .highlight-essential {
     animation: none;
-    box-shadow: inset 0 0 0 3px rgba(45, 212, 191, 0.85) !important;
+    box-shadow: inset 0 0 0 var(--cell-highlight-ring) rgba(45, 212, 191, 0.85) !important;
   }
 
   html.app-shell--game-nav-compact .app-shell--game .highlight-black {
-    box-shadow: inset 0 0 0 3px rgba(45, 212, 191, 0.85) !important;
+    box-shadow: inset 0 0 0 var(--cell-highlight-ring) rgba(45, 212, 191, 0.85) !important;
   }
 
   html.app-shell--game-nav-compact .app-support-btn::after {

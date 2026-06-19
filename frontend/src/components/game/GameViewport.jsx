@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { probeBoardLayout } from '../../debug/boardLayoutProbe';
+import { useLiteUi } from '../../context/LiteUiContext';
 import BoardSurface from '../BoardSurface';
 import MoveHistory from '../MoveHistory';
 import OpponentDisconnectStatus from './OpponentDisconnectStatus';
@@ -17,6 +18,7 @@ export default function GameViewport({
   showRating = false,
 }) {
   const { t } = useTranslation();
+  const { enabled: liteUi } = useLiteUi();
 
   const clockProps = {
     timer: state.timer,
@@ -28,7 +30,7 @@ export default function GameViewport({
   };
 
   useEffect(() => {
-    if (state.waiting) return undefined;
+    if (state.waiting || liteUi) return undefined;
     const run = () => probeBoardLayout('state-change', {
       moveFrom: state.moveFrom,
       aiThinking: state.aiThinking,
@@ -40,7 +42,7 @@ export default function GameViewport({
     const ro = new ResizeObserver(() => probeBoardLayout('resize'));
     ro.observe(slot);
     return () => ro.disconnect();
-  }, [state.waiting, state.moveFrom, state.aiThinking, state.myColor]);
+  }, [state.waiting, state.moveFrom, state.aiThinking, state.myColor, liteUi]);
 
   return (
     <div className="game-viewport-column">
