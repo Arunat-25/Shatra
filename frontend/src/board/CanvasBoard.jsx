@@ -1,12 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { COMPACT_GAME_QUERY } from '../constants';
 import useMediaQuery from '../hooks/useMediaQuery';
-import { computeBoardLayout, hitTestCell, readBoardUnitMetrics, readCellNumberScale, deriveMetricsFromBoardSlot } from './layoutMetrics';
+import { computeBoardLayout, hitTestCell, readBoardUnitMetrics, readCellNumberScale, readBoardHeightUnits, deriveMetricsFromBoardSlot, BOARD_HEIGHT_UNITS } from './layoutMetrics';
 import { drawBoardFrame, drawBoardState } from './drawBoard';
 import useBoardInteraction from '../hooks/useBoardInteraction';
 import usePieceSlideOverlay from '../hooks/usePieceSlideOverlay';
 
-const BOARD_ASPECT = 7 / 13.6;
+const BOARD_ASPECT = 7 / BOARD_HEIGHT_UNITS;
+
+function layoutDrawScale(layout, displayW, displayH, fillSlot) {
+  if (!fillSlot) return { x: 1, y: 1 };
+  if (!layout?.width || !layout?.contentHeight) return { x: 1, y: 1 };
+  return {
+    x: displayW / layout.width,
+    y: displayH / layout.contentHeight,
+  };
+}
 
 function measureCanvasLayout(container, myColor) {
   const boardEl = container?.closest?.('.board');
@@ -32,7 +41,10 @@ function measureCanvasLayout(container, myColor) {
   }
 
   const fallbackMetrics = {
-    cellSize: Math.max(0, Math.min((h - 20) / 13.6, (w - 20) / 7)),
+    cellSize: Math.max(0, Math.min(
+      h / (readBoardHeightUnits(boardEl) || BOARD_HEIGHT_UNITS),
+      w / 7,
+    )),
     reserveSize: 0,
   };
   fallbackMetrics.reserveSize = fallbackMetrics.cellSize * 0.86;
@@ -63,6 +75,8 @@ export default function CanvasBoard({
   getDragLegalDests = null,
 }) {
   const isCompactViewport = useMediaQuery(COMPACT_GAME_QUERY);
+  const fillSlotRef = useRef(isCompactViewport);
+  fillSlotRef.current = isCompactViewport;
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const layoutRef = useRef(null);
@@ -89,10 +103,11 @@ export default function CanvasBoard({
     const rect = layout?.cells?.[cellId];
     if (!rect || !canvas) return null;
     const cr = canvas.getBoundingClientRect();
+    const scale = layoutDrawScale(layout, cr.width, cr.height, fillSlotRef.current);
     return {
-      x: cr.left + rect.x + rect.w / 2,
-      y: cr.top + rect.y + rect.h / 2,
-      size: rect.w,
+      x: cr.left + (rect.x + rect.w / 2) * scale.x,
+      y: cr.top + (rect.y + rect.h / 2) * scale.y,
+      size: rect.w * scale.x,
     };
   }, []);
 
@@ -102,11 +117,12 @@ export default function CanvasBoard({
     const rect = layout?.cells?.[cellId];
     if (!rect || !canvas) return null;
     const cr = canvas.getBoundingClientRect();
+    const scale = layoutDrawScale(layout, cr.width, cr.height, fillSlotRef.current);
     return {
-      left: cr.left + rect.x,
-      top: cr.top + rect.y,
-      right: cr.left + rect.x + rect.w,
-      bottom: cr.top + rect.y + rect.h,
+      left: cr.left + rect.x * scale.x,
+      top: cr.top + rect.y * scale.y,
+      right: cr.left + (rect.x + rect.w) * scale.x,
+      bottom: cr.top + (rect.y + rect.h) * scale.y,
     };
   }, []);
 
@@ -115,8 +131,9 @@ export default function CanvasBoard({
     const layout = layoutRef.current;
     if (!canvas || !layout) return null;
     const rect = canvas.getBoundingClientRect();
-    const x = clientX - rect.left;
-    const y = clientY - rect.top;
+    const scale = layoutDrawScale(layout, rect.width, rect.height, fillSlotRef.current);
+    const x = (clientX - rect.left) / (scale.x || 1);
+    const y = (clientY - rect.top) / (scale.y || 1);
     return hitTestCell(layout.cells, x, y);
   }, []);
 
@@ -176,7 +193,10 @@ export default function CanvasBoard({
     ctx.restore();
 
     const dpr = window.devicePixelRatio || 1;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const displayW = canvas.clientWidth || layout.width;
+    const displayH = canvas.clientHeight || layout.contentHeight;
+    const scale = layoutDrawScale(layout, displayW, displayH, fillSlotRef.current);
+    ctx.setTransform(dpr * scale.x, 0, 0, dpr * scale.y, 0, 0);
 
     drawBoardFrame(ctx, layout, drawTheme, myColor);
 
@@ -216,24 +236,38 @@ export default function CanvasBoard({
     const canvas = canvasRef.current;
     if (!container || !canvas) return;
 
-    const { w, h, layout } = measureCanvasLayout(container, myColor);
+    const fillSlot = fillSlotRef.current;
+    const { w: layoutW, h: layoutH, layout } = measureCanvasLayout(container, myColor);
+    layoutRef.current = layout;
+
+    let w;
+    let h;
+    if (fillSlot) {
+      container.style.width = '100%';
+      container.style.height = '100%';
+      const cr = container.getBoundingClientRect();
+      w = Math.max(1, Math.floor(cr.width));
+      h = Math.max(1, Math.floor(cr.height));
+    } else {
+      w = layoutW;
+      h = layoutH;
+      container.style.width = `${w}px`;
+      container.style.height = `${h}px`;
+    }
+
     const sizeChanged = lastSizeRef.current.w !== w || lastSizeRef.current.h !== h;
     lastSizeRef.current = { w, h };
 
-    container.style.width = `${w}px`;
-    container.style.height = `${h}px`;
-
-    if (sizeChanged || !layoutRef.current) {
+    if (sizeChanged || canvas.width !== Math.floor(w * (window.devicePixelRatio || 1))) {
       const dpr = window.devicePixelRatio || 1;
       canvas.width = Math.floor(w * dpr);
       canvas.height = Math.floor(h * dpr);
       canvas.style.width = `${w}px`;
       canvas.style.height = `${h}px`;
-      layoutRef.current = layout;
     }
 
     schedulePaint();
-  }, [myColor, schedulePaint]);
+  }, [myColor, schedulePaint, isCompactViewport]);
 
   useEffect(() => {
     resizeCanvas();

@@ -221,7 +221,7 @@
     min-height: 0;
     margin: 0;
     padding: 0;
-    gap: 2px;
+    gap: 0;
     box-sizing: border-box;
     overflow: hidden;
   }
@@ -285,24 +285,30 @@
     grid-row: 2;
     min-height: 0;
     max-height: 100%;
+    height: 100%;
     width: 100%;
     max-width: 100%;
     margin: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
 
   .room-board {
     position: relative;
     left: auto;
     top: auto;
+    flex: 1 1 auto;
     min-height: 0;
     max-height: 100%;
+    height: 100%;
     width: 100%;
     max-width: 100%;
     margin: 0;
     padding: 0;
     display: flex;
-    align-items: center;
-    justify-content: center;
+    align-items: stretch;
+    justify-content: stretch;
     overflow: hidden;
     container-type: size;
     container-name: board-slot;
@@ -331,27 +337,29 @@
   }
 
   .room-board .board:has(.board-content--canvas) {
-    flex: 1 1 0;
-    flex-shrink: 0;
+    flex: 1 1 auto;
+    flex-shrink: 1;
     height: 100%;
+    width: 100%;
+    max-height: 100%;
     min-height: 0;
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    justify-content: center;
+    justify-content: stretch;
   }
 
-  /* Width-only fallback; when slot has height, shrink to fit full board (incl. fortresses). */
+  /* Fill middle viewport row; cells sized to content units (12.44) with zero section gaps */
   .app-shell--game .room-board .board {
-    flex: 0 1 auto;
-    flex-shrink: 0;
+    flex: 1 1 auto;
+    flex-shrink: 1;
     width: 100%;
-    height: auto;
+    height: 100%;
     max-width: 100%;
     max-height: 100%;
     min-height: 0;
     margin: 0;
-    padding: 3px;
+    padding: 0;
     box-sizing: border-box;
     border-radius: var(--radius-lg);
     overflow: hidden;
@@ -361,17 +369,17 @@
     --main-field-margin: 0;
     --king-field-margin: 0;
     --board-height-units: 12.44;
-    --board-unit: calc((100cqw - 10px) / 7);
+    --board-unit: calc((100cqw - 6px) / 7);
     --cell-size: var(--board-unit);
     --reserve-cell-size: calc(var(--board-unit) * 0.86);
   }
 
   @container board-slot (min-height: 120px) {
     .app-shell--game .room-board .board {
-      width: min(100%, calc((100cqh - 16px) * 7 / var(--board-height-units, 12.44)));
+      width: min(100%, calc(100cqh * 7 / var(--board-height-units, 12.44)));
       --board-unit: min(
-        calc((100cqw - 10px) / 7),
-        calc((100cqh - 16px) / var(--board-height-units, 12.44))
+        calc((100cqw - 6px) / 7),
+        calc(100cqh / var(--board-height-units, 12.44))
       );
       --cell-size: var(--board-unit);
       --reserve-cell-size: calc(var(--board-unit) * 0.86);
@@ -383,7 +391,9 @@
   }
 
   .app-shell--game .room-board .board .board-content {
-    height: auto;
+    flex: 1 1 auto;
+    height: 100%;
+    min-height: 0;
     width: 100%;
     display: flex;
     flex-direction: column;
@@ -403,14 +413,14 @@
   }
 
   .room-board .board-content--canvas {
-    width: fit-content;
-    height: fit-content;
+    width: 100%;
+    height: 100%;
     max-width: 100%;
     max-height: 100%;
     position: relative;
-    flex: 0 0 auto;
-    align-self: center;
-    margin: 0 auto;
+    flex: 1 1 auto;
+    align-self: stretch;
+    margin: 0;
   }
 
   .room-board .board-canvas {
@@ -689,7 +699,7 @@ html.app-shell--game-nav-compact .app-shell--game .app-main {
 }
 
 html.app-shell--game-nav-compact .app-shell--game .game-viewport-fold .game-screen-fit {
-  gap: 1px;
+  gap: 0;
 }
 
 html.app-shell--game-nav-compact .app-shell--game .game-player-bar--mobile {

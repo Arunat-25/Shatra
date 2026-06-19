@@ -130,7 +130,7 @@ export function drawCellNumbers(ctx, layout, { scale = 0.19 } = {}) {
   ctx.restore();
 }
 
-/** Lite pad: opaque fill on canvas; border on `.board-content--canvas` in CSS. */
+/** Lite pad fill on canvas (matches `.board.board--lite` pad behind transparent wrapper). */
 function drawLiteBoardFrame(ctx, layout) {
   const palette = resolveTheme('lite');
   const frameW = layout.width;

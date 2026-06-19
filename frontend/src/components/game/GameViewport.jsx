@@ -36,16 +36,17 @@ export default function GameViewport({
   };
 
   useEffect(() => {
-    if (state.waiting || liteUi) return undefined;
+    if (state.waiting) return undefined;
     const run = () => probeBoardLayout('state-change', {
       moveFrom: state.moveFrom,
       aiThinking: state.aiThinking,
-      runId: 'post-fix',
+      liteUi,
+      runId: 'overflow-fix',
     });
     run();
     const slot = document.querySelector('.room-board');
     if (!slot) return undefined;
-    const ro = new ResizeObserver(() => probeBoardLayout('resize'));
+    const ro = new ResizeObserver(() => probeBoardLayout('resize', { liteUi, runId: 'overflow-fix' }));
     ro.observe(slot);
     return () => ro.disconnect();
   }, [state.waiting, state.moveFrom, state.aiThinking, state.myColor, liteUi]);

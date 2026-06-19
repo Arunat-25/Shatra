@@ -136,6 +136,23 @@
   margin: 0 auto;
 }
 
+@media (min-width: 1320px) {
+  .app-shell--game .room-board .board:has(.board-content--canvas) {
+    height: auto;
+    max-height: 100%;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .app-shell--game .room-board .board .board-content--canvas {
+    width: fit-content;
+    height: fit-content;
+    flex: 0 0 auto;
+    align-self: center;
+    margin: 0 auto;
+  }
+}
+
 .tutorial-lesson .room-board .board .board-content {
   width: fit-content;
   height: fit-content;
