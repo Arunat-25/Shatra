@@ -20,6 +20,7 @@ from backend.ws_manager import handle_player2_join, manager
 from main import app
 from tests.integration.helpers import new_client_id
 from tests.observability.prometheus_helpers import (
+    get_metrics_text,
     parse_counter,
     parse_gauge,
     promql_increase_flat_counter,
@@ -30,9 +31,9 @@ pytestmark = pytest.mark.integration
 
 
 def _metric_delta(client: TestClient, name: str, labels: dict[str, str], action) -> float:
-    before = parse_counter(client.get("/metrics").text, name, labels)
+    before = parse_counter(get_metrics_text(client), name, labels)
     action()
-    after = parse_counter(client.get("/metrics").text, name, labels)
+    after = parse_counter(get_metrics_text(client), name, labels)
     return after - before
 
 
@@ -68,7 +69,7 @@ def test_create_room_exposes_redis_room_gauge():
                 "color_preference": "белый",
             },
         )
-        body = client.get("/metrics").text
+        body = get_metrics_text(client)
         waiting = parse_gauge(
             body,
             "shatra_redis_rooms_waiting",
@@ -124,7 +125,7 @@ async def test_pvp_resign_increments_games_finished_metric():
         await on_game_finished(room_id)
 
         with TestClient(app) as client:
-            body = client.get("/metrics").text
+            body = get_metrics_text(client)
             value = parse_counter(
                 body,
                 "shatra_games_finished_total",
@@ -181,13 +182,13 @@ async def test_cancelled_game_does_not_increment_finished_metric():
 
         with TestClient(app) as client:
             before = parse_counter(
-                client.get("/metrics").text,
+                get_metrics_text(client),
                 "shatra_games_finished_total",
                 {"reason": "cancelled", "room_type": "public"},
             )
             await on_game_finished(room_id)
             after = parse_counter(
-                client.get("/metrics").text,
+                get_metrics_text(client),
                 "shatra_games_finished_total",
                 {"reason": "cancelled", "room_type": "public"},
             )
@@ -231,7 +232,7 @@ def test_prometheus_scrape_matches_app_games_finished_when_available():
 
     prom_total = float(results[0]["value"][1])
     with TestClient(app) as client:
-        app_total = _grafana_games_finished_total(client.get("/metrics").text)
+        app_total = _grafana_games_finished_total(get_metrics_text(client))
 
     assert prom_total >= 0.0
     assert app_total >= 0.0

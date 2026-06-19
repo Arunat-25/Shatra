@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { runSlideAnimation } from '../board/slideAnimation';
+import { resolveSnapDrop } from '../board/resolveSnapDrop';
 
 /**
  * Shared pointer click/drag for DOM and canvas boards.
@@ -117,7 +118,14 @@ export default function useBoardInteraction({
       return;
     }
 
-    const targetCellId = resolveCellAt(event.clientX, event.clientY);
+    const targetCellId = resolveSnapDrop({
+      clientX: event.clientX,
+      clientY: event.clientY,
+      from,
+      legalDests,
+      resolveCellAt,
+      getCellCenter,
+    });
     const canSlide = Boolean(getCellCenter);
 
     if (

@@ -7,6 +7,7 @@ from tests.integration.helpers import (
     create_room,
     flush_redis,
     new_client_id,
+    wait_waiting,
     ws_path,
 )
 
@@ -34,8 +35,7 @@ class TestCreatorDisplayE2E:
         with client.websocket_connect(
             ws_path(room_id, cid, user["access_token"])
         ) as ws:
-            msg = ws.receive_json()
-            assert msg.get("status") == "waiting"
+            wait_waiting(ws)
 
         rooms = client.get(f"/rooms?client_id={new_client_id()}").json()["rooms"]
         match = [r for r in rooms if r["room_id"] == room_id]

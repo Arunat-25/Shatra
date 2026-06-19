@@ -7,11 +7,16 @@ import useBoardInteraction from './hooks/useBoardInteraction';
 import usePieceSlideOverlay from './hooks/usePieceSlideOverlay';
 
 function cellIdFromPoint(x, y) {
-  const el = document.elementFromPoint(x, y);
-  const cell = el?.closest?.('.kletka');
-  if (!cell?.id?.startsWith('position')) return null;
-  const id = Number.parseInt(cell.id.slice('position'.length), 10);
-  return Number.isFinite(id) ? id : null;
+  const elements = typeof document.elementsFromPoint === 'function'
+    ? document.elementsFromPoint(x, y)
+    : [document.elementFromPoint(x, y)].filter(Boolean);
+  for (const el of elements) {
+    const cell = el?.closest?.('.kletka');
+    if (!cell?.id?.startsWith('position')) continue;
+    const id = Number.parseInt(cell.id.slice('position'.length), 10);
+    if (Number.isFinite(id)) return id;
+  }
+  return null;
 }
 
 function domCellCenter(cellId) {

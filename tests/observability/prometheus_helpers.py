@@ -33,6 +33,19 @@ FORBIDDEN_REDIS_GAUGE_INCREASE = re.compile(
 )
 
 
+def get_metrics_text(client) -> str:
+    """GET /metrics with Bearer token when METRICS_TOKEN is configured."""
+    from backend.config import settings
+
+    headers: dict[str, str] = {}
+    token = (settings.metrics_token or "").strip()
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    response = client.get("/metrics", headers=headers)
+    assert response.status_code == 200, response.text
+    return response.text
+
+
 def parse_gauge(body: str, name: str, labels: dict[str, str] | None = None) -> float:
     """Parse a Prometheus text exposition gauge line."""
     return parse_counter(body, name, labels)
