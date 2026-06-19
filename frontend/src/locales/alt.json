@@ -12,9 +12,9 @@
     "reportBug": "Кемчиликти билдири",
     "openMenu": "Меню",
     "closeMenu": "Менюны чыгар",
-    "liteUi": "Јенил UI",
-    "liteUiOn": "Јенил UI јанды — canvas доска, јенил графика, анимация жок",
-    "liteUiOff": "Јенил UI ӧчӱк"
+    "liteUi": "Јенил доска",
+    "liteUiOn": "Јенил доска јанды — canvas, јенил графика",
+    "liteUiOff": "Јенил доска ӧчӱк"
   },
   "bugReport": {
     "title": "Кемчиликти билдири",

@@ -12,9 +12,9 @@
     "reportBug": "Report a bug",
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
-    "liteUi": "Lite UI",
-    "liteUiOn": "Lite UI on — canvas board, simplified graphics, no animations",
-    "liteUiOff": "Lite UI off"
+    "liteUi": "Lite board",
+    "liteUiOn": "Lite board on — canvas, simplified graphics",
+    "liteUiOff": "Lite board off"
   },
   "bugReport": {
     "title": "Report a bug",

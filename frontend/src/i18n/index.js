@@ -47,12 +47,9 @@ export async function initI18n() {
     await i18n.use(initReactI18next).init({
       resources: { [lng]: { translation: mod.default } },
       lng,
-      fallbackLng: 'ru',
+      fallbackLng: false,
       interpolation: { escapeValue: false },
     });
-  }
-  if (lng !== 'ru') {
-    void ensureLocaleLoaded('ru');
   }
 }
 

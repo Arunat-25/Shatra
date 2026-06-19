@@ -12,6 +12,7 @@ import BugReportModal from './BugReportModal';
 import SupportButton from './SupportButton';
 import LiteUiToggle from './LiteUiToggle';
 import { COMPACT_GAME_QUERY } from '../constants';
+import { isGamePath } from '../appPaths';
 
 function IconProfile() {
   return (
@@ -49,6 +50,7 @@ export default function AuthNav() {
   const menuToggleRef = useRef(null);
   const isMobileLayout = useMediaQuery(COMPACT_GAME_QUERY);
   const compactMobileNav = isMobileLayout;
+  const showLiteBoardToggle = isGamePath(pathname);
   const [menuOpen, setMenuOpen] = useState(false);
   const [bugReportOpen, setBugReportOpen] = useState(false);
 
@@ -198,9 +200,11 @@ export default function AuthNav() {
             {t('nav.reportBug')}
           </button>
         </div>
-        <div className="app-nav-drawer__section">
-          <LiteUiToggle variant="drawer" />
-        </div>
+        {showLiteBoardToggle ? (
+          <div className="app-nav-drawer__section">
+            <LiteUiToggle variant="drawer" />
+          </div>
+        ) : null}
         <div className="app-nav-drawer__section app-nav-drawer__section--locale">
           <LocaleSwitcher />
         </div>
@@ -226,7 +230,7 @@ export default function AuthNav() {
             </button>
           </div>
           <div className="app-locale-nav">
-            <LiteUiToggle />
+            {showLiteBoardToggle ? <LiteUiToggle /> : null}
             <LocaleSwitcher />
           </div>
           {accountNav(false)}

@@ -47,7 +47,6 @@ describe('BoardSurface', () => {
 
   afterEach(() => {
     cleanup();
-    document.documentElement.classList.remove('app-shell--lite-ui');
   });
 
   it('uses full DOM board on desktop when lite UI is off', () => {

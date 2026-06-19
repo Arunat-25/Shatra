@@ -63,6 +63,7 @@ export default function GameViewport({
                 <div
                   className={[
                     'board',
+                    liteUi ? 'board--lite' : '',
                     isBoardBlocked ? 'disabled' : '',
                     state.aiThinking ? 'board-dimmed board-ai-thinking' : '',
                   ].filter(Boolean).join(' ')}

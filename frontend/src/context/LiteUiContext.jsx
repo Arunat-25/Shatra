@@ -3,23 +3,14 @@ import { isLiteUiEnabled, setLiteUiEnabled, LITE_UI_KEY } from '../ui/liteUiSett
 
 const LiteUiContext = createContext(null);
 
-function applyLiteUiClass(enabled) {
-  document.documentElement.classList.toggle('app-shell--lite-ui', enabled);
-}
-
+/** In-game lite board preference only (lobby chrome is always simplified). */
 export function LiteUiProvider({ children }) {
   const [enabled, setEnabledState] = useState(() => isLiteUiEnabled());
 
   useEffect(() => {
-    applyLiteUiClass(enabled);
-  }, [enabled]);
-
-  useEffect(() => {
     const onStorage = (event) => {
       if (event.key !== LITE_UI_KEY) return;
-      const next = event.newValue === 'true';
-      setEnabledState(next);
-      applyLiteUiClass(next);
+      setEnabledState(event.newValue === 'true');
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
@@ -29,7 +20,6 @@ export function LiteUiProvider({ children }) {
     const next = Boolean(value);
     setLiteUiEnabled(next);
     setEnabledState(next);
-    applyLiteUiClass(next);
   }, []);
 
   const toggle = useCallback(() => {

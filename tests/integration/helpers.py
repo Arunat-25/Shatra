@@ -42,21 +42,64 @@ def read_room_json(room_id: str) -> dict | None:
     return json.loads(raw)
 
 
+def _is_v2_message(msg: dict) -> bool:
+    return isinstance(msg, dict) and msg.get("v") == 2 and isinstance(msg.get("t"), str)
+
+
+def _skip_ws_noise(msg: dict) -> bool:
+    if msg.get("type") in {"timer_tick", "disconnect_tick"}:
+        return True
+    if _is_v2_message(msg) and msg.get("t") == "clock":
+        return True
+    return False
+
+
+def _is_game_started(msg: dict) -> bool:
+    if msg.get("status") == "game_started":
+        return True
+    return (
+        _is_v2_message(msg)
+        and msg.get("t") == "snapshot"
+        and msg.get("board") is not None
+        and not msg.get("gameOver")
+    )
+
+
+def _is_game_over(msg: dict) -> bool:
+    if msg.get("game_over") is True:
+        return True
+    if not _is_v2_message(msg):
+        return False
+    if msg.get("t") == "gameOver":
+        return True
+    if msg.get("t") in {"snapshot", "move"} and msg.get("gameOver"):
+        return True
+    return False
+
+
+def _is_waiting(msg: dict) -> bool:
+    if msg.get("status") == "waiting":
+        return True
+    return _is_v2_message(msg) and msg.get("t") == "waiting"
+
+
 def receive_until(
     ws,
     predicate: Callable[[dict], bool],
     *,
-    max_messages: int = 30,
+    max_messages: int = 120,
 ) -> dict:
     for _ in range(max_messages):
         msg = ws.receive_json()
+        if _skip_ws_noise(msg):
+            continue
         if predicate(msg):
             return msg
     raise AssertionError("expected WebSocket message not received")
 
 
 def wait_game_started(ws) -> dict:
-    return receive_until(ws, lambda m: m.get("status") == "game_started")
+    return receive_until(ws, _is_game_started)
 
 
 def wait_chat(ws, *, text: str | None = None) -> dict:
@@ -83,12 +126,12 @@ def wait_error_code(ws, code: str) -> dict:
 
 
 def wait_waiting(ws) -> dict:
-    return receive_until(ws, lambda m: m.get("status") == "waiting")
+    return receive_until(ws, _is_waiting)
 
 
 def resign_and_finish(ws) -> dict:
-    ws.send_json({"type": "resign"})
-    return receive_until(ws, lambda m: m.get("game_over") is True)
+    ws.send_json({"v": 2, "t": "resign"})
+    return receive_until(ws, _is_game_over)
 
 
 def ensure_game_archived(client, room_id: str, db_scalar_fn=None):
