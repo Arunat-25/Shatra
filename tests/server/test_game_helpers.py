@@ -11,6 +11,7 @@ from backend.game_helpers import (
     is_hint_request,
     is_rejected_move,
     parse_client_event,
+    persist_pending_mandatory_position,
     ws_error_payload,
     build_game_started_response,
     _norm_board_keys,
@@ -130,6 +131,25 @@ class TestIsHintRequest:
 class TestNormBoardKeys:
     def test_string_keys_become_int(self):
         assert _norm_board_keys({"11": "x", 12: "y"}) == {11: "x", 12: "y"}
+
+
+class TestPersistPendingMandatoryPosition:
+    def test_only_same_player_chain_is_persisted(self):
+        from game_engine.game_logic import logic
+        from game_engine.models import GameEvent
+        from tests.helpers.engine_boards import empty_board
+
+        board = empty_board()
+        board.update({20: "белая шатра", 28: "черная шатра", 36: None, 44: "черная шатра"})
+        result = logic.handle_event(
+            GameEvent(positions=board, mover_color="белый", from_pos=20, to_pos=36)
+        )
+        game = {"mover": "белый"}
+        persist_pending_mandatory_position(game, result, prev_mover="белый")
+        assert game["pending_mandatory_position"] == 36
+
+        persist_pending_mandatory_position(game, result, prev_mover="черный")
+        assert "pending_mandatory_position" not in game
 
 
 class TestBuildGameStartedResponse:

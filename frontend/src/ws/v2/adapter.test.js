@@ -50,6 +50,24 @@ describe('v2 adapter', () => {
     expect(adapted.to_pos).toBe(37);
     expect(adapted.desk[37]).toBe('белый бий');
     expect(adapted.ply).toBe(1);
+    expect(adapted.position_for_mandatory_capture).toBeNull();
+  });
+
+  it('omits chainCell on turn switch even when engine had mandatory pos', () => {
+    const adapted = adaptV2ServerMessage(
+      {
+        v: 2,
+        t: 'move',
+        from: 28,
+        to: 36,
+        turn: 'белый',
+        captured: [],
+        messageCode: 'turn.now',
+      },
+      { board: { 28: 'черная шатра', 36: null } },
+    );
+    expect(adapted.movers_color).toBe('белый');
+    expect(adapted.position_for_mandatory_capture).toBeNull();
   });
 });
 

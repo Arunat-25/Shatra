@@ -1,0 +1,88 @@
+{
+  "scenarios": [
+    {
+      "id": "user_sequence_28_white_mandatory",
+      "description": "User-reported line: after Black 28-36 White must capture; no single-piece chain lock at turn start",
+      "moves": [
+        ["белый", 40, 32],
+        ["черный", 20, 26],
+        ["белый", 32, 20],
+        ["черный", 12, 28],
+        ["белый", 41, 34],
+        ["черный", 28, 40],
+        ["белый", 39, 41],
+        ["черный", 19, 25],
+        ["белый", 41, 33],
+        ["черный", 25, 41],
+        ["белый", 49, 33],
+        ["черный", 9, 26],
+        ["белый", 33, 19],
+        ["черный", 11, 27],
+        ["белый", 42, 34],
+        ["черный", 27, 41],
+        ["белый", 48, 34],
+        ["черный", 10, 19],
+        ["белый", 34, 26],
+        ["черный", 18, 34],
+        ["белый", 47, 40],
+        ["черный", 21, 28],
+        ["белый", 53, 42],
+        ["черный", 34, 41],
+        ["белый", 50, 49],
+        ["черный", 41, 39],
+        ["белый", 46, 32],
+        ["черный", 28, 36]
+      ],
+      "expect_mover": "белый",
+      "expect_server_pending": null,
+      "expect_delta_chain_cell": null,
+      "legal_moves": [
+        { "from": 42, "to": 30, "code": "turn.now", "captures": [36] },
+        { "from": 43, "to": 29, "code": "turn.now", "captures": [36] },
+        { "from": 44, "to": 28, "code": "turn.now", "captures": [36] }
+      ],
+      "illegal_with_stale_chain": [
+        { "from": 32, "to": 36, "stale_chain": 42, "code": "capture.continue_same" },
+        { "from": 43, "to": 29, "stale_chain": 42, "code": "capture.continue_same" }
+      ]
+    },
+    {
+      "id": "white_shatra_double_capture_chain",
+      "description": "Mid-turn chain: pending persists while same player continues",
+      "board": {
+        "20": "белая шатра",
+        "28": "черная шатра",
+        "36": null,
+        "44": "черная шатра",
+        "45": "белая шатра"
+      },
+      "moves": [["белый", 20, 36]],
+      "expect_mover": "белый",
+      "expect_server_pending": 36,
+      "expect_delta_chain_cell": 36,
+      "legal_moves": [
+        { "from": 36, "to": 52, "code": "turn.now", "captures": [44] }
+      ],
+      "illegal_with_stale_chain": [
+        { "from": 45, "to": 37, "stale_chain": 36, "code": "capture.continue_same" }
+      ]
+    },
+    {
+      "id": "black_forces_white_capture_from_32",
+      "description": "Regression from AI pending persist tests: single capture then turn passes",
+      "moves": [
+        ["белый", 40, 32],
+        ["черный", 19, 25],
+        ["белый", 41, 33],
+        ["черный", 25, 41],
+        ["белый", 42, 40],
+        ["черный", 18, 25]
+      ],
+      "expect_mover": "белый",
+      "expect_server_pending": null,
+      "legal_moves": [
+        { "from": 32, "to": 18, "code": "turn.now", "captures": [25] }
+      ]
+    }
+  ]
+}

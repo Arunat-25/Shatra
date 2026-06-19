@@ -61,6 +61,15 @@ def test_build_snapshot_contains_ply():
     assert snap["yourColor"] == "белый"
 
 
+def test_build_move_delta_clears_chain_cell_when_turn_switches_with_mandatory():
+    from tests.helpers.server_game_sim import USER_SEQUENCE_28, simulate_server_replay, wire_move_delta
+
+    game, last, prev = simulate_server_replay(USER_SEQUENCE_28)
+    delta = wire_move_delta(game, last, prev, 28, 36)
+    assert delta.get("chainCell") is None
+    assert last.position_for_mandatory_capture == 42
+
+
 def test_build_move_delta_after_engine_move():
     board = empty_board()
     board[45] = "белый бий"
