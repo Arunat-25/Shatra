@@ -1,34 +1,127 @@
 import { getBoardSections } from '../constants';
 
-const BOARD_PADDING = 3;
-const TOP_INSET = 5;
+/** Total row-units (incl. reserve 0.86 rows); matches --board-unit in game.css. */
+export const BOARD_HEIGHT_UNITS = 13.6;
+export const BOARD_WIDTH_CELLS = 7;
+
+const DEFAULT_RESERVE_MARGIN = 3;
+const DEFAULT_MAIN_MARGIN = 1;
+const DEFAULT_KING_MARGIN = '1mm';
+
+function parseCssLengthToPx(value, refEl, fallbackPx) {
+  if (!value?.trim() || !refEl) return fallbackPx;
+  const probe = document.createElement('div');
+  probe.style.position = 'absolute';
+  probe.style.visibility = 'hidden';
+  probe.style.pointerEvents = 'none';
+  probe.style.height = value.trim();
+  refEl.appendChild(probe);
+  const px = probe.getBoundingClientRect().height;
+  probe.remove();
+  return px > 0 ? px : fallbackPx;
+}
+
+function sectionMarginPx(className, metrics) {
+  if (className === 'field-of-reserve') return metrics.reserveMargin;
+  if (className === 'field-of-king') return metrics.kingMargin;
+  return metrics.mainMargin;
+}
 
 /**
- * Mirror CSS --board-unit / --cell-size / --reserve-cell-size from game-mobile.css.
+ * Read cell metrics from `.board` CSS variables (same source as DOM `.kletka` sizing).
+ * @param {HTMLElement | null | undefined} boardEl
  */
-export function computeBoardLayout(myColor, width, height) {
-  const sections = getBoardSections(myColor);
-  const innerW = Math.max(0, width - BOARD_PADDING * 2);
-  const innerH = Math.max(0, height - BOARD_PADDING * 2);
-  const unit = Math.max(0, Math.min((innerH - 10) / 13.6, (innerW - 10) / 7));
-  const cellSize = unit;
-  const reserveSize = unit * 0.86;
-  const gateGap = unit * 0.08;
+export function readBoardUnitMetrics(boardEl) {
+  if (!boardEl || typeof getComputedStyle === 'undefined') return null;
 
+  const cs = getComputedStyle(boardEl);
+  let cellSize = parseFloat(cs.getPropertyValue('--cell-size'));
+  let reserveSize = parseFloat(cs.getPropertyValue('--reserve-cell-size'));
+
+  if (!Number.isFinite(cellSize) || cellSize <= 0) {
+    const derived = deriveMetricsFromBoardSlot(boardEl);
+    if (!derived) return null;
+    cellSize = derived.cellSize;
+    reserveSize = derived.reserveSize;
+  }
+
+  if (!Number.isFinite(reserveSize) || reserveSize <= 0) {
+    reserveSize = cellSize * 0.86;
+  }
+
+  const kingMarginRaw = cs.getPropertyValue('--king-field-margin').trim() || DEFAULT_KING_MARGIN;
+  const reserveMarginRaw = cs.getPropertyValue('--reserve-field-margin').trim();
+  const mainMarginRaw = cs.getPropertyValue('--main-field-margin').trim();
+
+  return {
+    cellSize,
+    reserveSize,
+    reserveMargin: reserveMarginRaw
+      ? parseCssLengthToPx(reserveMarginRaw, boardEl, DEFAULT_RESERVE_MARGIN)
+      : DEFAULT_RESERVE_MARGIN,
+    mainMargin: mainMarginRaw
+      ? parseCssLengthToPx(mainMarginRaw, boardEl, DEFAULT_MAIN_MARGIN)
+      : DEFAULT_MAIN_MARGIN,
+    kingMargin: parseCssLengthToPx(kingMarginRaw, boardEl, 3.78),
+  };
+}
+
+/**
+ * Fallback when custom properties are not resolved yet (mirrors game.css / game-mobile.css).
+ */
+export function deriveMetricsFromBoardSlot(boardEl) {
+  const slot = boardEl?.closest?.('.room-board');
+  if (!slot) return null;
+
+  const cw = Math.max(0, slot.clientWidth);
+  const ch = Math.max(0, slot.clientHeight);
+  const innerW = Math.max(0, cw - 20);
+  const innerH = Math.max(0, ch - 20);
+  const unit = ch >= 120
+    ? Math.min(innerW / BOARD_WIDTH_CELLS, innerH / BOARD_HEIGHT_UNITS)
+    : innerW / BOARD_WIDTH_CELLS;
+
+  if (!Number.isFinite(unit) || unit <= 0) return null;
+
+  return {
+    cellSize: unit,
+    reserveSize: unit * 0.86,
+    reserveMargin: DEFAULT_RESERVE_MARGIN,
+    mainMargin: DEFAULT_MAIN_MARGIN,
+    kingMargin: parseCssLengthToPx(DEFAULT_KING_MARGIN, boardEl, 3.78),
+  };
+}
+
+/**
+ * Lay out cells using the same unit sizes as the DOM board grid.
+ * @param {string} myColor
+ * @param {{ cellSize: number, reserveSize: number, reserveMargin?: number, mainMargin?: number, kingMargin?: number }} metrics
+ */
+export function computeBoardLayout(myColor, metrics) {
+  const sections = getBoardSections(myColor);
+  const cellSize = metrics.cellSize;
+  const reserveSize = metrics.reserveSize;
+  const reserveMargin = metrics.reserveMargin ?? DEFAULT_RESERVE_MARGIN;
+  const mainMargin = metrics.mainMargin ?? DEFAULT_MAIN_MARGIN;
+  const kingMargin = metrics.kingMargin ?? 3.78;
+  const marginMetrics = { reserveMargin, mainMargin, kingMargin };
+
+  const boardWidth = BOARD_WIDTH_CELLS * cellSize;
   const cells = {};
-  let y = BOARD_PADDING + TOP_INSET;
-  const centerX = width / 2;
-  let isFirstSection = true;
+  let y = 0;
+  const centerX = boardWidth / 2;
+  let prevSectionClass = null;
 
   for (const section of sections) {
-    const isReserve = section.class === 'field-of-reserve';
-    const isKing = section.class === 'field-of-king';
-    const rowCellSize = isReserve ? reserveSize : cellSize;
-
-    if (isKing && !isFirstSection) {
-      y += gateGap;
+    const margin = sectionMarginPx(section.class, marginMetrics);
+    if (prevSectionClass == null) {
+      y += margin;
+    } else {
+      y += sectionMarginPx(prevSectionClass, marginMetrics) + margin;
     }
-    isFirstSection = false;
+    prevSectionClass = section.class;
+
+    const rowCellSize = section.class === 'field-of-reserve' ? reserveSize : cellSize;
 
     for (const row of section.rows) {
       const rowWidth = row.length * rowCellSize;
@@ -40,6 +133,7 @@ export function computeBoardLayout(myColor, width, height) {
           w: rowCellSize,
           h: rowCellSize,
           colorClass: cell.color,
+          sectionClass: section.class,
         };
         x += rowCellSize;
       }
@@ -47,13 +141,22 @@ export function computeBoardLayout(myColor, width, height) {
     }
   }
 
+  if (prevSectionClass) {
+    y += sectionMarginPx(prevSectionClass, marginMetrics);
+  }
+
+  const contentHeight = y;
+  const designHeight = BOARD_HEIGHT_UNITS * cellSize;
+  const height = Math.max(contentHeight, designHeight);
+
   return {
     cells,
     cellSize,
     reserveSize,
-    width,
+    width: boardWidth,
     height,
-    contentHeight: y + BOARD_PADDING,
+    contentHeight,
+    boardWidth,
   };
 }
 

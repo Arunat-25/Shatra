@@ -318,6 +318,9 @@
     overflow: hidden;
     animation: none;
     transition: opacity var(--duration-slow) ease;
+    --reserve-field-margin: 3px;
+    --main-field-margin: 1px;
+    --king-field-margin: 1mm;
     --board-unit: calc((100cqw - 10px) / 7);
     --cell-size: var(--board-unit);
     --reserve-cell-size: calc(var(--board-unit) * 0.86);
@@ -364,14 +367,14 @@
   }
 
   .room-board .board-content--canvas {
-    width: 100%;
+    width: fit-content;
+    height: fit-content;
     max-width: 100%;
     max-height: 100%;
-    aspect-ratio: 7 / 13.6;
-    height: auto;
     position: relative;
     flex: 0 0 auto;
     align-self: center;
+    margin: 0 auto;
   }
 
   .room-board .board-canvas {

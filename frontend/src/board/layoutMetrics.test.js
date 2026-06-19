@@ -1,9 +1,22 @@
 import { describe, expect, it } from 'vitest';
-import { computeBoardLayout, hitTestCell } from './layoutMetrics';
+import {
+  BOARD_HEIGHT_UNITS,
+  BOARD_WIDTH_CELLS,
+  computeBoardLayout,
+  hitTestCell,
+} from './layoutMetrics';
+
+const TEST_METRICS = {
+  cellSize: 40,
+  reserveSize: 34.4,
+  reserveMargin: 3,
+  mainMargin: 1,
+  kingMargin: 3.78,
+};
 
 describe('layoutMetrics', () => {
   it('maps known cell ids to rects inside board bounds', () => {
-    const layout = computeBoardLayout('белый', 400, 600);
+    const layout = computeBoardLayout('белый', TEST_METRICS);
     expect(layout.cells[1]).toMatchObject({
       w: expect.any(Number),
       h: expect.any(Number),
@@ -11,10 +24,12 @@ describe('layoutMetrics', () => {
     expect(layout.cells[1].x).toBeGreaterThanOrEqual(0);
     expect(layout.cells[1].y).toBeGreaterThanOrEqual(0);
     expect(layout.cells[1].x + layout.cells[1].w).toBeLessThanOrEqual(layout.width);
+    expect(layout.width).toBe(BOARD_WIDTH_CELLS * TEST_METRICS.cellSize);
+    expect(layout.height).toBeGreaterThanOrEqual(BOARD_HEIGHT_UNITS * TEST_METRICS.cellSize * 0.9);
   });
 
   it('hit-tests a point inside a cell', () => {
-    const layout = computeBoardLayout('белый', 400, 600);
+    const layout = computeBoardLayout('белый', TEST_METRICS);
     const cell = layout.cells[25];
     const cx = cell.x + cell.w / 2;
     const cy = cell.y + cell.h / 2;
@@ -23,11 +38,11 @@ describe('layoutMetrics', () => {
   });
 
   it('hit-tests in CSS pixels (not device pixels)', () => {
-    const layout = computeBoardLayout('белый', 350, 520);
+    const layout = computeBoardLayout('белый', { ...TEST_METRICS, cellSize: 36, reserveSize: 30.96 });
     const cell = layout.cells[10];
     const cssX = cell.x + cell.w * 0.5;
     const cssY = cell.y + cell.h * 0.5;
-    expect(hitTestCell(layout.cells, cssX * 2, cssY * 2)).toBeNull();
+    expect(hitTestCell(layout.cells, layout.width + 100, layout.height + 100)).toBeNull();
     expect(hitTestCell(layout.cells, cssX, cssY)).toBe(10);
   });
 });

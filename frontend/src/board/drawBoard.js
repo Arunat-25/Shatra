@@ -66,10 +66,84 @@ function drawPieceShape(ctx, cx, cy, radius, type, color, vectorOnly = false) {
   }
 }
 
+const KING_FIELD_NUMBER_COLOR = 'rgba(120, 53, 10, 0.8)';
+const LIGHT_CELL_NUMBER_COLOR = 'rgba(40, 28, 16, 0.72)';
+const DARK_CELL_NUMBER_COLOR = 'rgba(255, 255, 255, 0.88)';
+
+function cellNumberFontSize(cellSize) {
+  return Math.max(6, cellSize * 0.19);
+}
+
+function cellNumberColors(rect) {
+  if (rect.sectionClass === 'field-of-king') {
+    return {
+      fill: KING_FIELD_NUMBER_COLOR,
+      shadow: 'rgba(255, 255, 255, 0.9)',
+    };
+  }
+  if (rect.colorClass === 'cell-dark') {
+    return {
+      fill: DARK_CELL_NUMBER_COLOR,
+      shadow: 'rgba(0, 0, 0, 0.75)',
+    };
+  }
+  return {
+    fill: LIGHT_CELL_NUMBER_COLOR,
+    shadow: 'rgba(255, 255, 255, 0.95)',
+  };
+}
+
+/**
+ * Cell labels — mirrors `.cell-number` in board.css (top-left, tabular).
+ */
+export function drawCellNumbers(ctx, layout) {
+  const fontSize = cellNumberFontSize(layout.cellSize);
+  const insetX = 3;
+  const insetY = 2;
+
+  ctx.save();
+  ctx.font = `700 ${fontSize}px system-ui, -apple-system, sans-serif`;
+  ctx.textBaseline = 'top';
+  ctx.textAlign = 'left';
+
+  for (const [id, rect] of Object.entries(layout.cells)) {
+    const { fill, shadow } = cellNumberColors(rect);
+    const x = rect.x + insetX;
+    const y = rect.y + insetY;
+    const label = String(id);
+
+    ctx.shadowColor = shadow;
+    ctx.shadowBlur = 2;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 1;
+    ctx.fillStyle = fill;
+    ctx.fillText(label, x, y);
+  }
+
+  ctx.restore();
+}
+
+/** Lite pad: opaque fill on canvas; border on `.board-content--canvas` in CSS. */
+function drawLiteBoardFrame(ctx, layout) {
+  const palette = resolveTheme('lite');
+  const frameW = layout.width;
+  const frameH = layout.contentHeight ?? layout.height;
+  if (!frameW || !frameH) return;
+
+  ctx.save();
+  ctx.fillStyle = palette.boardBg;
+  ctx.fillRect(0, 0, frameW, frameH);
+  ctx.restore();
+}
+
 /**
  * @param {CanvasRenderingContext2D} ctx
  */
-export function drawBoardFrame(ctx, layout, theme = 'default') {
+export function drawBoardFrame(ctx, layout, theme = 'default', myColor = 'белый') {
+  if (theme === 'lite') {
+    drawLiteBoardFrame(ctx, layout);
+    return;
+  }
   const palette = resolveTheme(theme);
   const { width, height } = layout;
   const r = 12;
@@ -98,6 +172,7 @@ export function drawBoardState(ctx, layout, {
   dragGhost = null,
   slideOverlay = null,
   hiddenPieceCells = null,
+  showCellNumbers = false,
   theme = 'default',
   vectorOnlySprites = false,
 }) {
@@ -133,6 +208,10 @@ export function drawBoardState(ctx, layout, {
     if (moveFrom === cellId) {
       drawCellHighlight(ctx, rect, palette.highlightMove, ringWidth);
     }
+  }
+
+  if (showCellNumbers) {
+    drawCellNumbers(ctx, layout);
   }
 
   for (const essentialId of essentialSet) {

@@ -37,7 +37,22 @@ export async function clickBoardCell(page, cellId, myColor = 'белый') {
   if (await canvas.count() > 0) {
     const box = await canvas.boundingBox();
     if (!box) throw new Error('Canvas board has no bounding box');
-    const layout = computeBoardLayout(myColor, box.width, box.height);
+    const metrics = await page.evaluate(() => {
+      const board = document.querySelector('.room-board .board');
+      if (!board) return null;
+      const cs = getComputedStyle(board);
+      const cellSize = parseFloat(cs.getPropertyValue('--cell-size'));
+      const reserveSize = parseFloat(cs.getPropertyValue('--reserve-cell-size'));
+      if (!Number.isFinite(cellSize) || cellSize <= 0) return null;
+      return {
+        cellSize,
+        reserveSize: Number.isFinite(reserveSize) && reserveSize > 0 ? reserveSize : cellSize * 0.86,
+      };
+    });
+    const layout = computeBoardLayout(myColor, metrics || {
+      cellSize: Math.min((box.height - 20) / 13.6, (box.width - 20) / 7),
+      reserveSize: Math.min((box.height - 20) / 13.6, (box.width - 20) / 7) * 0.86,
+    });
     const cell = layout.cells[cellId];
     if (!cell) throw new Error(`Cell ${cellId} not in layout`);
     const x = box.x + cell.x + cell.w / 2;

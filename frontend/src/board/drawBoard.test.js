@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { drawBoardFrame, drawBoardState } from './drawBoard';
+import { drawBoardFrame, drawBoardState, drawCellNumbers } from './drawBoard';
 import { computeBoardLayout } from './layoutMetrics';
 
 function createMockCtx() {
@@ -16,22 +16,25 @@ function createMockCtx() {
     fillRect: vi.fn(),
     strokeRect: vi.fn(),
     drawImage: vi.fn(),
+    fillText: vi.fn(),
     set fillStyle(_v) {},
     set strokeStyle(_v) {},
     set lineWidth(_v) {},
   };
 }
 
+const TEST_LAYOUT_METRICS = { cellSize: 40, reserveSize: 34.4 };
+
 describe('drawBoard', () => {
   it('draws board frame without throwing', () => {
-    const layout = computeBoardLayout('белый', 320, 480);
+    const layout = computeBoardLayout('белый', TEST_LAYOUT_METRICS);
     const ctx = createMockCtx();
     expect(() => drawBoardFrame(ctx, layout)).not.toThrow();
     expect(ctx.fill).toHaveBeenCalled();
   });
 
   it('draws board state without throwing', () => {
-    const layout = computeBoardLayout('белый', 320, 480);
+    const layout = computeBoardLayout('белый', TEST_LAYOUT_METRICS);
     const ctx = createMockCtx();
     const board = { 25: 'белый бий' };
     expect(() => drawBoardState(ctx, layout, {
@@ -43,15 +46,37 @@ describe('drawBoard', () => {
     expect(ctx.fillRect).toHaveBeenCalled();
   });
 
-  it('draws lite theme frame with lite palette', () => {
-    const layout = computeBoardLayout('белый', 320, 480);
+  it('draws lite board frame as full opaque pad', () => {
+    const layout = computeBoardLayout('белый', TEST_LAYOUT_METRICS);
     const ctx = createMockCtx();
-    let fillColor = '';
-    Object.defineProperty(ctx, 'fillStyle', {
-      set(v) { fillColor = v; },
-      get() { return fillColor; },
+    drawBoardFrame(ctx, layout, 'lite', 'белый');
+    expect(ctx.fill).not.toHaveBeenCalled();
+    expect(ctx.fillRect).toHaveBeenCalledWith(0, 0, layout.width, layout.contentHeight);
+  });
+
+  it('draws cell numbers when showCellNumbers is set', () => {
+    const layout = computeBoardLayout('белый', TEST_LAYOUT_METRICS);
+    const ctx = createMockCtx();
+    ctx.font = '';
+    Object.defineProperty(ctx, 'font', {
+      set(v) { ctx._font = v; },
+      get() { return ctx._font; },
     });
-    drawBoardFrame(ctx, layout, 'lite');
-    expect(fillColor).toBe('#ddd2c2');
+    drawCellNumbers(ctx, layout);
+    expect(ctx.fillText).toHaveBeenCalled();
+    expect(ctx._font).toMatch(/700/);
+  });
+
+  it('draws board state with cell numbers when enabled', () => {
+    const layout = computeBoardLayout('белый', TEST_LAYOUT_METRICS);
+    const ctx = createMockCtx();
+    drawBoardState(ctx, layout, {
+      board: {},
+      moveFrom: null,
+      highlightedEssential: [],
+      highlightedCaptured: [],
+      showCellNumbers: true,
+    });
+    expect(ctx.fillText).toHaveBeenCalled();
   });
 });

@@ -71,14 +71,24 @@ html:has(.app-shell--lobby)::after {
   contain: layout style paint;
 }
 
-.board.board--lite .cell-number {
-  display: none !important;
-}
-
 .board.board--lite {
   background: var(--lite-board-pad) !important;
   box-shadow: none !important;
-  padding: 6px !important;
+}
+
+.board.board--lite:has(.board-content--canvas) {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+.board.board--lite:has(.board-content--canvas) .board-content--canvas {
+  background: var(--lite-board-pad);
+  border: 2px solid rgba(94, 64, 38, 0.2);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  contain: none;
 }
 
 .board.board--lite::before,

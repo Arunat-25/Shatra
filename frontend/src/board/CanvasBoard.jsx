@@ -1,27 +1,48 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { computeBoardLayout, hitTestCell } from './layoutMetrics';
+import { COMPACT_GAME_QUERY } from '../constants';
+import useMediaQuery from '../hooks/useMediaQuery';
+import { computeBoardLayout, hitTestCell, readBoardUnitMetrics, deriveMetricsFromBoardSlot } from './layoutMetrics';
 import { drawBoardFrame, drawBoardState } from './drawBoard';
 import useBoardInteraction from '../hooks/useBoardInteraction';
 import usePieceSlideOverlay from '../hooks/usePieceSlideOverlay';
 
-const BOARD_ASPECT = 13.6 / 7;
+const BOARD_ASPECT = 7 / 13.6;
 
-function measureCanvasSize(container) {
-  const w = Math.max(1, Math.floor(container.clientWidth));
-  let h = Math.floor(container.clientHeight);
-
-  if (h >= 50) {
-    return { w, h };
+function measureCanvasLayout(container, myColor) {
+  const boardEl = container?.closest?.('.board');
+  const metrics = readBoardUnitMetrics(boardEl) || deriveMetricsFromBoardSlot(boardEl);
+  if (metrics) {
+    const layout = computeBoardLayout(myColor, metrics);
+    return {
+      w: Math.max(1, Math.ceil(layout.width)),
+      h: Math.max(1, Math.ceil(layout.contentHeight)),
+      layout,
+    };
   }
 
-  const slot = container.closest('.room-board');
-  const slotW = slot ? Math.floor(slot.clientWidth) : w;
-  const slotH = slot ? Math.floor(slot.clientHeight) : 0;
-  const width = Math.max(1, w || slotW);
-  const byAspect = Math.floor(width * BOARD_ASPECT);
-  const hFromSlot = slotH > 0 ? Math.min(byAspect, slotH) : byAspect;
+  const w = Math.max(1, Math.floor(container.clientWidth));
+  let h = Math.floor(container.clientHeight);
+  if (h < 50) {
+    const slot = container.closest('.room-board');
+    const slotW = slot ? Math.floor(slot.clientWidth) : w;
+    const slotH = slot ? Math.floor(slot.clientHeight) : 0;
+    const width = Math.max(1, w || slotW);
+    const byAspect = Math.floor(width * BOARD_ASPECT);
+    h = slotH > 0 ? Math.min(byAspect, slotH) : byAspect;
+  }
 
-  return { w: width, h: Math.max(1, hFromSlot) };
+  const fallbackMetrics = {
+    cellSize: Math.max(0, Math.min((h - 20) / 13.6, (w - 20) / 7)),
+    reserveSize: 0,
+  };
+  fallbackMetrics.reserveSize = fallbackMetrics.cellSize * 0.86;
+  const layout = computeBoardLayout(myColor, fallbackMetrics);
+
+  return {
+    w: Math.max(1, Math.ceil(layout.width)),
+    h: Math.max(1, Math.ceil(layout.contentHeight)),
+    layout,
+  };
 }
 
 export default function CanvasBoard({
@@ -41,6 +62,8 @@ export default function CanvasBoard({
   vectorOnlySprites = false,
   getDragLegalDests = null,
 }) {
+  const isCompactViewport = useMediaQuery(COMPACT_GAME_QUERY);
+  const showCellNumbers = !isCompactViewport;
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const layoutRef = useRef(null);
@@ -156,7 +179,7 @@ export default function CanvasBoard({
     const dpr = window.devicePixelRatio || 1;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    drawBoardFrame(ctx, layout, drawTheme);
+    drawBoardFrame(ctx, layout, drawTheme, myColor);
 
     const hiddenPieceCells = new Set();
     if (slideOverlayDrawRef.current?.toCell != null) {
@@ -168,10 +191,11 @@ export default function CanvasBoard({
       dragGhost: dragGhostDrawRef.current,
       slideOverlay: slideOverlayDrawRef.current,
       hiddenPieceCells,
+      showCellNumbers,
       theme: drawTheme,
       vectorOnlySprites,
     });
-  }, [drawTheme, vectorOnlySprites]);
+  }, [drawTheme, vectorOnlySprites, showCellNumbers, myColor]);
 
   const paintRef = useRef(paint);
   paintRef.current = paint;
@@ -189,17 +213,20 @@ export default function CanvasBoard({
     const canvas = canvasRef.current;
     if (!container || !canvas) return;
 
-    const { w, h } = measureCanvasSize(container);
+    const { w, h, layout } = measureCanvasLayout(container, myColor);
     const sizeChanged = lastSizeRef.current.w !== w || lastSizeRef.current.h !== h;
     lastSizeRef.current = { w, h };
 
-    if (sizeChanged) {
+    container.style.width = `${w}px`;
+    container.style.height = `${h}px`;
+
+    if (sizeChanged || !layoutRef.current) {
       const dpr = window.devicePixelRatio || 1;
       canvas.width = Math.floor(w * dpr);
       canvas.height = Math.floor(h * dpr);
       canvas.style.width = `${w}px`;
       canvas.style.height = `${h}px`;
-      layoutRef.current = computeBoardLayout(myColor, w, h);
+      layoutRef.current = layout;
     }
 
     schedulePaint();
@@ -208,8 +235,9 @@ export default function CanvasBoard({
   useEffect(() => {
     resizeCanvas();
     const container = containerRef.current;
+    const boardEl = container?.closest('.board');
     const slot = container?.closest('.room-board');
-    const observeTarget = slot ?? container;
+    const observeTarget = boardEl ?? slot ?? container;
     const ro = typeof ResizeObserver !== 'undefined' && observeTarget
       ? new ResizeObserver(resizeCanvas)
       : null;
@@ -234,6 +262,7 @@ export default function CanvasBoard({
     historyFrom,
     historyTo,
     slideOverlay,
+    showCellNumbers,
     schedulePaint,
   ]);
 
