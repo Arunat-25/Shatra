@@ -349,7 +349,7 @@
     justify-content: stretch;
   }
 
-  /* Fill middle viewport row; cells sized to content units (12.44) with zero section gaps */
+  /* Fill middle viewport row; cells sized to content units (13.16) with zero section gaps */
   .app-shell--game .room-board .board {
     flex: 1 1 auto;
     flex-shrink: 1;
@@ -368,7 +368,7 @@
     --reserve-field-margin: 0;
     --main-field-margin: 0;
     --king-field-margin: 0;
-    --board-height-units: 12.44;
+    --board-height-units: 13.16;
     --board-unit: calc((100cqw - 6px) / 7);
     --cell-size: var(--board-unit);
     --reserve-cell-size: calc(var(--board-unit) * 0.86);
@@ -376,10 +376,10 @@
 
   @container board-slot (min-height: 120px) {
     .app-shell--game .room-board .board {
-      width: min(100%, calc(100cqh * 7 / var(--board-height-units, 12.44)));
+      width: min(100%, calc((100cqh - 4px) * 7 / var(--board-height-units, 13.16)));
       --board-unit: min(
         calc((100cqw - 6px) / 7),
-        calc(100cqh / var(--board-height-units, 12.44))
+        calc((100cqh - 4px) / var(--board-height-units, 13.16))
       );
       --cell-size: var(--board-unit);
       --reserve-cell-size: calc(var(--board-unit) * 0.86);
@@ -397,7 +397,7 @@
     width: 100%;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: center;
     gap: 0;
   }

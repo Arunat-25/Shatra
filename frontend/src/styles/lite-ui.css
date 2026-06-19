@@ -98,11 +98,11 @@ html:has(.app-shell--lobby)::after {
   }
 
   .board.board--lite:has(.board-content--canvas) .board-content--canvas {
-    width: fit-content;
-    height: fit-content;
-    flex: 0 0 auto;
-    align-self: center;
-    margin: 0 auto;
+    width: 100%;
+    height: 100%;
+    flex: 1 1 auto;
+    align-self: stretch;
+    margin: 0;
   }
 }
 

@@ -65,11 +65,11 @@ describe('BoardSurface', () => {
     expect(lastBoardGridProps).toBeNull();
   });
 
-  it('uses lite DOM pieces without drag on compact viewport when lite is off', () => {
+  it('uses lite DOM pieces with drag on compact viewport when lite is off', () => {
     vi.mocked(useMediaQuery).mockReturnValue(true);
     renderSurface(false);
     expect(lastCanvasProps).toBeNull();
     expect(lastBoardGridProps.pieceVariant).toBe('lite');
-    expect(lastBoardGridProps.enablePieceDrag).toBe(false);
+    expect(lastBoardGridProps.enablePieceDrag).toBe(true);
   });
 });

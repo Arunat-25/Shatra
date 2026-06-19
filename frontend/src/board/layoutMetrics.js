@@ -2,8 +2,8 @@ import { getBoardSections } from '../constants';
 
 /** Total row-units (incl. reserve 0.86 rows); matches --board-unit in game.css. */
 export const BOARD_HEIGHT_UNITS = 13.6;
-/** Row-units with zero section margins (mobile compact). 2×2×0.86 + 2×1 + 7×1 */
-export const BOARD_HEIGHT_UNITS_COMPACT = 12.44;
+/** Row-units with zero section margins (mobile compact). 2×3×0.86 + 2×1 + 6×1 */
+export const BOARD_HEIGHT_UNITS_COMPACT = 13.16;
 export const BOARD_WIDTH_CELLS = 7;
 
 const DEFAULT_RESERVE_MARGIN = 3;

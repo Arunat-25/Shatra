@@ -1,6 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { COMPACT_GAME_QUERY } from '../constants';
-import useMediaQuery from '../hooks/useMediaQuery';
 import { computeBoardLayout, hitTestCell, readBoardUnitMetrics, readCellNumberScale, readBoardHeightUnits, deriveMetricsFromBoardSlot, BOARD_HEIGHT_UNITS } from './layoutMetrics';
 import { drawBoardFrame, drawBoardState } from './drawBoard';
 import useBoardInteraction from '../hooks/useBoardInteraction';
@@ -74,9 +72,8 @@ export default function CanvasBoard({
   vectorOnlySprites = false,
   getDragLegalDests = null,
 }) {
-  const isCompactViewport = useMediaQuery(COMPACT_GAME_QUERY);
-  const fillSlotRef = useRef(isCompactViewport);
-  fillSlotRef.current = isCompactViewport;
+  const fillSlotRef = useRef(true);
+  fillSlotRef.current = true;
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const layoutRef = useRef(null);
@@ -218,7 +215,7 @@ export default function CanvasBoard({
       theme: drawTheme,
       vectorOnlySprites,
     });
-  }, [drawTheme, vectorOnlySprites, isCompactViewport, myColor]);
+  }, [drawTheme, vectorOnlySprites, myColor]);
 
   const paintRef = useRef(paint);
   paintRef.current = paint;
@@ -267,7 +264,7 @@ export default function CanvasBoard({
     }
 
     schedulePaint();
-  }, [myColor, schedulePaint, isCompactViewport]);
+  }, [myColor, schedulePaint]);
 
   useEffect(() => {
     resizeCanvas();
@@ -299,7 +296,6 @@ export default function CanvasBoard({
     historyFrom,
     historyTo,
     slideOverlay,
-    isCompactViewport,
     schedulePaint,
   ]);
 

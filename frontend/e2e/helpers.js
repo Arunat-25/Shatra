@@ -31,38 +31,87 @@ export async function isCanvasBoard(page) {
   return (await page.locator('.board-canvas').count()) > 0;
 }
 
-/** Клик по клетке на DOM- или canvas-доске. */
-export async function clickBoardCell(page, cellId, myColor = 'белый') {
+async function readCanvasBoardMetrics(page, box) {
+  return page.evaluate(() => {
+    const board = document.querySelector('.room-board .board');
+    if (!board) return null;
+    const cs = getComputedStyle(board);
+    const cellSize = parseFloat(cs.getPropertyValue('--cell-size'));
+    const reserveSize = parseFloat(cs.getPropertyValue('--reserve-cell-size'));
+    if (!Number.isFinite(cellSize) || cellSize <= 0) return null;
+    return {
+      cellSize,
+      reserveSize: Number.isFinite(reserveSize) && reserveSize > 0 ? reserveSize : cellSize * 0.86,
+    };
+  }).then((metrics) => metrics || {
+    cellSize: Math.min((box.height - 20) / 13.6, (box.width - 20) / 7),
+    reserveSize: Math.min((box.height - 20) / 13.6, (box.width - 20) / 7) * 0.86,
+  });
+}
+
+/** Центр клетки в координатах страницы (DOM или canvas). */
+export async function getBoardCellCenter(page, cellId, myColor = 'белый') {
   const canvas = page.locator('.board-canvas');
   if (await canvas.count() > 0) {
     const box = await canvas.boundingBox();
     if (!box) throw new Error('Canvas board has no bounding box');
-    const metrics = await page.evaluate(() => {
-      const board = document.querySelector('.room-board .board');
-      if (!board) return null;
-      const cs = getComputedStyle(board);
-      const cellSize = parseFloat(cs.getPropertyValue('--cell-size'));
-      const reserveSize = parseFloat(cs.getPropertyValue('--reserve-cell-size'));
-      if (!Number.isFinite(cellSize) || cellSize <= 0) return null;
-      return {
-        cellSize,
-        reserveSize: Number.isFinite(reserveSize) && reserveSize > 0 ? reserveSize : cellSize * 0.86,
-      };
-    });
-    const layout = computeBoardLayout(myColor, metrics || {
-      cellSize: Math.min((box.height - 20) / 13.6, (box.width - 20) / 7),
-      reserveSize: Math.min((box.height - 20) / 13.6, (box.width - 20) / 7) * 0.86,
-    });
+    const metrics = await readCanvasBoardMetrics(page, box);
+    const layout = computeBoardLayout(myColor, metrics);
     const cell = layout.cells[cellId];
     if (!cell) throw new Error(`Cell ${cellId} not in layout`);
-    const x = box.x + cell.x + cell.w / 2;
-    const y = box.y + cell.y + cell.h / 2;
-    await page.mouse.click(x, y);
-    return;
+    return {
+      x: box.x + cell.x + cell.w / 2,
+      y: box.y + cell.y + cell.h / 2,
+      isCanvas: true,
+    };
   }
   const domCell = page.locator(`#position${cellId}`);
   await domCell.scrollIntoViewIfNeeded();
-  await domCell.click();
+  const box = await domCell.boundingBox();
+  if (!box) throw new Error(`Cell ${cellId} has no bounding box`);
+  return {
+    x: box.x + box.width / 2,
+    y: box.y + box.height / 2,
+    isCanvas: false,
+  };
+}
+
+/** Клик по клетке на DOM- или canvas-доске. */
+export async function clickBoardCell(page, cellId, myColor = 'белый') {
+  const { x, y, isCanvas } = await getBoardCellCenter(page, cellId, myColor);
+  if (isCanvas) {
+    await page.mouse.click(x, y);
+    return;
+  }
+  await page.locator(`#position${cellId}`).click();
+}
+
+/**
+ * Перетащить фигуру с клетки и проверить визуальную обратную связь (ghost / canvas repaint).
+ * @param {import('@playwright/test').Page} page
+ * @param {number} cellId
+ * @param {string} [myColor]
+ * @param {{ delta?: number }} [opts]
+ */
+export async function expectPieceDragFeedback(page, cellId, myColor = 'белый', { delta = 48 } = {}) {
+  const { x, y, isCanvas } = await getBoardCellCenter(page, cellId, myColor);
+
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+
+  if (isCanvas) {
+    const before = await page.evaluate(() => document.querySelector('.board-canvas')?.toDataURL() ?? '');
+    await page.mouse.move(x + delta, y + delta, { steps: 6 });
+    const during = await page.evaluate(() => document.querySelector('.board-canvas')?.toDataURL() ?? '');
+    await page.mouse.up();
+    expect(during, 'canvas board should repaint while dragging').not.toBe(before);
+    return;
+  }
+
+  await page.mouse.move(x + delta, y + delta, { steps: 6 });
+  await expect(page.locator('.drag-ghost')).toBeVisible();
+  await expect(page.locator('.board-content--dragging')).toBeVisible();
+  await page.mouse.up();
 }
 
 /** Выбрать фигуру и сходить (from → to). */

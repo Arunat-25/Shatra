@@ -26,7 +26,6 @@ export default function BoardSurface(props) {
       <BoardGrid
         {...props}
         pieceVariant="lite"
-        enablePieceDrag={false}
       />
     );
   }

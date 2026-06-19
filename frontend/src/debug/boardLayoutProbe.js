@@ -1,40 +1,11 @@
+import { readBoardLayoutSnapshot } from '../board/boardLayoutGeometry';
+
 /** Debug probe: board slot vs content geometry (overflow check). */
 export function probeBoardLayout(trigger, extra = {}) {
   if (typeof window === 'undefined') return;
 
-  const slot = document.querySelector('.room-board');
-  const board = document.querySelector('.room-board .board');
-  const content = document.querySelector('.room-board .board-content');
-  const topBar = document.querySelector('.game-player-bar--top');
-  const bottomBar = document.querySelector('.game-player-bar--bottom');
-  const canvas = document.querySelector('.board-canvas');
-  if (!slot || !board) return;
-
-  const slotR = slot.getBoundingClientRect();
-  const boardR = board.getBoundingClientRect();
-  const contentR = content?.getBoundingClientRect();
-  const canvasR = canvas?.getBoundingClientRect();
-  const topBarR = topBar?.getBoundingClientRect();
-  const bottomBarR = bottomBar?.getBoundingClientRect();
-  const reserveTop = document.querySelector('.field-of-reserve .kletka');
-  const reserveCells = [...document.querySelectorAll('.field-of-reserve .kletka')];
-  const reserveBottom = reserveCells[reserveCells.length - 1] ?? null;
-  const cs = getComputedStyle(board);
-  const slotCs = getComputedStyle(slot);
-
-  const fortTopVisible = reserveTop
-    ? reserveTop.getBoundingClientRect().top >= slotR.top - 1
-    : null;
-  const fortBottomVisible = reserveBottom
-    ? reserveBottom.getBoundingClientRect().bottom <= slotR.bottom + 1
-    : null;
-  const overlapsTopBar = topBarR
-    ? boardR.top < topBarR.bottom - 1
-    : null;
-  const gapBelowTopBar = topBarR ? Math.round(boardR.top - topBarR.bottom) : null;
-  const gapAboveBottomBar = bottomBarR ? Math.round(bottomBarR.top - boardR.bottom) : null;
-  const contentInsetTop = contentR ? Math.round(contentR.top - boardR.top) : null;
-  const contentInsetBottom = contentR ? Math.round(boardR.bottom - contentR.bottom) : null;
+  const snapshot = readBoardLayoutSnapshot(document);
+  if (!snapshot) return;
 
   const payload = {
     sessionId: 'a9d1b1',
@@ -43,26 +14,23 @@ export function probeBoardLayout(trigger, extra = {}) {
     message: 'board layout probe',
     data: {
       trigger,
-      viewport: `${window.innerWidth}x${window.innerHeight}`,
-      slotClient: `${slot.clientWidth}x${slot.clientHeight}`,
-      boardClient: `${board.clientWidth}x${board.clientHeight}`,
-      contentClient: content ? `${content.clientWidth}x${content.clientHeight}` : null,
-      canvasClient: canvas ? `${canvas.clientWidth}x${canvas.clientHeight}` : null,
-      boardOverflowsSlot:
-        boardR.height > slotR.height + 2 || boardR.width > slotR.width + 2,
-      contentOverflowsBoard: contentR
-        ? contentR.height > boardR.height + 2 || contentR.width > boardR.width + 2
-        : null,
-      overlapsTopBar,
-      gapBelowTopBar,
-      gapAboveBottomBar,
-      contentInsetTop,
-      contentInsetBottom,
-      fortTopVisible,
-      fortBottomVisible,
-      boardUnit: cs.getPropertyValue('--board-unit').trim(),
-      heightUnits: cs.getPropertyValue('--board-height-units').trim(),
-      boardFlexShrink: cs.flexShrink,
+      viewport: `${snapshot.viewport.width}x${snapshot.viewport.height}`,
+      slotClient: snapshot.slot ? `${snapshot.slot.width}x${snapshot.slot.height}` : null,
+      boardClient: snapshot.board ? `${snapshot.board.width}x${snapshot.board.height}` : null,
+      contentClient: snapshot.content ? `${snapshot.content.width}x${snapshot.content.height}` : null,
+      canvasClient: snapshot.canvas ? `${snapshot.canvas.width}x${snapshot.canvas.height}` : null,
+      boardOverflowsSlot: snapshot.boardOverflowsSlot,
+      contentOverflowsBoard: snapshot.contentOverflowsBoard,
+      overlapsTopBar: snapshot.overlapsTopBar,
+      gapBelowTopBar: snapshot.gapBelowTopBar,
+      gapAboveBottomBar: snapshot.gapAboveBottomBar,
+      contentInsetTop: snapshot.contentInsetTop,
+      contentInsetBottom: snapshot.contentInsetBottom,
+      fortTopVisible: snapshot.fortTopVisible,
+      fortBottomVisible: snapshot.fortBottomVisible,
+      boardUnit: snapshot.boardUnit,
+      heightUnits: snapshot.heightUnits,
+      boardFlexShrink: snapshot.boardFlexShrink,
       runId: extra.runId ?? 'overflow-fix',
       ...extra,
     },
