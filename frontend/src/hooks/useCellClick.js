@@ -37,7 +37,9 @@ export default function useCellClick({
     const s = stateRef.current;
     const wsPayload = buildMovePayload(s, from, to);
     const { ok, result } = applyLocalMove(s, from, to);
-    if (!ok) return false;
+    if (!ok) {
+      return false;
+    }
 
     dispatch({
       type: GAME_ACTIONS.OPTIMISTIC_MOVE,

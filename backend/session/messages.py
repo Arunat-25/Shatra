@@ -126,10 +126,9 @@ async def _process_client_message_locked(
     else:
         game["moves_with_two_biys"] = 0
 
-    if result.position_for_mandatory_capture:
-        game["pending_mandatory_position"] = result.position_for_mandatory_capture
-    else:
-        game.pop("pending_mandatory_position", None)
+    from backend.game_helpers import persist_pending_mandatory_position
+
+    persist_pending_mandatory_position(game, result, prev_mover)
 
     response = await apply_move_result(
         room_id, game, result, prev_mover, raw_from, raw_to

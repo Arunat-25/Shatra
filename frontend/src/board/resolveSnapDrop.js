@@ -26,7 +26,7 @@ function resolveCellBounds(cellId, getCellBounds, getCellCenter, referenceSize) 
 }
 
 function pieceBounds(x, y, size, referenceSize) {
-  const half = ((size ?? referenceSize) * PIECE_SCALE) / 2;
+  const half = ((size ?? referenceSize) * PIECE_SCALE * 1.08) / 2;
   return {
     left: x - half,
     top: y - half,

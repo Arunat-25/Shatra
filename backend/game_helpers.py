@@ -216,6 +216,19 @@ def update_captures(game: dict, result) -> None:
         game["pending_batyr_captures"] = []
 
 
+def persist_pending_mandatory_position(game: dict, result, prev_mover: str) -> None:
+    """
+    Chain capture cell applies only while the same player keeps the turn.
+    After a turn switch, mandatory captures are validated without chain_capture_cell
+    (player may choose among all eligible pieces).
+    """
+    pending = result.position_for_mandatory_capture
+    if pending and result.movers_color == prev_mover:
+        game["pending_mandatory_position"] = pending
+    else:
+        game.pop("pending_mandatory_position", None)
+
+
 def save_move_to_history(
     game: dict,
     mover: str,

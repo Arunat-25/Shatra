@@ -14,6 +14,7 @@ from backend.game_helpers import (
     get_player_color,
     get_ai_color,
     is_rejected_move,
+    persist_pending_mandatory_position,
     _norm_board_keys,
 )
 from backend.message_codes import WS_NOT_YOUR_TURN
@@ -206,10 +207,7 @@ async def _process_v2_client_message_locked(
     else:
         game["moves_with_two_biys"] = 0
 
-    if result.position_for_mandatory_capture:
-        game["pending_mandatory_position"] = result.position_for_mandatory_capture
-    else:
-        game.pop("pending_mandatory_position", None)
+    persist_pending_mandatory_position(game, result, prev_mover)
 
     await _apply_and_broadcast_move(
         room_id, game, result, prev_mover, raw_from, raw_to, is_ai_room=is_ai_room

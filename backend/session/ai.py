@@ -131,10 +131,9 @@ async def handle_ai_move(
     if not result.updated_positions or result.updated_positions == board_snapshot:
         return
 
-    if result.position_for_mandatory_capture:
-        game["pending_mandatory_position"] = result.position_for_mandatory_capture
-    else:
-        game.pop("pending_mandatory_position", None)
+    from backend.game_helpers import persist_pending_mandatory_position
+
+    persist_pending_mandatory_position(game, result, prev_mover)
 
     # IMPORTANT: apply_move_result persists game to Redis, but pending_mandatory_position
     # is updated here (after apply_move_result). Persist it too, otherwise subsequent hint

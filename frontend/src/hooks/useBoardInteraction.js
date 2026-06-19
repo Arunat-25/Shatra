@@ -125,7 +125,7 @@ export default function useBoardInteraction({
     const moved = start
       ? Math.hypot(event.clientX - start.x, event.clientY - start.y)
       : 0;
-    if (moved < 4) {
+    if (moved < 2) {
       setDragGhost(null);
       return;
     }
@@ -146,7 +146,7 @@ export default function useBoardInteraction({
     if (
       targetCellId != null
       && from !== targetCellId
-      && isLegalDest(targetCellId)
+      && isLegalDest(targetCellId, activeLegalDests)
       && canSlide
     ) {
       const center = getCellCenter(targetCellId);
