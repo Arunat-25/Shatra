@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../styles/board.css';
 import { probeTutorialLayout } from '../../debug/tutorialLayoutProbe';
+import { useLiteUi } from '../../context/LiteUiContext';
 import BoardGrid from '../../BoardGrid';
 
 const noop = () => {};
@@ -27,6 +28,7 @@ export default function TutorialLessonLayout({
   onPassTurn,
 }) {
   const { t } = useTranslation();
+  const { enabled: liteUi } = useLiteUi();
 
   useEffect(() => {
     const run = () => probeTutorialLayout('tutorial-lesson');
@@ -53,6 +55,7 @@ export default function TutorialLessonLayout({
                 myColor="белый"
                 interactive={interactive}
                 enablePieceDrag={false}
+                pieceVariant={liteUi ? 'lite' : 'full'}
                 tutorialDimmedCells={tutorialDimmedCells}
                 highlightedEssential={highlightedEssential}
                 highlightedCaptured={highlightedCaptured}

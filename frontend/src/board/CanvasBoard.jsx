@@ -35,6 +35,8 @@ export default function CanvasBoard({
   historyTo = null,
   myColor,
   interactive = true,
+  drawTheme = 'default',
+  vectorOnlySprites = false,
 }) {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
@@ -90,7 +92,7 @@ export default function CanvasBoard({
     const dpr = window.devicePixelRatio || 1;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    drawBoardFrame(ctx, layout);
+    drawBoardFrame(ctx, layout, drawTheme);
 
     let dragGhost = dragGhostDrawRef.current;
     if (dragGhost?.piece) {
@@ -105,8 +107,10 @@ export default function CanvasBoard({
     drawBoardState(ctx, layout, {
       ...state,
       dragGhost,
+      theme: drawTheme,
+      vectorOnlySprites,
     });
-  }, []);
+  }, [drawTheme, vectorOnlySprites]);
 
   const paintRef = useRef(paint);
   paintRef.current = paint;

@@ -136,6 +136,11 @@ async def handle_ai_move(
     else:
         game.pop("pending_mandatory_position", None)
 
+    # IMPORTANT: apply_move_result persists game to Redis, but pending_mandatory_position
+    # is updated here (after apply_move_result). Persist it too, otherwise subsequent hint
+    # requests may incorrectly think a chain capture is still active.
+    await set_game(room_id, game)
+
     if result.movers_color == ai_color and not result.game_over:
         await handle_ai_move(
             room_id, game, max_retries=max_retries, chain_step=chain_step + 1, room_data=room_data,

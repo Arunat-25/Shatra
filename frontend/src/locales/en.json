@@ -11,7 +11,10 @@
     "support": "Support",
     "reportBug": "Report a bug",
     "openMenu": "Open menu",
-    "closeMenu": "Close menu"
+    "closeMenu": "Close menu",
+    "liteUi": "Lite UI",
+    "liteUiOn": "Lite UI on — canvas board, simplified graphics, no animations",
+    "liteUiOff": "Lite UI off"
   },
   "bugReport": {
     "title": "Report a bug",

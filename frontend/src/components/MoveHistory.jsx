@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useLiteUi } from '../context/LiteUiContext';
 import { COLOR_BLACK, COLOR_WHITE } from '../constants';
 
 export default function MoveHistory({
@@ -13,6 +14,7 @@ export default function MoveHistory({
   canStepForward,
 }) {
   const { t } = useTranslation();
+  const { enabled: liteUi } = useLiteUi();
   const listRef = useRef(null);
 
   const moverAbbr = {
@@ -30,12 +32,16 @@ export default function MoveHistory({
     if (!el) return;
     if (viewingHistoryIndex !== null) {
       const active = el.querySelector('.move-history-item--active');
-      active?.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' });
+      active?.scrollIntoView({
+        inline: 'nearest',
+        block: 'nearest',
+        behavior: liteUi ? 'auto' : 'smooth',
+      });
       return;
     }
     el.scrollTop = el.scrollHeight;
     el.scrollLeft = el.scrollWidth;
-  }, [movesHistory.length, viewingHistoryIndex]);
+  }, [movesHistory.length, viewingHistoryIndex, liteUi]);
 
   return (
     <div className="move-history-panel">

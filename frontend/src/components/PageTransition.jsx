@@ -2,16 +2,19 @@ import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { COMPACT_GAME_QUERY, PAGE_TRANSITION_DURATION } from '../constants';
 import useMediaQuery from '../hooks/useMediaQuery';
+import { useLiteUi } from '../context/LiteUiContext';
 
 export default function PageTransition({ children }) {
   const location = useLocation();
   const compactLayout = useMediaQuery(COMPACT_GAME_QUERY);
+  const { enabled: liteUi } = useLiteUi();
+  const instantTransition = compactLayout || liteUi;
   const [displayChildren, setDisplayChildren] = useState(children);
   const [transitionStage, setTransitionStage] = useState('enter');
   const prevPathRef = useRef(location.pathname);
 
   useEffect(() => {
-    if (compactLayout) {
+    if (instantTransition) {
       setDisplayChildren(children);
       prevPathRef.current = location.pathname;
       setTransitionStage('enter');
@@ -29,9 +32,9 @@ export default function PageTransition({ children }) {
     }
     setDisplayChildren(children);
     return undefined;
-  }, [children, location.pathname, compactLayout]);
+  }, [children, location.pathname, instantTransition]);
 
-  if (compactLayout) {
+  if (instantTransition) {
     return (
       <div className="page-transition" style={{ width: '100%', height: '100%' }}>
         {children}

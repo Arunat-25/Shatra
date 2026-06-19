@@ -10,6 +10,7 @@ import HomeTab from './HomeTab';
 import TutorialTab from './TutorialTab';
 import BugReportModal from './BugReportModal';
 import SupportButton from './SupportButton';
+import LiteUiToggle from './LiteUiToggle';
 import { COMPACT_GAME_QUERY } from '../constants';
 
 function IconProfile() {
@@ -197,6 +198,9 @@ export default function AuthNav() {
             {t('nav.reportBug')}
           </button>
         </div>
+        <div className="app-nav-drawer__section">
+          <LiteUiToggle variant="drawer" />
+        </div>
         <div className="app-nav-drawer__section app-nav-drawer__section--locale">
           <LocaleSwitcher />
         </div>
@@ -222,6 +226,7 @@ export default function AuthNav() {
             </button>
           </div>
           <div className="app-locale-nav">
+            <LiteUiToggle />
             <LocaleSwitcher />
           </div>
           {accountNav(false)}

@@ -1,0 +1,158 @@
+/* User-enabled aggressive lite UI (layout unchanged on desktop) */
+
+html.app-shell--lite-ui {
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+  --shadow-glow-gold: none;
+  --shadow-glow-turquoise: none;
+  --duration-fast: 0ms;
+  --duration-normal: 0ms;
+  --duration-slow: 0ms;
+  --font-display: system-ui, sans-serif;
+  --font-body: system-ui, sans-serif;
+  --font-accent: Georgia, 'Times New Roman', serif;
+  --lite-board-pad: #ddd2c2;
+  --lite-cell-light: #faf6ee;
+}
+
+html.app-shell--lite-ui::before {
+  background-image: none;
+}
+
+html.app-shell--lite-ui::after {
+  display: none;
+}
+
+html.app-shell--lite-ui .lobby-emblem,
+html.app-shell--lite-ui .game-emblem-flame,
+html.app-shell--lite-ui .lobby-fluid-host,
+html.app-shell--lite-ui .lobby-left-inner--fluid,
+html.app-shell--lite-ui .page-transition,
+html.app-shell--lite-ui .game-page,
+html.app-shell--lite-ui .board,
+html.app-shell--lite-ui .action-card,
+html.app-shell--lite-ui .room-card,
+html.app-shell--lite-ui .kletka,
+html.app-shell--lite-ui .btn-lobby,
+html.app-shell--lite-ui .game-player-bar {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* Panels and chrome */
+html.app-shell--lite-ui .lobby-left,
+html.app-shell--lite-ui .lobby-right,
+html.app-shell--lite-ui .action-card,
+html.app-shell--lite-ui .room-card,
+html.app-shell--lite-ui .app-auth-nav,
+html.app-shell--lite-ui .app-chrome-nav-tabs,
+html.app-shell--lite-ui .app-locale-nav,
+html.app-shell--lite-ui .tutorial-section-card,
+html.app-shell--lite-ui .auth-card {
+  box-shadow: none !important;
+  border-radius: var(--radius-sm);
+}
+
+html.app-shell--lite-ui .lobby-emblem-svg {
+  filter: none !important;
+}
+
+/* Board: canvas in game; DOM fallback in tutorial */
+html.app-shell--lite-ui .room-board,
+html.app-shell--lite-ui .board-content {
+  contain: layout style paint;
+}
+
+html.app-shell--lite-ui .cell-number {
+  display: none !important;
+}
+
+html.app-shell--lite-ui .board {
+  background: var(--lite-board-pad) !important;
+  box-shadow: none !important;
+  padding: 6px !important;
+}
+
+html.app-shell--lite-ui .board::before,
+html.app-shell--lite-ui .board::after {
+  display: none !important;
+}
+
+html.app-shell--lite-ui .cell-light {
+  background: var(--lite-cell-light) !important;
+  box-shadow: inset 0 0 0 var(--cell-border-width, 1px) rgba(94, 64, 38, 0.16) !important;
+}
+
+html.app-shell--lite-ui .cell-dark {
+  background: #9a3412 !important;
+  box-shadow: inset 0 0 0 var(--cell-border-width, 1px) rgba(0, 0, 0, 0.22) !important;
+}
+
+html.app-shell--lite-ui .field-of-king .kletka {
+  background: #fef9c3 !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+html.app-shell--lite-ui .field-of-king .kletka::after {
+  display: none !important;
+}
+
+html.app-shell--lite-ui .kletka,
+html.app-shell--lite-ui .kletka:hover,
+html.app-shell--lite-ui .kletka:active,
+html.app-shell--lite-ui .shatra-piece-lite,
+html.app-shell--lite-ui .shatra-piece-lite svg,
+html.app-shell--lite-ui .kletka svg {
+  filter: none !important;
+  transform: none !important;
+}
+
+html.app-shell--lite-ui .highlight-essential {
+  animation: none !important;
+}
+
+html.app-shell--lite-ui .highlight-essential::after {
+  animation: none !important;
+}
+
+html.app-shell--lite-ui .action-card:hover,
+html.app-shell--lite-ui .action-card:active,
+html.app-shell--lite-ui .room-card:hover,
+html.app-shell--lite-ui .room-card:active,
+html.app-shell--lite-ui .btn-lobby:hover,
+html.app-shell--lite-ui .btn-lobby:active {
+  transform: none !important;
+  filter: none !important;
+}
+
+/* Defer off-screen panels */
+html.app-shell--lite-ui .room-left,
+html.app-shell--lite-ui .room-right,
+html.app-shell--lite-ui .game-viewport-below-fold,
+html.app-shell--lite-ui .move-history-panel {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 120px;
+}
+
+html.app-shell--lite-ui .timer-row--low .timer-row__time,
+html.app-shell--lite-ui .draw-offer-pulse,
+html.app-shell--lite-ui .game-draw-offer-btn--pulse {
+  animation: none !important;
+}
+
+.app-locale-nav {
+  gap: 6px;
+}
+
+.app-lite-ui-toggle.is-active {
+  border-color: var(--gold);
+  color: var(--gold);
+  box-shadow: 0 0 0 1px rgba(192, 73, 12, 0.25);
+}
+
+.app-nav-drawer__link.is-active {
+  border-color: var(--gold);
+  color: var(--gold);
+}

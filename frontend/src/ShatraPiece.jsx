@@ -21,7 +21,6 @@ function ShatraPieceLite({ type, color, isSelected, isTarget }) {
   const viewBox = isBiy ? '0 0 50 44' : '0 0 50 42';
   const highlightClass = [
     'shatra-piece-lite',
-    isSelected ? 'shatra-piece-lite--selected' : '',
     isTarget ? 'shatra-piece-lite--target' : '',
   ].filter(Boolean).join(' ');
 
@@ -60,7 +59,7 @@ export default function ShatraPiece({
   const idBase = `${uid}-${positionNum ?? type}`;
   const strokeColor = color === COLOR_WHITE ? WHITE_STROKE : BLACK_STROKE;
   const runeColor = color === COLOR_WHITE ? FIRE_RED : TURQUOISE;
-  const glowColor = isSelected ? TURQUOISE : isTarget ? FIRE_RED : 'none';
+  const glowColor = isTarget ? FIRE_RED : 'none';
   const isBiy = type === PIECE_BIY;
   const isBatyr = type === PIECE_BATYR;
 
