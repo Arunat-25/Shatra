@@ -3,6 +3,7 @@
 @import url('./styles/animations.css');
 @import url('./styles/base.css');
 @import url('./styles/lobby.css');
+@import url('./styles/game-setup.css');
 @import url('./styles/auth.css');
 @import url('./styles/lite-ui.css');
 @import url('./styles/responsive.css');

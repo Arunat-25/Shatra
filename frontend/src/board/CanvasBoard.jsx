@@ -39,6 +39,7 @@ export default function CanvasBoard({
   enableMoveAnimation = true,
   drawTheme = 'default',
   vectorOnlySprites = false,
+  getDragLegalDests = null,
 }) {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
@@ -70,6 +71,20 @@ export default function CanvasBoard({
       x: cr.left + rect.x + rect.w / 2,
       y: cr.top + rect.y + rect.h / 2,
       size: rect.w,
+    };
+  }, []);
+
+  const getCellBounds = useCallback((cellId) => {
+    const layout = layoutRef.current;
+    const canvas = canvasRef.current;
+    const rect = layout?.cells?.[cellId];
+    if (!rect || !canvas) return null;
+    const cr = canvas.getBoundingClientRect();
+    return {
+      left: cr.left + rect.x,
+      top: cr.top + rect.y,
+      right: cr.left + rect.x + rect.w,
+      bottom: cr.top + rect.y + rect.h,
     };
   }, []);
 
@@ -107,7 +122,9 @@ export default function CanvasBoard({
     enablePieceDrag: true,
     resolveCellAt,
     legalDests,
+    getLegalDests: getDragLegalDests,
     getCellCenter,
+    getCellBounds,
     onDragDropComplete,
   });
 

@@ -57,9 +57,14 @@ export function computeBoardLayout(myColor, width, height) {
   };
 }
 
-export function hitTestCell(cells, x, y) {
+export function hitTestCell(cells, x, y, padding = 3) {
   for (const [id, rect] of Object.entries(cells)) {
-    if (x >= rect.x && x < rect.x + rect.w && y >= rect.y && y < rect.y + rect.h) {
+    if (
+      x >= rect.x - padding
+      && x < rect.x + rect.w + padding
+      && y >= rect.y - padding
+      && y < rect.y + rect.h + padding
+    ) {
       return Number(id);
     }
   }

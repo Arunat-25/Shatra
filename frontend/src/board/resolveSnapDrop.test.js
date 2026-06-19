@@ -1,62 +1,51 @@
 import { describe, expect, it } from 'vitest';
 import { resolveSnapDrop } from './resolveSnapDrop';
 
-const centers = {
-  10: { x: 100, y: 100, size: 40 },
-  20: { x: 200, y: 100, size: 40 },
-  30: { x: 300, y: 100, size: 40 },
+const bounds = {
+  10: { left: 80, top: 80, right: 120, bottom: 120 },
+  20: { left: 180, top: 80, right: 220, bottom: 120 },
 };
 
-function getCellCenter(id) {
-  return centers[id] ?? null;
+function getCellBounds(id) {
+  return bounds[id] ?? null;
 }
 
 describe('resolveSnapDrop', () => {
-  it('prefers legal cell when pointer is inside its bounds', () => {
+  it('places when piece overlaps legal cell even if cursor is elsewhere', () => {
     const target = resolveSnapDrop({
-      clientX: 215,
-      clientY: 108,
-      from: 10,
-      legalDests: new Set([20]),
-      resolveCellAt: () => null,
-      getCellCenter,
-    });
-    expect(target).toBe(20);
-  });
-
-  it('snaps to nearest legal cell within radius when pointer is in a gap', () => {
-    const target = resolveSnapDrop({
-      clientX: 200,
-      clientY: 130,
-      from: 10,
-      legalDests: [20],
-      resolveCellAt: () => null,
-      getCellCenter,
-    });
-    expect(target).toBe(20);
-  });
-
-  it('does not snap to illegal cells', () => {
-    const target = resolveSnapDrop({
-      clientX: 305,
+      clientX: 100,
       clientY: 100,
       from: 10,
       legalDests: [20],
-      resolveCellAt: () => 30,
-      getCellCenter,
-    });
-    expect(target).toBeNull();
-  });
-
-  it('uses resolveCellAt when it matches a legal dest', () => {
-    const target = resolveSnapDrop({
-      clientX: 0,
-      clientY: 0,
-      from: 10,
-      legalDests: [20],
-      resolveCellAt: () => 20,
-      getCellCenter,
+      resolveCellAt: () => 10,
+      getCellBounds,
+      ghost: { x: 195, y: 100, size: 40 },
     });
     expect(target).toBe(20);
+  });
+
+  it('places when cursor is inside legal cell bounds', () => {
+    const target = resolveSnapDrop({
+      clientX: 190,
+      clientY: 95,
+      from: 10,
+      legalDests: new Set([20]),
+      resolveCellAt: () => null,
+      getCellBounds,
+    });
+    expect(target).toBe(20);
+  });
+
+  it('does not place when neither cursor nor piece touch legal cell', () => {
+    const target = resolveSnapDrop({
+      clientX: 100,
+      clientY: 100,
+      from: 10,
+      legalDests: [20],
+      resolveCellAt: () => 10,
+      getCellBounds,
+      ghost: { x: 100, y: 100, size: 40 },
+    });
+    expect(target).toBeNull();
   });
 });

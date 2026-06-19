@@ -11,10 +11,20 @@ function cellIdFromPoint(x, y) {
     ? document.elementsFromPoint(x, y)
     : [document.elementFromPoint(x, y)].filter(Boolean);
   for (const el of elements) {
+    if (el?.closest?.('.drag-ghost, .piece-slide-ghost')) continue;
     const cell = el?.closest?.('.kletka');
     if (!cell?.id?.startsWith('position')) continue;
     const id = Number.parseInt(cell.id.slice('position'.length), 10);
     if (Number.isFinite(id)) return id;
+  }
+
+  const cells = document.querySelectorAll('.board-content .kletka');
+  for (const cell of cells) {
+    const r = cell.getBoundingClientRect();
+    if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) {
+      const id = Number.parseInt(cell.id.slice('position'.length), 10);
+      if (Number.isFinite(id)) return id;
+    }
   }
   return null;
 }
@@ -27,6 +37,18 @@ function domCellCenter(cellId) {
     x: r.left + r.width / 2,
     y: r.top + r.height / 2,
     size: r.width,
+  };
+}
+
+function domCellBounds(cellId) {
+  const el = document.getElementById(`position${cellId}`);
+  if (!el) return null;
+  const r = el.getBoundingClientRect();
+  return {
+    left: r.left,
+    top: r.top,
+    right: r.right,
+    bottom: r.bottom,
   };
 }
 
@@ -73,6 +95,7 @@ export default function BoardGrid(props) {
     interactive = true,
     enablePieceDrag = true,
     enableMoveAnimation = true,
+    getDragLegalDests = null,
     tutorialDimmedCells = null,
     pieceVariant = 'full',
   } = props;
@@ -81,6 +104,7 @@ export default function BoardGrid(props) {
 
   const resolveCellAt = useCallback((x, y) => cellIdFromPoint(x, y), []);
   const getCellCenter = useCallback((cellId) => domCellCenter(cellId), []);
+  const getCellBounds = useCallback((cellId) => domCellBounds(cellId), []);
   const legalDests = useMemo(
     () => new Set(highlightedEssential),
     [highlightedEssential],
@@ -105,7 +129,9 @@ export default function BoardGrid(props) {
     enablePieceDrag,
     resolveCellAt,
     legalDests,
+    getLegalDests: getDragLegalDests,
     getCellCenter,
+    getCellBounds,
     onDragDropComplete,
   });
 

@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { probeBoardLayout } from '../../debug/boardLayoutProbe';
 import { useLiteUi } from '../../context/LiteUiContext';
+import { computeLocalHints } from '../../engine/localHints';
 import BoardSurface from '../BoardSurface';
 import MoveHistory from '../MoveHistory';
 import OpponentDisconnectStatus from './OpponentDisconnectStatus';
@@ -19,6 +20,11 @@ export default function GameViewport({
 }) {
   const { t } = useTranslation();
   const { enabled: liteUi } = useLiteUi();
+
+  const getDragLegalDests = useCallback(
+    (fromCell) => computeLocalHints(state, fromCell).essential,
+    [state],
+  );
 
   const clockProps = {
     timer: state.timer,
@@ -72,6 +78,7 @@ export default function GameViewport({
                     board={state.board}
                     onCellClick={onCellClick}
                     moveFrom={state.moveFrom}
+                    getDragLegalDests={getDragLegalDests}
                     highlightedEssential={state.highlightedEssential}
                     highlightedCaptured={state.highlightedCaptured}
                     capturedGhostPieces={state.capturedGhostPieces}

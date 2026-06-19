@@ -8,7 +8,9 @@ import { resolveSnapDrop } from '../board/resolveSnapDrop';
  * @param {() => number|null} options.resolveCellAt - map client coords to cell id
  * @param {Set<number>|number[]} [options.legalDests] - legal drop targets while dragging
  * @param {(cellId: number) => {x:number,y:number,size?:number}|null} [options.getCellCenter]
+ * @param {(cellId: number) => {left:number,top:number,right:number,bottom:number}|null} [options.getCellBounds]
  * @param {(from: number, to: number) => void} [options.onDragDropComplete] - after slide-to-cell, before click handler
+ * @param {(fromCell: number) => Iterable<number>} [options.getLegalDests] - sync legal targets at drag start
  */
 export default function useBoardInteraction({
   board,
@@ -18,11 +20,15 @@ export default function useBoardInteraction({
   enablePieceDrag = true,
   resolveCellAt,
   legalDests = null,
+  getLegalDests = null,
   getCellCenter = null,
+  getCellBounds = null,
   onDragDropComplete = null,
 }) {
   const dragFromRef = useRef(null);
   const dragStartedAtRef = useRef(0);
+  const dragStartPosRef = useRef(null);
+  const dragLegalDestsRef = useRef(null);
   const activePointerIdRef = useRef(null);
   const ignoreClickUntilRef = useRef(0);
   const dragListenersRef = useRef(null);
@@ -55,10 +61,10 @@ export default function useBoardInteraction({
     dragListenersRef.current = null;
   }, []);
 
-  const isLegalDest = useCallback((cellId) => {
-    if (cellId == null || !legalDests) return false;
-    if (legalDests instanceof Set) return legalDests.has(cellId);
-    return legalDests.includes(cellId);
+  const isLegalDest = useCallback((cellId, dests = dragLegalDestsRef.current ?? legalDests) => {
+    if (cellId == null || !dests) return false;
+    if (dests instanceof Set) return dests.has(cellId);
+    return dests.includes(cellId);
   }, [legalDests]);
 
   const scheduleGhostMove = useCallback((x, y) => {
@@ -106,25 +112,34 @@ export default function useBoardInteraction({
     const from = dragFromRef.current;
     dragFromRef.current = null;
     activePointerIdRef.current = null;
+    const activeLegalDests = dragLegalDestsRef.current ?? legalDests;
+    dragLegalDestsRef.current = null;
 
     if (from == null) {
       setDragGhost(null);
       return;
     }
 
-    const elapsed = Date.now() - (dragStartedAtRef.current || 0);
-    if (elapsed < 50) {
+    const start = dragStartPosRef.current;
+    dragStartPosRef.current = null;
+    const moved = start
+      ? Math.hypot(event.clientX - start.x, event.clientY - start.y)
+      : 0;
+    if (moved < 4) {
       setDragGhost(null);
       return;
     }
 
+    const ghost = dragGhostRef.current;
     const targetCellId = resolveSnapDrop({
       clientX: event.clientX,
       clientY: event.clientY,
       from,
-      legalDests,
+      legalDests: activeLegalDests,
       resolveCellAt,
       getCellCenter,
+      getCellBounds,
+      ghost: ghost ? { x: ghost.x, y: ghost.y, size: ghost.size } : null,
     });
     const canSlide = Boolean(getCellCenter);
 
@@ -161,6 +176,8 @@ export default function useBoardInteraction({
     resolveCellAt,
     setDragGhost,
     getCellCenter,
+    getCellBounds,
+    legalDests,
     isLegalDest,
     animateGhostTo,
     onDragDropComplete,
@@ -178,10 +195,24 @@ export default function useBoardInteraction({
 
     dragFromRef.current = cellId;
     dragStartedAtRef.current = Date.now();
+    dragStartPosRef.current = { x: event.clientX, y: event.clientY };
     activePointerIdRef.current = event.pointerId;
     ignoreClickUntilRef.current = Date.now() + 250;
     if (moveFrom !== cellId) {
       onCellClick(cellId);
+    }
+
+    const freshDests = getLegalDests?.(cellId);
+    if (freshDests != null) {
+      dragLegalDestsRef.current = freshDests instanceof Set
+        ? freshDests
+        : new Set(freshDests);
+    } else if (legalDests != null) {
+      dragLegalDestsRef.current = legalDests instanceof Set
+        ? legalDests
+        : new Set(legalDests);
+    } else {
+      dragLegalDestsRef.current = new Set();
     }
 
     setDragGhost({
@@ -216,6 +247,8 @@ export default function useBoardInteraction({
     finishDrag,
     setDragGhost,
     scheduleGhostMove,
+    getLegalDests,
+    legalDests,
   ]);
 
   const handleCellClick = useCallback((cellId) => {
