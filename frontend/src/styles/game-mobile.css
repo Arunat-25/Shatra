@@ -70,36 +70,75 @@
     padding: 0 6px;
     overflow: hidden;
     box-sizing: border-box;
-    gap: 2px;
+    gap: 1px;
   }
 
   .game-viewport-actions {
     flex-shrink: 0;
     width: 100%;
-    padding: 0 0 2px;
+    padding: 0;
     box-sizing: border-box;
   }
 
   .game-viewport-actions .game-actions-bar {
     margin: 0;
-    padding: 0;
+    padding: 0 2px 2px;
+  }
+
+  .game-viewport-actions .game-actions-bar--game-over {
+    padding: 0 2px 2px;
+    gap: 3px;
   }
 
   .game-viewport-actions .room-icon-actions {
     justify-content: center;
-    gap: 8px;
+    gap: 4px;
+    padding: 4px 6px;
   }
 
   .game-viewport-actions .room-icon-btn {
-    min-height: 34px;
-    min-width: 34px;
-    padding: 4px;
+    min-height: 28px;
+    min-width: 0;
+    padding: 2px 4px;
+  }
+
+  .game-viewport-actions .room-icon-svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .game-viewport-actions .room-icon-half {
+    font-size: 1rem;
+  }
+
+  .game-viewport-actions .room-icon-decline {
+    font-size: 0.9rem;
   }
 
   .game-viewport-actions .btn-draw-text {
-    min-height: 34px;
-    padding: 4px 10px;
-    font-size: 0.72rem;
+    min-height: 28px;
+    padding: 2px 6px;
+    font-size: 0.62rem;
+  }
+
+  .game-viewport-actions .game-result-text--bar {
+    font-size: 0.68rem;
+    line-height: 1.25;
+  }
+
+  .game-viewport-actions .game-result-actions--bar {
+    gap: 4px;
+  }
+
+  .game-viewport-actions .game-result-btn {
+    min-height: 28px;
+    padding: 3px 4px;
+    font-size: 0.62rem;
+  }
+
+  .game-viewport-actions .game-result-hint--bar {
+    font-size: 0.58rem;
+    line-height: 1.2;
   }
 
   .game-viewport-first {
