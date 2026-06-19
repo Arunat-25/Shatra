@@ -2,6 +2,8 @@ import { getBoardSections } from '../constants';
 
 /** Total row-units (incl. reserve 0.86 rows); matches --board-unit in game.css. */
 export const BOARD_HEIGHT_UNITS = 13.6;
+/** Row-units with zero section margins (mobile compact). 2×2×0.86 + 2×1 + 7×1 */
+export const BOARD_HEIGHT_UNITS_COMPACT = 12.44;
 export const BOARD_WIDTH_CELLS = 7;
 
 const DEFAULT_RESERVE_MARGIN = 3;
@@ -18,6 +20,17 @@ export function readCellNumberScale(boardEl) {
   const raw = getComputedStyle(boardEl).getPropertyValue('--cell-number-scale').trim();
   const scale = parseFloat(raw);
   return Number.isFinite(scale) && scale > 0 ? scale : DEFAULT_CELL_NUMBER_SCALE;
+}
+
+/**
+ * Mirrors `--board-height-units` on `.board` (game.css / game-mobile.css).
+ * @param {HTMLElement | null | undefined} boardEl
+ */
+export function readBoardHeightUnits(boardEl) {
+  if (!boardEl || typeof getComputedStyle === 'undefined') return BOARD_HEIGHT_UNITS;
+  const raw = getComputedStyle(boardEl).getPropertyValue('--board-height-units').trim();
+  const units = parseFloat(raw);
+  return Number.isFinite(units) && units > 0 ? units : BOARD_HEIGHT_UNITS;
 }
 
 function parseCssLengthToPx(value, refEl, fallbackPx) {
@@ -64,10 +77,12 @@ export function readBoardUnitMetrics(boardEl) {
   const kingMarginRaw = cs.getPropertyValue('--king-field-margin').trim() || DEFAULT_KING_MARGIN;
   const reserveMarginRaw = cs.getPropertyValue('--reserve-field-margin').trim();
   const mainMarginRaw = cs.getPropertyValue('--main-field-margin').trim();
+  const heightUnits = readBoardHeightUnits(boardEl);
 
   return {
     cellSize,
     reserveSize,
+    heightUnits,
     reserveMargin: reserveMarginRaw
       ? parseCssLengthToPx(reserveMarginRaw, boardEl, DEFAULT_RESERVE_MARGIN)
       : DEFAULT_RESERVE_MARGIN,
@@ -89,18 +104,31 @@ export function deriveMetricsFromBoardSlot(boardEl) {
   const ch = Math.max(0, slot.clientHeight);
   const innerW = Math.max(0, cw - 20);
   const innerH = Math.max(0, ch - 20);
+  const heightUnits = readBoardHeightUnits(boardEl);
   const unit = ch >= 120
-    ? Math.min(innerW / BOARD_WIDTH_CELLS, innerH / BOARD_HEIGHT_UNITS)
+    ? Math.min(innerW / BOARD_WIDTH_CELLS, innerH / heightUnits)
     : innerW / BOARD_WIDTH_CELLS;
 
   if (!Number.isFinite(unit) || unit <= 0) return null;
 
+  const cs = boardEl && typeof getComputedStyle !== 'undefined'
+    ? getComputedStyle(boardEl)
+    : null;
+  const reserveMarginRaw = cs?.getPropertyValue('--reserve-field-margin').trim();
+  const mainMarginRaw = cs?.getPropertyValue('--main-field-margin').trim();
+  const kingMarginRaw = cs?.getPropertyValue('--king-field-margin').trim() || DEFAULT_KING_MARGIN;
+
   return {
     cellSize: unit,
     reserveSize: unit * 0.86,
-    reserveMargin: DEFAULT_RESERVE_MARGIN,
-    mainMargin: DEFAULT_MAIN_MARGIN,
-    kingMargin: parseCssLengthToPx(DEFAULT_KING_MARGIN, boardEl, 3.78),
+    heightUnits,
+    reserveMargin: reserveMarginRaw
+      ? parseCssLengthToPx(reserveMarginRaw, boardEl, DEFAULT_RESERVE_MARGIN)
+      : DEFAULT_RESERVE_MARGIN,
+    mainMargin: mainMarginRaw
+      ? parseCssLengthToPx(mainMarginRaw, boardEl, DEFAULT_MAIN_MARGIN)
+      : DEFAULT_MAIN_MARGIN,
+    kingMargin: parseCssLengthToPx(kingMarginRaw, boardEl, 3.78),
   };
 }
 
@@ -158,7 +186,8 @@ export function computeBoardLayout(myColor, metrics) {
   }
 
   const contentHeight = y;
-  const designHeight = BOARD_HEIGHT_UNITS * cellSize;
+  const heightUnits = metrics.heightUnits ?? BOARD_HEIGHT_UNITS;
+  const designHeight = heightUnits * cellSize;
   const height = Math.max(contentHeight, designHeight);
 
   return {

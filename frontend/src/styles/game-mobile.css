@@ -357,9 +357,10 @@
     overflow: hidden;
     animation: none;
     transition: opacity var(--duration-slow) ease;
-    --reserve-field-margin: 3px;
-    --main-field-margin: 1px;
-    --king-field-margin: 1mm;
+    --reserve-field-margin: 0;
+    --main-field-margin: 0;
+    --king-field-margin: 0;
+    --board-height-units: 12.44;
     --board-unit: calc((100cqw - 10px) / 7);
     --cell-size: var(--board-unit);
     --reserve-cell-size: calc(var(--board-unit) * 0.86);
@@ -367,10 +368,10 @@
 
   @container board-slot (min-height: 120px) {
     .app-shell--game .room-board .board {
-      width: min(100%, calc((100cqh - 16px) * 7 / 13.6));
+      width: min(100%, calc((100cqh - 16px) * 7 / var(--board-height-units, 12.44)));
       --board-unit: min(
         calc((100cqw - 10px) / 7),
-        calc((100cqh - 16px) / 13.6)
+        calc((100cqh - 16px) / var(--board-height-units, 12.44))
       );
       --cell-size: var(--board-unit);
       --reserve-cell-size: calc(var(--board-unit) * 0.86);
@@ -392,7 +393,7 @@
   }
 
   .room-board .board .field-of-king {
-    margin: 1mm 0;
+    margin: 0;
     flex-shrink: 0;
   }
 

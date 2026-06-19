@@ -92,8 +92,9 @@
   --reserve-field-margin: 3px;
   --main-field-margin: 1px;
   --king-field-margin: 1mm;
+  --board-height-units: 13.6;
   --board-unit: min(
-    calc((100cqh - 20px) / 13.6),
+    calc((100cqh - 20px) / var(--board-height-units, 13.6)),
     calc((100cqw - 20px) / 7)
   );
   --cell-size: var(--board-unit);

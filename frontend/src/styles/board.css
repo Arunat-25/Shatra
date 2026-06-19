@@ -36,13 +36,13 @@
   gap: 0;
 }
 
-/* Connected fields; 1mm gap around gates (крепость ↔ ворота ↔ большое поле) */
+/* Connected fields; gap around gates via --king-field-margin */
 .board .board-content .field-of-reserve,
 .board .board-content .main-field {
   margin: 0;
 }
 .board .board-content .field-of-king {
-  margin: 1mm 0;
+  margin: var(--king-field-margin, 1mm) 0;
 }
 
 /* Stretch the board by scaling cell sizes via viewport height (stable). */
