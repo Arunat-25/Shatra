@@ -96,11 +96,16 @@ export function drawBoardState(ctx, layout, {
   historyFrom = null,
   historyTo = null,
   dragGhost = null,
+  slideOverlay = null,
+  hiddenPieceCells = null,
   theme = 'default',
   vectorOnlySprites = false,
 }) {
   const palette = resolveTheme(theme);
   const { cells } = layout;
+  const hiddenCells = hiddenPieceCells instanceof Set
+    ? hiddenPieceCells
+    : new Set(hiddenPieceCells || []);
 
   for (const [, rect] of Object.entries(cells)) {
     ctx.fillStyle = cellFill(rect.colorClass, palette);
@@ -144,6 +149,7 @@ export function drawBoardState(ctx, layout, {
 
   for (const [id, rect] of Object.entries(cells)) {
     const cellId = Number(id);
+    if (hiddenCells.has(cellId)) continue;
     const piece = board[cellId] || capturedGhostPieces[cellId];
     if (!piece) continue;
     const cx = rect.x + rect.w / 2;
@@ -177,6 +183,19 @@ export function drawBoardState(ctx, layout, {
       r,
       getPieceType(dragGhost.piece),
       getPieceColor(dragGhost.piece),
+      vectorOnlySprites,
+    );
+  }
+
+  if (slideOverlay?.piece) {
+    const r = (slideOverlay.size ?? 40) * 0.38;
+    drawPieceShape(
+      ctx,
+      slideOverlay.x,
+      slideOverlay.y,
+      r,
+      getPieceType(slideOverlay.piece),
+      getPieceColor(slideOverlay.piece),
       vectorOnlySprites,
     );
   }

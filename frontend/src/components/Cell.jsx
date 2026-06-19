@@ -19,8 +19,8 @@ const Cell = memo(function Cell(props) {
   const { id, className, board, moveFrom, highlightedEssential = [], highlightedCaptured = [],
           lastMove = null, historyFrom = null, historyTo = null, onCellClick,
           onCellPointerDown, shouldIgnoreClick, isDragOrigin, isTutorialDimmed,
-          capturedGhostPiece = null, pieceVariant = 'full' } = props;
-  const piece = board[id];
+          capturedGhostPiece = null, pieceVariant = 'full', hidePiece = false } = props;
+  const piece = hidePiece ? null : board[id];
   const renderedPiece = piece || capturedGhostPiece;
   const isCapturedGhost = !piece && !!capturedGhostPiece;
 

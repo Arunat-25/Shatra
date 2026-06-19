@@ -9,6 +9,10 @@ from backend.state import get_room, set_room, set_game
 from backend.board_utils import keys_int_to_str, keys_str_to_int, change_position_name_from_frontend
 
 
+def bump_ply(game: dict) -> None:
+    game["ply"] = int(game.get("ply", 0)) + 1
+
+
 def opposite_color(color: str) -> str:
     return "черный" if color == "белый" else "белый"
 
@@ -107,6 +111,7 @@ def build_game_started_response(game: dict, room_data: dict, my_color: str) -> d
         "your_color": my_color,
         "players_info": build_players_info(room_data),
         "move_history": game.get("move_history", []),
+        "ply": game.get("ply", 0),
         # If the game already ended (e.g. resign) and client reloads, ensure
         # frontend sees terminal state and doesn't allow continuing.
         "game_over": bool(game.get("game_over", False)),
@@ -165,6 +170,40 @@ def build_move_response(
         response["position_for_mandatory_capture"] = None
     if hint_position is not None:
         response["hint_position"] = hint_position
+    return response
+
+
+def build_move_delta_response(
+    game: dict,
+    result,
+    prev_mover: str,
+    move_from: int | None = None,
+    move_to: int | None = None,
+) -> dict:
+    """V1 move broadcast without full desk or move_history (Stage 5)."""
+    response = {
+        "message_code": result.message_code or None,
+        "movers_color": result.movers_color,
+        "mover": prev_mover,
+        "game_over": result.game_over,
+        "winner_color": result.winner_color,
+        "position_for_mandatory_capture": result.position_for_mandatory_capture,
+        "opportunity_pass_the_move": result.opportunity_pass_the_move,
+        "captured_pieces": result.captured_pieces,
+        "captured_positions": result.captured_positions,
+        "from_pos": move_from,
+        "to_pos": move_to,
+        "ply": game.get("ply", 0),
+        "promoted": result.message_code == "piece.promoted",
+    }
+    if result.message_params:
+        response["message_params"] = result.message_params
+    end_reason = _resolve_game_end_reason(result)
+    if end_reason:
+        response["reason"] = end_reason
+    response = {k: v for k, v in response.items() if v is not None}
+    if result.movers_color and result.movers_color != prev_mover:
+        response["position_for_mandatory_capture"] = None
     return response
 
 
@@ -273,7 +312,6 @@ async def apply_move_result(
             room_data["rematch_ready"] = []
             await set_room(room_id, room_data)
 
-    # Пишем в историю только реальные ходы, которые изменили позиции.
     if (
         from_cell is not None
         and to_cell is not None
@@ -287,9 +325,12 @@ async def apply_move_result(
             to_cell,
             captured_positions=result.captured_positions,
         )
+        bump_ply(game)
+    elif from_cell == 0 and to_cell == 0 and result.message_code:
+        bump_ply(game)
 
     await set_game(room_id, game)
-    response = build_move_response(game, result, prev_mover, from_cell, to_cell)
+    response = build_move_delta_response(game, result, prev_mover, from_cell, to_cell)
     room_data = await get_room(room_id)
     if room_data:
         response.update(_timer_fields(room_data, game))
@@ -303,25 +344,6 @@ async def apply_move_result(
 def ws_error_payload(code: str, **params) -> dict:
     from backend.message_codes import ws_error
     return ws_error(code, **params)
-
-
-def is_hint_ws_message(data: dict) -> bool:
-    """Hint request: position only, no move_from/move_to. Board not required."""
-    if not isinstance(data, dict):
-        return False
-    if data.get("move_from") or data.get("move_to"):
-        return False
-    return bool(data.get("position"))
-
-
-def parse_hint_request(data: dict) -> int:
-    raw = data.get("position")
-    if raw is None:
-        raise ValueError("ws.invalid_move_data")
-    try:
-        return change_position_name_from_frontend(raw)
-    except (TypeError, ValueError):
-        raise ValueError("ws.invalid_move_data") from None
 
 
 def build_hint_event_from_game(game: dict, hint_cell: int) -> GameEvent:

@@ -90,7 +90,7 @@ async def main() -> int:
     room_key = f"room:{room_id}"
     game_key = f"game:{room_id}"
 
-    ws_url = f"{cfg.ws_base}/ws/{room_id}/?client_id={{cid}}"
+    ws_url = f"{cfg.ws_base}/ws/v2/{room_id}/?client_id={{cid}}"
 
     print(f"[info] room_id={room_id} p1={p1} p2={p2}")
     print(f"[info] ws_url={ws_url.format(cid=p1)}")

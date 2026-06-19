@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { dispatchServerMessage, hintMatchesSelection } from './messageHandlers';
+import { dispatchServerMessage } from './messageHandlers';
 import { GAME_ACTIONS } from './actions';
 
 const trackGameEventMock = vi.hoisted(() => vi.fn());
@@ -8,7 +8,7 @@ vi.mock('../observability/events', () => ({
   trackGameEvent: trackGameEventMock,
 }));
 
-function collectDispatches(payload, modeAi = false, myColor = 'белый', getSelection) {
+function collectDispatches(payload, modeAi = false, myColor = 'белый') {
   const calls = [];
   const dispatch = (action) => calls.push(action);
   const msg = dispatchServerMessage(
@@ -16,7 +16,6 @@ function collectDispatches(payload, modeAi = false, myColor = 'белый', getS
     dispatch,
     modeAi,
     () => myColor,
-    getSelection,
   );
   return { calls, msg };
 }
@@ -95,7 +94,8 @@ describe('dispatchServerMessage', () => {
     const { calls } = collectDispatches(
       {
         message_code: 'turn.now',
-        desk: { '10': 'черный бий' },
+        from_pos: 45,
+        to_pos: 37,
         movers_color: 'черный',
         game_over: false,
       },
@@ -106,119 +106,29 @@ describe('dispatchServerMessage', () => {
     expect(move.payload.aiThinking).toBe(true);
   });
 
-  it('capture continue dispatches highlights when essential_positions included', () => {
+  it('delta move does not dispatch server highlights (local hints)', () => {
     const { calls } = collectDispatches({
       message_code: 'capture.continue',
-      desk: { '19': 'белый бий' },
+      from_pos: 19,
+      to_pos: 33,
       movers_color: 'белый',
       position_for_mandatory_capture: 19,
-      essential_positions: [33],
-      captured_pieces: [26],
       game_over: false,
     });
     expect(calls.some((c) => c.type === GAME_ACTIONS.MOVE_MADE)).toBe(true);
-    expect(calls).toContainEqual({
-      type: GAME_ACTIONS.HIGHLIGHTS,
-      payload: { essential: [33], captured: [26] },
-    });
-  });
-
-  it('capture continue does not dispatch highlights to opponent', () => {
-    const { calls } = collectDispatches(
-      {
-        message_code: 'capture.continue',
-        desk: { '19': 'белый бий' },
-        movers_color: 'белый',
-        position_for_mandatory_capture: 19,
-        essential_positions: [33],
-        captured_pieces: [26],
-        game_over: false,
-      },
-      false,
-      'черный',
-    );
     expect(calls.some((c) => c.type === GAME_ACTIONS.HIGHLIGHTS)).toBe(false);
   });
 
-  it('hint-only message does not dispatch highlights to opponent', () => {
+  it('hint-only payloads are ignored', () => {
     const { calls } = collectDispatches(
       {
         essential_positions: [33, 35],
         movers_color: 'белый',
       },
       false,
-      'черный',
-    );
-    expect(calls.some((c) => c.type === GAME_ACTIONS.HIGHLIGHTS)).toBe(false);
-  });
-
-  it('ignores stale hint when hint_position does not match selection', () => {
-    const { calls } = collectDispatches(
-      {
-        essential_positions: [33, 35],
-        movers_color: 'белый',
-        hint_position: 48,
-      },
-      false,
       'белый',
-      () => ({ moveFrom: 53, chainCell: null }),
     );
-    expect(calls.some((c) => c.type === GAME_ACTIONS.HIGHLIGHTS)).toBe(false);
-  });
-
-  it('applies hint when hint_position matches selection', () => {
-    const { calls } = collectDispatches(
-      {
-        essential_positions: [33, 35],
-        movers_color: 'белый',
-        hint_position: 53,
-      },
-      false,
-      'белый',
-      () => ({ moveFrom: 53, chainCell: null }),
-    );
-    expect(calls).toContainEqual({
-      type: GAME_ACTIONS.HIGHLIGHTS,
-      payload: { essential: [33, 35], captured: [] },
-    });
-  });
-
-  it('hintMatchesSelection allows legacy responses without hint_position', () => {
-    expect(hintMatchesSelection({ essential_positions: [] }, () => ({ moveFrom: 53, chainCell: null }))).toBe(true);
-  });
-
-  it('hint-only with empty essential still updates highlights for my color', () => {
-    const { calls } = collectDispatches(
-      {
-        essential_positions: [],
-        movers_color: 'белый',
-        hint_position: 53,
-      },
-      false,
-      'белый',
-      () => ({ moveFrom: 53, chainCell: null }),
-    );
-    expect(calls).toContainEqual({
-      type: GAME_ACTIONS.HIGHLIGHTS,
-      payload: { essential: [], captured: [] },
-    });
-  });
-
-  it('hint-only uses chainCell when matching hint_position', () => {
-    const { calls } = collectDispatches(
-      {
-        essential_positions: [33],
-        movers_color: 'белый',
-        hint_position: 19,
-      },
-      false,
-      'белый',
-      () => ({ moveFrom: null, chainCell: 19 }),
-    );
-    expect(calls).toContainEqual({
-      type: GAME_ACTIONS.HIGHLIGHTS,
-      payload: { essential: [33], captured: [] },
-    });
+    expect(calls).toEqual([]);
   });
 
   it('server error returns localized text from message_code', () => {

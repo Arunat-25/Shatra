@@ -45,6 +45,16 @@ export function playForAction(action, prevState, getMyColor) {
       break;
     }
 
+    case GAME_ACTIONS.OPTIMISTIC_MOVE: {
+      const captured = action.payload?.result?.capturedPositions;
+      if (Array.isArray(captured) && captured.length > 0) {
+        sounds.playCapture(v);
+      } else {
+        sounds.playMove(v);
+      }
+      break;
+    }
+
     case GAME_ACTIONS.GAME_OVER: {
       if (isDrawResult(action.payload)) {
         sounds.playDraw(v);

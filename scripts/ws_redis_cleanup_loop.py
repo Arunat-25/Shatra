@@ -61,7 +61,7 @@ async def _one_iteration(base_url: str, ws_base: str, room_type: str) -> str:
     async with httpx.AsyncClient(base_url=base_url, timeout=10) as client:
         room_id = await _create_room_typed(client, room_type=room_type)
 
-    ws_url = f"{ws_base}/ws/{room_id}/?client_id={{cid}}"
+    ws_url = f"{ws_base}/ws/v2/{room_id}/?client_id={{cid}}"
     p1 = _client_id()
 
     if room_type == "ai":

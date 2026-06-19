@@ -1,54 +1,49 @@
 import { passTurnColor } from '../game/passTurn';
+import { nextOutgoingPly } from '../game/syncLayer';
+import {
+  buildV2MovePayload,
+  buildV2PassPayload,
+  buildV2ResignPayload,
+  buildV2OfferDrawPayload,
+  buildV2DeclineDrawPayload,
+  buildV2CancelGamePayload,
+  buildV2RequestRematchPayload,
+  buildV2ChatPayload,
+  nextClientPly,
+} from '../ws/v2/payloads';
 
 export function positionLabel(num) {
   return `position${num}`;
 }
 
-export function isHintWsMessage(data) {
-  return Boolean(data?.position && !data?.move_from && !data?.move_to);
-}
-
-export function buildHintPayload(positionNum) {
-  return { position: positionLabel(positionNum) };
-}
-
 export function buildMovePayload(gameState, from, to) {
-  return {
-    move_from: positionLabel(from),
-    move_to: positionLabel(to),
-    movers_color: gameState.moversColor,
-    board: gameState.board,
-    position_for_mandatory_capture: gameState.posForMandatoryCapture,
-  };
+  return buildV2MovePayload(from, to, nextClientPly(gameState));
 }
 
 export function buildPassPayload(gameState) {
-  const mover = passTurnColor(gameState);
-  return {
-    move_from: positionLabel(0),
-    move_to: positionLabel(0),
-    movers_color: mover,
-    board: gameState.board,
-    position_for_mandatory_capture: 0,
-  };
+  return buildV2PassPayload(nextClientPly(gameState));
 }
 
 export function buildResignPayload() {
-  return { type: 'resign' };
+  return buildV2ResignPayload();
 }
 
 export function buildOfferDrawPayload() {
-  return { type: 'offer_draw' };
+  return buildV2OfferDrawPayload();
 }
 
 export function buildDeclineDrawPayload() {
-  return { type: 'decline_draw' };
+  return buildV2DeclineDrawPayload();
 }
 
 export function buildCancelGamePayload() {
-  return { type: 'cancel_game' };
+  return buildV2CancelGamePayload();
 }
 
 export function buildRequestRematchPayload() {
-  return { type: 'request_rematch' };
+  return buildV2RequestRematchPayload();
+}
+
+export function buildChatPayload(text) {
+  return buildV2ChatPayload(text);
 }

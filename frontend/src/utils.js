@@ -3,7 +3,7 @@ import { COLOR_WHITE, COLOR_BLACK, COLOR_WHITE_INCL, PIECE_BIY, PIECE_BATYR } fr
 import i18n from './i18n';
 import { resolveMessageCode } from './i18n/resolveMessage';
 
-export { buildHintPayload, buildMovePayload, buildPassPayload, positionLabel } from './utils/wsPayloads';
+export { buildMovePayload, buildPassPayload, positionLabel } from './utils/wsPayloads';
 
 /**
  * Преобразует ключи доски сервера (строки) в числа.

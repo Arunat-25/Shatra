@@ -25,7 +25,7 @@ _SKIP_EXACT = frozenset({"/metrics", "/health"})
 _PATH_PATTERNS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"^/rooms/[^/]+/join$"), "/rooms/{room_id}/join"),
     (re.compile(r"^/rooms/[^/]+/status$"), "/rooms/{room_id}/status"),
-    (re.compile(r"^/ws/[^/]+/?$"), "/ws/{room_id}/"),
+    (re.compile(r"^/ws/v2/[^/]+/?$"), "/ws/v2/{room_id}/"),
     (re.compile(r"^/api/admin/bug-reports/[^/]+$"), "/api/admin/bug-reports/{id}"),
     (re.compile(r"^/api/admin/stats/[^/]+/series$"), "/api/admin/stats/{name}/series"),
     (re.compile(r"^/api/admin/stats/[^/]+$"), "/api/admin/stats/{name}"),

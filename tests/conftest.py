@@ -134,17 +134,18 @@ def pytest_configure(config):
     )
 
 
-def _only_nginx_config_tests(items) -> bool:
+def _skip_db_setup(items) -> bool:
     if not items:
         return False
+    skip_only_files = {"test_nginx_config.py", "test_rules_contract.py", "test_ws_v2_protocol.py"}
     return all(
-        getattr(item.path, "name", "") == "test_nginx_config.py" for item in items
+        getattr(item.path, "name", "") in skip_only_files for item in items
     )
 
 
 @pytest.fixture(scope="session", autouse=True)
 def ensure_test_db_schema(request):
-    if _only_nginx_config_tests(request.session.items):
+    if _skip_db_setup(request.session.items):
         yield
         return
 

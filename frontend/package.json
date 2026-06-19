@@ -9,6 +9,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:rules": "vitest run packages/shatra-rules",
+    "export:rules": "python3 ../scripts/export_rules_contract.py",
     "test:watch": "vitest",
     "test:e2e": "playwright test"
   },

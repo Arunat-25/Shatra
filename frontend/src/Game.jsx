@@ -6,6 +6,7 @@ import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import useGameReducer, { GAME_ACTIONS } from './hooks/useGameReducer';
 import { buildMoveHistoryProps } from './game/moveHistoryProps';
+import { hasOutstandingPending } from './game/syncLayer';
 import useGameWebSocket from './hooks/useGameWebSocket';
 import useGameActions from './hooks/useGameActions';
 import useMessage from './hooks/useMessage';
@@ -20,9 +21,8 @@ import GameViewport from './components/game/GameViewport';
 import GameDesktopLayout from './components/game/GameDesktopLayout';
 import GameMobilePanel from './components/game/GameMobilePanel';
 import { COMPACT_GAME_QUERY, MSG_ERROR } from './constants';
-import { buildHintPayload } from './utils/wsPayloads';
-import { shouldRequestChainHints } from './game/chainCaptureHints';
 import { getClientId } from './api';
+import { computeLocalHints } from './engine/localHints';
 import { formatGameOverMessage, getBoardSideOrder } from './utils';
 
 export default function Game() {
@@ -40,11 +40,15 @@ export default function Game() {
   );
   const { message, messageType, showMessage } = useMessage();
 
-  const { send, wsReconnecting, stateRef } = useGameWebSocket(
+  const { send, wsReconnecting, stateRef, setBoardRef } = useGameWebSocket(
     roomId,
     modeAi,
     { myColorRef, state, dispatch, handleServerMessage, showMessage, navigate },
   );
+
+  useEffect(() => {
+    setBoardRef(state.board);
+  }, [state.board, setBoardRef]);
 
   const actions = useGameActions({
     send,
@@ -93,22 +97,33 @@ export default function Game() {
   }, [roomId, searchParams, navigate]);
 
   useEffect(() => {
-    if (!shouldRequestChainHints(state)) return;
-    send(buildHintPayload(Number(state.posForMandatoryCapture)));
+    if (state.waiting || state.gameOver || state.viewingHistoryIndex !== null) return;
+    if (state.moversColor !== state.myColor) return;
+    if (state.posForMandatoryCapture == null) return;
+    const chainCell = Number(state.posForMandatoryCapture);
+    const { essential, captured } = computeLocalHints(state, chainCell);
+    dispatch({
+      type: GAME_ACTIONS.HIGHLIGHTS,
+      payload: { essential, captured },
+    });
   }, [
     state.posForMandatoryCapture,
     state.moversColor,
     state.myColor,
-    state.highlightedEssential.length,
     state.board,
+    state.batyrCapturedThisTurn,
     state.waiting,
     state.gameOver,
     state.viewingHistoryIndex,
-    send,
+    dispatch,
   ]);
 
   const isBoardBlocked =
-    state.gameOver || state.aiThinking || state.opponentDisconnected || wsReconnecting;
+    state.gameOver
+    || state.aiThinking
+    || state.opponentDisconnected
+    || wsReconnecting
+    || (hasOutstandingPending(state) && state.posForMandatoryCapture == null);
 
   const handleCellClick = useCellClick({
     stateRef,

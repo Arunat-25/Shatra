@@ -370,6 +370,17 @@
   pointer-events: none;
   transform: translate(0, 0);
 }
+.piece-slide-ghost {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1999;
+  pointer-events: none;
+  transform: translate(0, 0);
+}
+.piece-slide-inner {
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.18));
+}
 .drag-ghost-inner {
   transform: translate(-50%, -50%) scale(var(--piece-scale, 0.92));
   filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.2));

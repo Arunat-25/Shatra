@@ -8,10 +8,9 @@ from backend.state import (get_game, set_game, delete_game,
 from backend.config import settings
 from backend.board_utils import get_starting_board
 from backend.db.models import User
-from backend.game_helpers import build_game_started_response
 from backend.game_archive import mark_game_started
 from backend.game_state import GameState
-from backend.player_identity import merge_player_meta, user_id_from_meta
+from backend.player_identity import build_players_info, merge_player_meta, user_id_from_meta
 from backend.presence import end_session, start_session
 from backend.observability.logging import log_extra
 from backend.observability.metrics import (
@@ -56,6 +55,8 @@ class ConnectionManager:
     def __init__(self):
         # room_id -> {client_id: WebSocket}
         self.connections: dict[str, dict[str, WebSocket]] = {}
+        # room_id -> {client_id: proto_version}
+        self._proto: dict[str, dict[str, int]] = {}
 
     def connected_client_ids(self) -> frozenset[str]:
         """client_id с активным WebSocket (для live online, без orphan presence в БД)."""
@@ -70,6 +71,8 @@ class ConnectionManager:
         websocket: WebSocket,
         client_id: str,
         user: User | None = None,
+        *,
+        proto: int = 1,
     ) -> bool:
         await websocket.accept()
         room_data = await get_room(room_id)
@@ -114,6 +117,7 @@ class ConnectionManager:
                 )
                 return False
             self.connections[room_id][client_id] = websocket
+            self._proto.setdefault(room_id, {})[client_id] = proto
 
             # Отменяем таймер отключения
             task = disconnect_timers.pop(room_id, None)
@@ -147,6 +151,7 @@ class ConnectionManager:
         players[client_id] = assign_player_color(room_data, client_id, players)
 
         self.connections[room_id][client_id] = websocket
+        self._proto.setdefault(room_id, {})[client_id] = proto
         await set_room(room_id, room_data)
         await _record_presence()
         record_ws_connect()
@@ -168,6 +173,7 @@ class ConnectionManager:
             except Exception:
                 pass
         self.connections.pop(room_id, None)
+        self._proto.pop(room_id, None)
 
         task = disconnect_timers.pop(room_id, None)
         if task and not task.done():
@@ -192,6 +198,7 @@ class ConnectionManager:
         if client_id:
             await end_session(client_id)
             record_ws_disconnect()
+            self._proto.get(room_id, {}).pop(client_id, None)
 
         room_data = await get_room(room_id)
         # Не удаляем комнату мгновенно, если отключился creator:
@@ -199,6 +206,7 @@ class ConnectionManager:
 
         if not room_conns:
             self.connections.pop(room_id, None)
+            self._proto.pop(room_id, None)
             if room_data and room_data.get("type") != "ai":
                 # Даём небольшой grace-период на переподключение.
                 task = disconnect_timers.pop(room_id, None)
@@ -228,12 +236,58 @@ class ConnectionManager:
                 return ws
         return None
 
-    async def send_to_room(self, room_id: str, data: dict):
-        for ws in self.connections.get(room_id, {}).values():
+    def connection_proto(self, room_id: str, client_id: str) -> int:
+        return self._proto.get(room_id, {}).get(client_id, 1)
+
+    async def send_to_room(self, room_id: str, data: dict, *, proto: int | None = None):
+        room_conns = self.connections.get(room_id, {})
+        room_proto = self._proto.get(room_id, {})
+        for client_id, ws in room_conns.items():
+            if proto is not None and room_proto.get(client_id, 1) != proto:
+                continue
             try:
                 await ws.send_json(data)
             except Exception as e:
                 logger.warning("send_to_room(%s): %s", room_id, e)
+
+    async def broadcast_move(
+        self,
+        room_id: str,
+        game: dict,
+        result,
+        prev_mover: str,
+        from_cell: int | None,
+        to_cell: int | None,
+    ) -> None:
+        from backend.session.v2.protocol import build_move_delta
+        from backend.state import get_room
+
+        room_data = await get_room(room_id)
+        payload = build_move_delta(
+            game, result, prev_mover, from_cell, to_cell, room_data
+        )
+        await self.send_to_room(room_id, payload)
+
+    async def send_join_state(
+        self,
+        websocket: WebSocket,
+        room_id: str,
+        client_id: str,
+        game: dict,
+        room_data: dict,
+        my_color: str,
+    ) -> None:
+        from backend.session.v2.protocol import build_snapshot
+
+        await self.send_to_player(
+            websocket,
+            build_snapshot(
+                game,
+                room_data,
+                my_color,
+                players_info=build_players_info(room_data),
+            ),
+        )
 
     async def send_to_player(self, websocket: WebSocket, data: dict):
         try:
@@ -261,10 +315,9 @@ async def handle_player2_join(room_id: str, room_data: dict):
         await refresh_pvp_ratings_for_room(room_data)
 
     for cid, color in room_data.get("players", {}).items():
-        response = build_game_started_response(game, room_data, color)
         ws = manager.get_ws(room_id, cid)
         if ws:
-            await manager.send_to_player(ws, response)
+            await manager.send_join_state(ws, room_id, cid, game, room_data, color)
 
     room_data["game_started"] = True
     mark_game_started(room_data)

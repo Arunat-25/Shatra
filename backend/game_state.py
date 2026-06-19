@@ -32,6 +32,7 @@ class GameState(BaseModel):
     pending_mandatory_position: Optional[int] = None
     position_history: dict[str, int] = Field(default_factory=dict)
     moves_with_two_biys: int = 0
+    ply: int = 0
 
     @field_validator("board", mode="before")
     @classmethod

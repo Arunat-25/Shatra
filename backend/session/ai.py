@@ -126,7 +126,7 @@ async def handle_ai_move(
         result.game_over,
         result.position_for_mandatory_capture,
     )
-    await manager.send_to_room(room_id, response)
+    await manager.broadcast_move(room_id, game, result, prev_mover, from_cell, to_cell)
 
     if not result.updated_positions or result.updated_positions == board_snapshot:
         return
@@ -163,8 +163,11 @@ async def _start_ai_game(room_id: str, websocket: WebSocket, room_data: dict, my
             room_id,
             extra=log_extra(room_id=room_id, room_type=room_data.get("type")),
         )
-        response = build_game_started_response(game, room_data, my_color)
-        await manager.send_to_player(websocket, response)
+        client_id = manager.get_client_id(room_id, websocket)
+        if client_id:
+            await manager.send_join_state(websocket, room_id, client_id, game, room_data, my_color)
+        else:
+            await manager.send_to_player(websocket, build_game_started_response(game, room_data, my_color))
 
         if room_data.get("time_control"):
             game_timers[room_id] = asyncio.create_task(game_ticker(room_id))
@@ -172,8 +175,11 @@ async def _start_ai_game(room_id: str, websocket: WebSocket, room_data: dict, my
         if game["mover"] == get_ai_color(room_data):
             await handle_ai_move(room_id, game, room_data=room_data)
     else:
-        response = build_game_started_response(game, room_data, my_color)
-        await manager.send_to_player(websocket, response)
+        client_id = manager.get_client_id(room_id, websocket)
+        if client_id:
+            await manager.send_join_state(websocket, room_id, client_id, game, room_data, my_color)
+        else:
+            await manager.send_to_player(websocket, build_game_started_response(game, room_data, my_color))
         if (
             room_data.get("time_control")
             and room_id not in game_timers

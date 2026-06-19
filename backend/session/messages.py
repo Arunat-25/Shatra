@@ -5,19 +5,13 @@ from backend.state import get_game, get_room, get_room_lock
 from backend.ws_manager import manager
 from backend.game_helpers import (
     apply_move_result,
-    build_hint_event_from_game,
-    build_move_response,
     parse_client_event,
-    parse_hint_request,
     get_ai_color,
-    get_player_color,
     ws_error_payload,
     is_move_message,
-    is_hint_ws_message,
     is_rejected_move,
     _norm_board_keys,
 )
-from backend.message_codes import WS_NOT_YOUR_TURN
 from backend.chat import handle_chat_message
 from backend.ws_control_handlers import CONTROL_MESSAGE_TYPES, dispatch_control_message
 from backend.session.rematch import _decline_draw_offer
@@ -27,47 +21,6 @@ from backend.session.ai import handle_ai_move
 
 async def _send_ws_error(websocket: WebSocket, code: str, **params) -> None:
     await manager.send_to_player(websocket, ws_error_payload(code, **params))
-
-
-async def _handle_hint_request(
-    room_id: str,
-    client_id: str,
-    data: dict,
-    websocket: WebSocket,
-) -> bool:
-    try:
-        hint_cell = parse_hint_request(data)
-    except ValueError as exc:
-        await _send_ws_error(websocket, str(exc))
-        return True
-
-    game = await get_game(room_id)
-    if not game:
-        return False
-
-    if game.get("game_over"):
-        await _send_ws_error(websocket, "ws.game_over")
-        return True
-
-    room_data = await get_room(room_id)
-    player_color = get_player_color(room_data, client_id) if room_data else None
-    if player_color != game.get("mover"):
-        await _send_ws_error(websocket, WS_NOT_YOUR_TURN)
-        return True
-
-    event = build_hint_event_from_game(game, hint_cell)
-    result = logic.handle_event(
-        event,
-        batyr_captured_this_turn=game.get("pending_batyr_captures"),
-    )
-    response = build_move_response(
-        game,
-        result,
-        game["mover"],
-        hint_position=hint_cell,
-    )
-    await manager.send_to_player(websocket, response)
-    return True
 
 
 async def process_client_message(
@@ -113,9 +66,6 @@ async def _process_client_message_locked(
         await _send_ws_error(websocket, "ws.unknown_command")
         return True
 
-    if is_hint_ws_message(data):
-        return await _handle_hint_request(room_id, client_id, data, websocket)
-
     if not is_move_message(data):
         await _send_ws_error(websocket, "ws.unknown_message")
         return True
@@ -143,6 +93,13 @@ async def _process_client_message_locked(
         game = await get_game(room_id)
         if not game:
             return False
+
+    client_ply = data.get("ply")
+    if client_ply is not None:
+        expected_ply = int(game.get("ply", 0)) + 1
+        if int(client_ply) != expected_ply:
+            await _send_ws_error(websocket, "ws.ply_mismatch", ply=expected_ply)
+            return True
 
     prev_mover = game["mover"]
     prev_board = _norm_board_keys(game.get("board", {}))
@@ -178,7 +135,7 @@ async def _process_client_message_locked(
         room_id, game, result, prev_mover, raw_from, raw_to
     )
     record_move("player")
-    await manager.send_to_room(room_id, response)
+    await manager.broadcast_move(room_id, game, result, prev_mover, raw_from, raw_to)
 
     room_data = await get_room(room_id)
     if is_ai_room and not result.game_over and room_data and game["mover"] == get_ai_color(room_data):

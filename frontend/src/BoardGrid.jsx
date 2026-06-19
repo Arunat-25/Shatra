@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getBoardSections } from './constants';
 import Cell from './components/Cell';
 import ShatraPiece from './ShatraPiece';
 import { getPieceColor, getPieceType } from './utils';
 import useBoardInteraction from './hooks/useBoardInteraction';
+import usePieceSlideOverlay from './hooks/usePieceSlideOverlay';
 
 function cellIdFromPoint(x, y) {
   const el = document.elementFromPoint(x, y);
@@ -11,6 +12,45 @@ function cellIdFromPoint(x, y) {
   if (!cell?.id?.startsWith('position')) return null;
   const id = Number.parseInt(cell.id.slice('position'.length), 10);
   return Number.isFinite(id) ? id : null;
+}
+
+function domCellCenter(cellId) {
+  const el = document.getElementById(`position${cellId}`);
+  if (!el) return null;
+  const r = el.getBoundingClientRect();
+  return {
+    x: r.left + r.width / 2,
+    y: r.top + r.height / 2,
+    size: r.width,
+  };
+}
+
+function PieceOverlay({ overlay, pieceVariant, className }) {
+  if (!overlay?.piece) return null;
+  return (
+    <div
+      className={className}
+      style={{ transform: `translate(${overlay.x}px, ${overlay.y}px)` }}
+    >
+      <div
+        className="drag-ghost-inner piece-slide-inner"
+        style={
+          overlay.size
+            ? { width: overlay.size, height: overlay.size }
+            : undefined
+        }
+      >
+        <ShatraPiece
+          type={getPieceType(overlay.piece)}
+          color={getPieceColor(overlay.piece)}
+          isSelected={false}
+          isTarget={false}
+          positionNum={overlay.fromCell ?? overlay.toCell ?? 0}
+          variant={pieceVariant}
+        />
+      </div>
+    </div>
+  );
 }
 
 export default function BoardGrid(props) {
@@ -27,6 +67,7 @@ export default function BoardGrid(props) {
     myColor,
     interactive = true,
     enablePieceDrag = true,
+    enableMoveAnimation = true,
     tutorialDimmedCells = null,
     pieceVariant = 'full',
   } = props;
@@ -34,6 +75,22 @@ export default function BoardGrid(props) {
   const tutorialDimmedSet = tutorialDimmedCells ? new Set(tutorialDimmedCells) : null;
 
   const resolveCellAt = useCallback((x, y) => cellIdFromPoint(x, y), []);
+  const getCellCenter = useCallback((cellId) => domCellCenter(cellId), []);
+  const legalDests = useMemo(
+    () => new Set(highlightedEssential),
+    [highlightedEssential],
+  );
+
+  const { slideOverlay, markSlideHandled } = usePieceSlideOverlay({
+    lastMove,
+    board,
+    getCellCenter,
+    enabled: interactive && enableMoveAnimation,
+  });
+
+  const onDragDropComplete = useCallback((from, to) => {
+    markSlideHandled(from, to);
+  }, [markSlideHandled]);
 
   const { beginDrag, handleCellClick, registerDragGhostListener } = useBoardInteraction({
     board,
@@ -42,6 +99,9 @@ export default function BoardGrid(props) {
     interactive,
     enablePieceDrag,
     resolveCellAt,
+    legalDests,
+    getCellCenter,
+    onDragDropComplete,
   });
 
   const [dragGhost, setDragGhost] = useState(null);
@@ -59,31 +119,29 @@ export default function BoardGrid(props) {
   const shouldIgnoreClick = useCallback(() => false, []);
   const noop = useCallback(() => {}, []);
 
+  const hidePieceCells = useMemo(() => {
+    const hidden = new Set();
+    if (slideOverlay?.toCell != null) hidden.add(slideOverlay.toCell);
+    return hidden;
+  }, [slideOverlay]);
+
+  const isDragging = Boolean(dragGhost);
+
   return (
-    <div className={dragGhost ? 'board-content board-content--dragging' : 'board-content'}>
+    <div className={isDragging ? 'board-content board-content--dragging' : 'board-content'}>
       {interactive && dragGhost && (
-        <div
+        <PieceOverlay
+          overlay={dragGhost}
+          pieceVariant={pieceVariant}
           className="drag-ghost"
-          style={{ transform: `translate(${dragGhost.x}px, ${dragGhost.y}px)` }}
-        >
-          <div
-            className="drag-ghost-inner"
-            style={
-              dragGhost.size
-                ? { width: dragGhost.size, height: dragGhost.size }
-                : undefined
-            }
-          >
-            <ShatraPiece
-              type={getPieceType(dragGhost.piece)}
-              color={getPieceColor(dragGhost.piece)}
-              isSelected={false}
-              isTarget={false}
-              positionNum={dragGhost.fromId}
-              variant={pieceVariant}
-            />
-          </div>
-        </div>
+        />
+      )}
+      {interactive && slideOverlay && !dragGhost && (
+        <PieceOverlay
+          overlay={slideOverlay}
+          pieceVariant={pieceVariant}
+          className="piece-slide-ghost"
+        />
       )}
       {sections.map((section) => (
         <div
@@ -98,6 +156,7 @@ export default function BoardGrid(props) {
                   id={cell.id}
                   className={cell.color}
                   isDragOrigin={interactive && dragGhost?.fromId === cell.id}
+                  hidePiece={hidePieceCells.has(cell.id)}
                   isTutorialDimmed={tutorialDimmedSet?.has(cell.id)}
                   onCellPointerDown={interactive && enablePieceDrag ? onPointerDown : undefined}
                   shouldIgnoreClick={interactive && enablePieceDrag ? shouldIgnoreClick : undefined}

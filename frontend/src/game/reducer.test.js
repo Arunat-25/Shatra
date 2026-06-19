@@ -92,6 +92,29 @@ describe('gameReducer', () => {
     expect(finished.moveFrom).toBe(null);
   });
 
+  it('MOVE_MADE applies delta-only payload without desk', () => {
+    const state = {
+      ...initialGameState,
+      board: { 45: 'белый бий', 37: null },
+      movesHistory: [],
+    };
+    const next = gameReducer(state, {
+      type: GAME_ACTIONS.MOVE_MADE,
+      payload: {
+        from_pos: 45,
+        to_pos: 37,
+        mover: 'белый',
+        movers_color: 'черный',
+        message_code: 'turn.now',
+        ply: 1,
+      },
+    });
+    expect(next.board[45]).toBeNull();
+    expect(next.board[37]).toBe('белый бий');
+    expect(next.movesHistory).toHaveLength(1);
+    expect(next.confirmedPly).toBe(1);
+  });
+
   it('MOVE_MADE updates timer when time in payload', () => {
     const syncedAtBefore = Date.now();
     const state = {
@@ -165,6 +188,40 @@ describe('gameReducer', () => {
     expect(next.moveFrom).toBe(33);
     expect(next.highlightedEssential).toEqual([]);
     expect(next.highlightedCaptured).toEqual([]);
+  });
+
+  it('MOVE_MADE ignores stale ply', () => {
+    const state = {
+      ...initialGameState,
+      board: { 45: 'белый бий' },
+      confirmedPly: 3,
+      pendingMoves: [{ ply: 4, from: 45, to: 37 }],
+    };
+    const next = gameReducer(state, {
+      type: GAME_ACTIONS.MOVE_MADE,
+      payload: {
+        from_pos: 45,
+        to_pos: 37,
+        ply: 3,
+        message_code: 'turn.now',
+      },
+    });
+    expect(next).toBe(state);
+  });
+
+  it('OPTIMISTIC_MOVE queues pending with ply', () => {
+    const state = { ...initialGameState, confirmedPly: 1, board: { 10: 'белый бий' } };
+    const next = gameReducer(state, {
+      type: GAME_ACTIONS.OPTIMISTIC_MOVE,
+      payload: {
+        result: { updatedPositions: { 18: 'белый бий' }, moversColor: 'черный' },
+        from: 10,
+        to: 18,
+        ply: 2,
+      },
+    });
+    expect(next.pendingMoves).toEqual([{ from: 10, to: 18, ply: 2 }]);
+    expect(next.syncStatus).toBe('pending');
   });
 
   it('MOVE_MADE without chain clears selection and highlights', () => {

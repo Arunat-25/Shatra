@@ -76,7 +76,7 @@ export function getWsUrl(roomId) {
   const params = new URLSearchParams({ client_id: getClientId() });
   const token = getAccessToken();
   if (token) params.set('access_token', token);
-  return `${protocol}//${window.location.host}/ws/${roomId}/?${params.toString()}`;
+  return `${protocol}//${window.location.host}/ws/v2/${roomId}/?${params.toString()}`;
 }
 
 // ===== REST API =====

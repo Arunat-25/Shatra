@@ -10,6 +10,7 @@ import {
   buildRequestRematchPayload,
   buildResignPayload,
   buildCancelGamePayload,
+  buildChatPayload,
 } from '../utils/wsPayloads';
 
 export default function useGameActions({
@@ -92,7 +93,7 @@ export default function useGameActions({
   }, [modeAi, navigate, showMessage, stateRef, t]);
 
   const sendChat = useCallback((text) => {
-    send({ type: 'chat', text });
+    send(buildChatPayload(text));
   }, [send]);
 
   const toggleChatHidden = useCallback(() => {

@@ -29,52 +29,63 @@ function makeDeps(state, overrides = {}) {
 
 describe('useCellClick capture chain', () => {
   const chainState = {
-    myColor: 'белый',
-    moversColor: 'белый',
-    moveFrom: 19,
-    posForMandatoryCapture: 19,
+    myColor: 'черный',
+    moversColor: 'черный',
+    moveFrom: 25,
+    posForMandatoryCapture: 25,
+    batyrCapturedThisTurn: [],
     board: {
-      19: 'белый бий',
-      33: null,
-      10: 'белый бий',
+      25: 'черная шатра',
+      32: 'белая шатра',
+      39: null,
     },
   };
 
   it('sends move from chain cell when clicking capture target only', () => {
-    const { hookProps, send, deselectPiece } = makeDeps(chainState);
+    const { hookProps, send, deselectPiece, dispatch } = makeDeps(chainState);
     const { result } = renderHook(() => useCellClick(hookProps));
 
     act(() => {
-      result.current(33);
+      result.current(39);
     });
 
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({ type: GAME_ACTIONS.OPTIMISTIC_MOVE }),
+    );
     expect(send).toHaveBeenCalledTimes(1);
     expect(send.mock.calls[0][0]).toMatchObject({
-      move_from: 'position19',
-      move_to: 'position33',
-      position_for_mandatory_capture: 19,
+      v: 2,
+      t: 'move',
+      from: 25,
+      to: 39,
     });
     expect(deselectPiece).not.toHaveBeenCalled();
   });
 
-  it('refreshes hints when clicking the active chain piece', () => {
-    const { hookProps, send } = makeDeps(chainState);
+  it('refreshes hints locally when clicking the active chain piece', () => {
+    const { hookProps, send, dispatch } = makeDeps(chainState);
     const { result } = renderHook(() => useCellClick(hookProps));
 
     act(() => {
-      result.current(19);
+      result.current(25);
     });
 
-    expect(send).toHaveBeenCalledTimes(1);
-    expect(send.mock.calls[0][0]).toEqual({ position: 'position19' });
+    expect(send).not.toHaveBeenCalled();
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({ type: GAME_ACTIONS.HIGHLIGHTS }),
+    );
   });
 
   it('ignores selecting another own piece during chain', () => {
-    const { hookProps, send } = makeDeps(chainState);
+    const withExtra = {
+      ...chainState,
+      board: { ...chainState.board, 20: 'черная шатра' },
+    };
+    const { hookProps, send } = makeDeps(withExtra);
     const { result } = renderHook(() => useCellClick(hookProps));
 
     act(() => {
-      result.current(10);
+      result.current(20);
     });
 
     expect(send).not.toHaveBeenCalled();
@@ -82,22 +93,30 @@ describe('useCellClick capture chain', () => {
 });
 
 describe('useCellClick normal moves', () => {
-  it('requests hints with position-only payload on piece select', () => {
+  it('applies local highlights on piece select (no hint WS)', () => {
     const state = {
       myColor: 'белый',
       moversColor: 'белый',
       moveFrom: null,
       posForMandatoryCapture: null,
+      batyrCapturedThisTurn: [],
       board: { 53: 'белая шатра' },
     };
-    const { hookProps, send } = makeDeps(state);
+    const { hookProps, send, dispatch } = makeDeps(state);
     const { result } = renderHook(() => useCellClick(hookProps));
 
     act(() => {
       result.current(53);
     });
 
-    expect(send).toHaveBeenCalledWith({ position: 'position53' });
+    expect(send).not.toHaveBeenCalled();
+    expect(dispatch).toHaveBeenCalledWith({
+      type: GAME_ACTIONS.SET_MOVE_FROM,
+      payload: 53,
+    });
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({ type: GAME_ACTIONS.HIGHLIGHTS }),
+    );
   });
 
   it('selects piece on first click and sends move on second', () => {
@@ -106,6 +125,7 @@ describe('useCellClick normal moves', () => {
       moversColor: 'белый',
       moveFrom: null,
       posForMandatoryCapture: null,
+      batyrCapturedThisTurn: [],
       board: { 10: 'белый бий', 14: null },
     };
     const { hookProps, dispatch, send, deselectPiece } = makeDeps(state);
@@ -127,9 +147,14 @@ describe('useCellClick normal moves', () => {
     act(() => {
       result.current(14);
     });
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({ type: GAME_ACTIONS.OPTIMISTIC_MOVE }),
+    );
     expect(send).toHaveBeenCalledWith(expect.objectContaining({
-      move_from: 'position10',
-      move_to: 'position14',
+      v: 2,
+      t: 'move',
+      from: 10,
+      to: 14,
     }));
     expect(deselectPiece).toHaveBeenCalledTimes(1);
   });

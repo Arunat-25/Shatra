@@ -333,22 +333,28 @@ class TestInvariants:
 
 
 class TestFormulaConsistency:
-    @pytest.mark.parametrize("rating_a", range(1200, 2601, 100))
-    @pytest.mark.parametrize("rating_b", range(1200, 2601, 200))
-    @pytest.mark.parametrize("games_a", [0, 15, 30, 80])
-    @pytest.mark.parametrize("games_b", [0, 15, 30, 80])
-    @pytest.mark.parametrize("score_a", [0.0, 0.5, 1.0])
-    def test_always_matches_closed_form(self, rating_a, rating_b, games_a, games_b, score_a):
-        k_a = k_factor(rating_a, games_a)
-        k_b = k_factor(rating_b, games_b)
-        e_a = expected_score(rating_a, rating_b)
-        e_b = expected_score(rating_b, rating_a)
-        score_b = 1.0 - score_a
-        expected = (
-            round(k_a * (score_a - e_a)),
-            round(k_b * (score_b - e_b)),
-        )
-        assert rating_deltas(rating_a, rating_b, games_a, games_b, score_a) == expected
+    def test_always_matches_closed_form_grid(self):
+        """Single loop instead of 5760 pytest cases (same coverage, ~0.01s)."""
+        for rating_a in range(1200, 2601, 100):
+            for rating_b in range(1200, 2601, 200):
+                for games_a in (0, 15, 30, 80):
+                    for games_b in (0, 15, 30, 80):
+                        for score_a in (0.0, 0.5, 1.0):
+                            k_a = k_factor(rating_a, games_a)
+                            k_b = k_factor(rating_b, games_b)
+                            e_a = expected_score(rating_a, rating_b)
+                            e_b = expected_score(rating_b, rating_a)
+                            score_b = 1.0 - score_a
+                            expected = (
+                                round(k_a * (score_a - e_a)),
+                                round(k_b * (score_b - e_b)),
+                            )
+                            assert (
+                                rating_deltas(
+                                    rating_a, rating_b, games_a, games_b, score_a
+                                )
+                                == expected
+                            )
 
     def test_default_rating_constant(self):
         assert DEFAULT_RATING == 1200

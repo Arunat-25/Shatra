@@ -77,6 +77,7 @@ class TestAiReconnectTimer:
         with patch("backend.session.ai.get_game", new_callable=AsyncMock, return_value=game):
             with patch("backend.session.ai.build_game_started_response", return_value={"status": "game_started"}):
                 with patch("backend.session.ai.manager") as mgr:
+                    mgr.get_client_id.return_value = None
                     mgr.send_to_player = AsyncMock()
                     with patch("backend.session.ai.game_timers", {}):
                         with patch("backend.session.ai.asyncio.create_task") as create_task:

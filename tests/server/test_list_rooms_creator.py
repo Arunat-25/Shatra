@@ -1,6 +1,7 @@
 """Tests for creator username resolution in room listing."""
 
 import json
+import uuid
 
 import pytest
 
@@ -67,7 +68,8 @@ class TestListRoomsCreator:
         assert match[0]["creator_rating"] == 1450
 
     def test_create_with_auth_shows_username(self, client):
-        payload = {"username": "creator_user", "password": "secret12"}
+        username = f"creator_user_{uuid.uuid4().hex[:8]}"
+        payload = {"username": username, "password": "secret12"}
         reg = client.post("/api/auth/register", json=payload)
         assert reg.status_code == 200
         user = reg.json()
@@ -82,5 +84,5 @@ class TestListRoomsCreator:
         room_id = r.json()["room_id"]
         rooms = client.get(f"/rooms?client_id={new_client_id()}").json()["rooms"]
         match = [x for x in rooms if x["room_id"] == room_id]
-        assert match[0]["creator_username"] == "creator_user"
+        assert match[0]["creator_username"] == username
         assert match[0]["creator_rating"] == 1200

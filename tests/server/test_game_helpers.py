@@ -7,12 +7,10 @@ import pytest
 from backend.game_helpers import (
     apply_move_result,
     build_hint_event_from_game,
-    is_hint_ws_message,
     is_move_message,
     is_hint_request,
     is_rejected_move,
     parse_client_event,
-    parse_hint_request,
     ws_error_payload,
     build_game_started_response,
     _norm_board_keys,
@@ -97,30 +95,6 @@ class TestIsRejectedMove:
             updated_positions=dict(board),
         )
         assert is_rejected_move(result, board, None, None) is False
-
-
-class TestIsHintWsMessage:
-    @pytest.mark.parametrize(
-        "payload,expected",
-        [
-            ({"position": "position53"}, True),
-            ({"position": "position53", "board": {}, "movers_color": "белый"}, True),
-            ({"position": "position53", "move_from": "position1", "move_to": "position2"}, False),
-            ({"board": {}, "movers_color": "белый"}, False),
-            (None, False),
-        ],
-    )
-    def test_hint_detection(self, payload, expected):
-        assert is_hint_ws_message(payload) is expected
-
-
-class TestParseHintRequest:
-    def test_parses_position_cell(self):
-        assert parse_hint_request({"position": "position53"}) == 53
-
-    def test_invalid_position(self):
-        with pytest.raises(ValueError, match="invalid_move_data"):
-            parse_hint_request({"position": "not-a-cell"})
 
 
 class TestBuildHintEventFromGame:

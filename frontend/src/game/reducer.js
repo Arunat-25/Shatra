@@ -1,6 +1,14 @@
 import { convertKeys, countPieces, countPiecesByType } from '../utils';
 import { COLOR_WHITE } from '../constants';
 import { GAME_ACTIONS } from './actions';
+import {
+  classifyIncomingPly,
+  pendingAfterConfirm,
+} from './syncLayer';
+import {
+  resolveBoardFromPayload,
+  appendLocalMoveHistory,
+} from '../engine/applyMoveDelta';
 
 export function lastMoveFromPayload(payload) {
   const from = payload?.from_pos;
@@ -12,14 +20,12 @@ export function lastMoveFromPayload(payload) {
   return { from: f, to: t };
 }
 
-function updateBoardState(state, desk, extra = {}) {
-  if (!desk) return { ...state, ...extra };
-  const newBoard = convertKeys(desk);
-  const counts = countPieces(newBoard);
-  const countsByType = countPiecesByType(newBoard);
+function boardCountsUpdate(state, board, extra = {}) {
+  const counts = countPieces(board);
+  const countsByType = countPiecesByType(board);
   return {
     ...state,
-    board: newBoard,
+    board,
     whiteCount: counts.white,
     blackCount: counts.black,
     countsByType,
@@ -30,16 +36,82 @@ function updateBoardState(state, desk, extra = {}) {
   };
 }
 
+function updateBoardState(state, desk, extra = {}) {
+  if (!desk) return { ...state, ...extra };
+  const newBoard = convertKeys(desk);
+  return boardCountsUpdate(state, newBoard, extra);
+}
+
+function applyMovePayload(state, payload, extra = {}) {
+  const newBoard = resolveBoardFromPayload(state.board, payload);
+  const movesHistory = payload.move_history
+    ? payload.move_history
+    : appendLocalMoveHistory(state.movesHistory, newBoard, payload);
+  return boardCountsUpdate(state, newBoard, {
+    ...extra,
+    movesHistory,
+  });
+}
+
 function buildCapturedGhostPieces(state, payload) {
-  if (!payload?.position_for_mandatory_capture) return {};
+  const mandatory = payload?.position_for_mandatory_capture ?? payload?.positionForMandatoryCapture;
+  if (!mandatory) return {};
 
   const ghosts = { ...(state.capturedGhostPieces || {}) };
-  for (const pos of payload.captured_positions || []) {
+  const captured = payload.captured_positions || payload.capturedPositions || [];
+  for (const pos of captured) {
     const cell = Number(pos);
     const piece = state.board?.[cell];
     if (piece) ghosts[cell] = piece;
   }
   return ghosts;
+}
+
+function snapshotForRollback(state) {
+  return {
+    board: state.board,
+    moversColor: state.moversColor,
+    posForMandatoryCapture: state.posForMandatoryCapture,
+    canPass: state.canPass,
+    batyrCapturedThisTurn: state.batyrCapturedThisTurn,
+    moveFrom: state.moveFrom,
+    highlightedEssential: state.highlightedEssential,
+    highlightedCaptured: state.highlightedCaptured,
+    capturedGhostPieces: state.capturedGhostPieces,
+    lastMove: state.lastMove,
+    whiteCount: state.whiteCount,
+    blackCount: state.blackCount,
+    countsByType: state.countsByType,
+  };
+}
+
+function applyOptimisticPayload(state, payload, from, to) {
+  const result = payload;
+  const desk = result.updatedPositions;
+  const posForMandatoryCapture = result.positionForMandatoryCapture ?? null;
+  const chainCell = posForMandatoryCapture != null ? Number(posForMandatoryCapture) : null;
+  const wasMyMove = state.moversColor === state.myColor;
+  const chainActiveForMe = chainCell != null && wasMyMove;
+  const mover = result.moversColor ?? state.moversColor;
+  const newLastMove = from && to ? { from: Number(from), to: Number(to) } : state.lastMove;
+  const ghostPayload = {
+    position_for_mandatory_capture: posForMandatoryCapture,
+    captured_positions: result.capturedPositions || [],
+  };
+
+  return updateBoardState(state, desk, {
+    moversColor: mover,
+    posForMandatoryCapture,
+    canPass: !!result.opportunityPassTheMove,
+    moveFrom: chainActiveForMe ? chainCell : null,
+    batyrCapturedThisTurn: Array.isArray(result.capturedPieces)
+      ? result.capturedPieces.map(Number)
+      : [],
+    highlightedEssential: chainActiveForMe ? state.highlightedEssential : [],
+    highlightedCaptured: chainActiveForMe ? state.highlightedCaptured : [],
+    lastMove: newLastMove,
+    capturedGhostPieces: buildCapturedGhostPieces(state, ghostPayload),
+  });
 }
 
 export const initialGameState = {
@@ -63,6 +135,12 @@ export const initialGameState = {
   highlightedEssential: [],
   highlightedCaptured: [],
   capturedGhostPieces: {},
+  batyrCapturedThisTurn: [],
+  pendingMove: null,
+  pendingMoves: [],
+  rollbackSnapshot: null,
+  confirmedPly: 0,
+  syncStatus: 'synced',
   lastMove: null,
   aiThinking: false,
   whiteCount: 0,
@@ -157,8 +235,16 @@ export function gameReducer(state, action) {
         rematchUnavailable: false,
         aiThinking: action.payload.aiThinking ?? false,
         playersInfo: action.payload.players_info || state.playersInfo,
+        confirmedPly: Number(action.payload.ply ?? 0),
+        pendingMove: null,
+        pendingMoves: [],
+        rollbackSnapshot: null,
+        syncStatus: 'synced',
       });
     }
+
+    case GAME_ACTIONS.SET_SYNC_STATUS:
+      return { ...state, syncStatus: action.payload };
 
     case GAME_ACTIONS.SET_REMATCH_UNAVAILABLE:
       return {
@@ -203,6 +289,9 @@ export function gameReducer(state, action) {
       };
 
     case GAME_ACTIONS.MOVE_MADE: {
+      const verdict = classifyIncomingPly(state.confirmedPly, action.payload.ply);
+      if (verdict === 'stale') return state;
+
       const newLastMove = lastMoveFromPayload(action.payload);
       const posForMandatoryCapture = action.payload.position_for_mandatory_capture || null;
       const chainCell = posForMandatoryCapture != null ? Number(posForMandatoryCapture) : null;
@@ -210,11 +299,18 @@ export function gameReducer(state, action) {
       const chainActiveForMe = chainCell != null && mover === state.myColor;
       const essential = action.payload.essential_positions;
       const captured = action.payload.captured_pieces;
-      return updateBoardState(state, action.payload.desk, {
+      const confirmedPly = Number(
+        action.payload.ply ?? (state.confirmedPly + (action.payload.from_pos ? 1 : 0)),
+      );
+      const pendingUpdate = pendingAfterConfirm(state, confirmedPly);
+      return applyMovePayload(state, action.payload, {
         moversColor: mover,
         posForMandatoryCapture,
         canPass: !!action.payload.opportunity_pass_the_move,
         moveFrom: chainActiveForMe ? chainCell : null,
+        batyrCapturedThisTurn: Array.isArray(action.payload.captured_pieces)
+          ? action.payload.captured_pieces.map(Number)
+          : [],
         highlightedEssential: chainActiveForMe && essential?.length
           ? essential.map(Number)
           : [],
@@ -229,7 +325,45 @@ export function gameReducer(state, action) {
         capturedGhostPieces: buildCapturedGhostPieces(state, action.payload),
         timer: action.payload.time ?? state.timer,
         timerSyncedAt: action.payload.time ? Date.now() : state.timerSyncedAt,
+        confirmedPly,
+        syncStatus: verdict === 'gap' ? 'desynced' : 'synced',
+        ...pendingUpdate,
       });
+    }
+
+    case GAME_ACTIONS.OPTIMISTIC_MOVE: {
+      const { result, from, to, ply } = action.payload;
+      const next = applyOptimisticPayload(state, result, from, to);
+      const entry = { from: Number(from), to: Number(to), ply: Number(ply) };
+      const isFirst = !(state.pendingMoves?.length);
+      return {
+        ...next,
+        pendingMoves: [...(state.pendingMoves || []), entry],
+        pendingMove: entry,
+        rollbackSnapshot: isFirst ? snapshotForRollback(state) : state.rollbackSnapshot,
+        syncStatus: 'pending',
+      };
+    }
+
+    case GAME_ACTIONS.ROLLBACK_OPTIMISTIC: {
+      const snap = state.rollbackSnapshot;
+      if (!snap) {
+        return {
+          ...state,
+          pendingMove: null,
+          pendingMoves: [],
+          rollbackSnapshot: null,
+          syncStatus: 'synced',
+        };
+      }
+      return {
+        ...state,
+        ...snap,
+        pendingMove: null,
+        pendingMoves: [],
+        rollbackSnapshot: null,
+        syncStatus: 'synced',
+      };
     }
 
     case GAME_ACTIONS.HIGHLIGHTS:
@@ -239,8 +373,12 @@ export function gameReducer(state, action) {
         highlightedCaptured: action.payload.captured || [],
       };
 
-    case GAME_ACTIONS.GAME_OVER:
-      return updateBoardState(state, action.payload.desk || {}, {
+    case GAME_ACTIONS.GAME_OVER: {
+      const withBoard = action.payload.desk || action.payload.from_pos != null
+        ? applyMovePayload(state, action.payload, {})
+        : state;
+      return {
+        ...withBoard,
         waiting: false,
         gameOver: true,
         winnerColor: action.payload.winner_color || action.payload.winner || '',
@@ -254,13 +392,18 @@ export function gameReducer(state, action) {
         aiThinking: false,
         canPass: false,
         opponentDisconnected: false,
-        movesHistory: action.payload.move_history ?? state.movesHistory,
-        moversColor: action.payload.movers_color || state.moversColor,
+        pendingMove: null,
+        pendingMoves: [],
+        rollbackSnapshot: null,
+        syncStatus: 'synced',
+        movesHistory: action.payload.move_history ?? withBoard.movesHistory,
+        moversColor: action.payload.movers_color || withBoard.moversColor,
         timeControl: action.payload.time_control ?? state.timeControl,
         increment: action.payload.increment ?? state.increment,
         timer: action.payload.time ?? state.timer,
         timerSyncedAt: action.payload.time ? Date.now() : state.timerSyncedAt,
-      });
+      };
+    }
 
     case GAME_ACTIONS.SET_MY_COLOR:
       return { ...state, myColor: action.payload };

@@ -42,8 +42,18 @@ describe('getWsUrl', () => {
     });
 
     const url = getWsUrl('room123');
-    expect(url).toBe('ws://localhost:5173/ws/room123/?client_id=client-abc');
+    expect(url).toBe('ws://localhost:5173/ws/v2/room123/?client_id=client-abc');
     expect(url).not.toContain('access_token');
+  });
+
+  it('defaults to v2 websocket path', () => {
+    getAccessTokenMock.mockReturnValue(null);
+    vi.stubGlobal('window', {
+      location: { protocol: 'http:', host: 'localhost:5173' },
+    });
+
+    const url = getWsUrl('room123');
+    expect(url).toBe('ws://localhost:5173/ws/v2/room123/?client_id=client-abc');
   });
 
   it('includes access_token when logged in', () => {
@@ -54,7 +64,7 @@ describe('getWsUrl', () => {
 
     const url = getWsUrl('room456');
     expect(url).toBe(
-      'wss://shatra.example/ws/room456/?client_id=client-abc&access_token=jwt-token-xyz',
+      'wss://shatra.example/ws/v2/room456/?client_id=client-abc&access_token=jwt-token-xyz',
     );
   });
 });

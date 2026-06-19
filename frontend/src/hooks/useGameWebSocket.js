@@ -5,6 +5,7 @@ import { GAME_ACTIONS } from './useGameReducer';
 import { MSG_ERROR, MSG_WARNING } from '../constants';
 import { resolveWsErrorMessage } from '../i18n/resolveMessage';
 import { trackGameEvent } from '../observability/events';
+import { buildV2SyncPayload } from '../ws/v2/payloads';
 
 const ROOM_ERROR_TYPES = new Set([
   'room_full',
@@ -36,6 +37,7 @@ export default function useGameWebSocket(roomId, modeAi, {
   });
 
   const joinedRef = useRef(false);
+  const sendRef = useRef(() => false);
 
   useEffect(() => {
     myColorRef.current = null;
@@ -51,8 +53,11 @@ export default function useGameWebSocket(roomId, modeAi, {
         payload: data.your_color === 'белый' ? 'белый' : 'черный',
       });
     }
-    const msg = handleServerMessageRef.current(data);
-    if (msg) showMessageRef.current(msg.text, msg.type);
+    const result = handleServerMessageRef.current(data);
+    if (result?.needSync) {
+      sendRef.current(buildV2SyncPayload(stateRef.current.confirmedPly));
+    }
+    if (result?.text) showMessageRef.current(result.text, result.type);
   }, []);
 
   const handleWsStatus = useCallback((statusInfo) => {
@@ -65,11 +70,18 @@ export default function useGameWebSocket(roomId, modeAi, {
     }
     if (statusInfo.type === 'connected') {
       setWsReconnecting(false);
+      const isReconnect = joinedRef.current;
       if (!joinedRef.current) {
         joinedRef.current = true;
         trackGameEvent('game_joined', { roomId, modeAi });
       }
       showMessage(t('game.connectionRestored'));
+      if (isReconnect) {
+        const s = stateRef.current;
+        if (!s.waiting && !s.gameOver) {
+          sendRef.current(buildV2SyncPayload(s.confirmedPly));
+        }
+      }
     }
   }, [showMessage, t, roomId, modeAi]);
 
@@ -103,7 +115,16 @@ export default function useGameWebSocket(roomId, modeAi, {
     showMessage(message, MSG_ERROR);
   }, [navigate, showMessage, roomId]);
 
-  const { send } = useWebSocket(roomId, handleWsMessage, handleWsError, handleWsStatus);
+  const { send, setBoardRef } = useWebSocket(
+    roomId,
+    handleWsMessage,
+    handleWsError,
+    handleWsStatus,
+  );
 
-  return { send, wsReconnecting, stateRef };
+  useEffect(() => {
+    sendRef.current = send;
+  }, [send]);
+
+  return { send, wsReconnecting, stateRef, setBoardRef };
 }

@@ -6,7 +6,6 @@ import pytest
 
 from backend.board_utils import get_starting_board
 from backend.game_helpers import build_hint_event_from_game
-from backend.session import process_client_message
 from game_engine.game_logic import logic
 from game_engine.models import GameEvent
 from tests.server.disconnect_helpers import ai_room
@@ -72,7 +71,7 @@ async def test_ai_persists_cleared_pending_mandatory_after_move():
         patch("backend.session.ai.asyncio.sleep", new_callable=AsyncMock),
         patch("backend.session.ai.get_ai_move", lambda *args, **kwargs: (32, 18)),
         patch("backend.session.ai.set_game", _set_game),
-        patch("backend.session.ai.manager.send_to_room", new_callable=AsyncMock),
+        patch("backend.session.ai.manager.broadcast_move", new_callable=AsyncMock),
         patch("backend.session.ai.apply_move_result", _apply_move_result),
     ):
         await handle_ai_move("room-persist", game, room_data=room)
@@ -84,10 +83,10 @@ async def test_ai_persists_cleared_pending_mandatory_after_move():
 
 
 @pytest.mark.asyncio
-async def test_hint_after_ai_capture_does_not_say_continue_same():
+async def test_after_ai_capture_persisted_state_allows_legal_hints():
     """
-    User symptom: after AI plays 32->18, clicking black piece 11 returned
-    'capture.continue_same' because server still had pending_mandatory_position=32.
+    After AI plays 32->18, persisted game must not keep stale pending_mandatory_position=32.
+    Client-side hints (shatra-rules) rely on this state; WS no longer serves position hints.
     """
     from backend.session.ai import handle_ai_move
 
@@ -104,8 +103,6 @@ async def test_hint_after_ai_capture_does_not_say_continue_same():
     }
 
     persisted = {}
-    ws = AsyncMock()
-    ws.send_json = AsyncMock()
 
     async def _set_game(_room_id, g):
         persisted["game"] = dict(g)
@@ -118,47 +115,26 @@ async def test_hint_after_ai_capture_does_not_say_continue_same():
         await _set_game(_room_id, g)
         return {}
 
-    async def get_game(rid):
-        return persisted.get("game") if rid == room_id else None
-
-    async def get_room(rid):
-        return room if rid == room_id else None
-
     with (
         patch("backend.session.ai.asyncio.sleep", new_callable=AsyncMock),
         patch("backend.session.ai.get_ai_move", lambda *args, **kwargs: (32, 18)),
         patch("backend.session.ai.set_game", _set_game),
         patch("backend.session.ai.apply_move_result", _apply_move_result),
-        patch("backend.session.ai.manager.send_to_room", AsyncMock()),
-        patch("backend.session.messages.get_game", get_game),
-        patch("backend.session.messages.get_room", get_room),
-        patch("backend.session.messages.manager.send_to_room", AsyncMock()),
-        patch("backend.session.messages.manager.send_to_player", AsyncMock()) as send_player,
+        patch("backend.session.ai.manager.broadcast_move", AsyncMock()),
     ):
         await handle_ai_move(room_id, game, room_data=room)
 
         assert persisted["game"]["mover"] == "черный"
         assert persisted["game"].get("pending_mandatory_position") is None
 
-        await process_client_message(
-            room_id,
-            "human-1",
-            {"position": "position11"},
-            ws,
-            is_ai_room=True,
-        )
-
-        hint_payload = send_player.call_args[0][1]
-        assert hint_payload.get("message_code") != "capture.continue_same"
-        assert 25 in (hint_payload.get("essential_positions") or [])
-
         event = build_hint_event_from_game(persisted["game"], 11)
-        expected = logic.handle_event(
+        hint = logic.handle_event(
             event,
             batyr_captured_this_turn=persisted["game"].get("pending_batyr_captures"),
             position_history=persisted["game"].get("position_history"),
         )
-        assert hint_payload["essential_positions"] == expected.essential_positions
+        assert hint.message_code != "capture.continue_same"
+        assert 25 in (hint.essential_positions or [])
 
 
 @pytest.mark.asyncio

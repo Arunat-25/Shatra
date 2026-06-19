@@ -56,7 +56,7 @@ async def test_handle_ai_move_completes_six_jump_chain():
         patch("backend.session.ai.asyncio.sleep", new_callable=AsyncMock),
         patch("backend.session.ai.get_ai_move", scripted_move),
         patch("backend.session.ai.set_game", new_callable=AsyncMock),
-        patch("backend.session.ai.manager.send_to_room", new_callable=AsyncMock),
+        patch("backend.session.ai.manager.broadcast_move", new_callable=AsyncMock),
         patch("backend.session.ai.apply_move_result", new_callable=AsyncMock) as apply_mock,
     ):
         async def _apply(room_id, g, result, prev_mover, from_cell, to_cell):

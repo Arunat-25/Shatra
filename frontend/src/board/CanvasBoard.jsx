@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { computeBoardLayout, hitTestCell } from './layoutMetrics';
 import { drawBoardFrame, drawBoardState } from './drawBoard';
 import useBoardInteraction from '../hooks/useBoardInteraction';
+import usePieceSlideOverlay from '../hooks/usePieceSlideOverlay';
 
 const BOARD_ASPECT = 13.6 / 7;
 
@@ -35,6 +36,7 @@ export default function CanvasBoard({
   historyTo = null,
   myColor,
   interactive = true,
+  enableMoveAnimation = true,
   drawTheme = 'default',
   vectorOnlySprites = false,
 }) {
@@ -43,6 +45,7 @@ export default function CanvasBoard({
   const layoutRef = useRef(null);
   const rafRef = useRef(null);
   const dragGhostDrawRef = useRef(null);
+  const slideOverlayDrawRef = useRef(null);
   const lastSizeRef = useRef({ w: 0, h: 0 });
   const paintStateRef = useRef({});
 
@@ -57,6 +60,19 @@ export default function CanvasBoard({
     historyTo,
   };
 
+  const getCellCenter = useCallback((cellId) => {
+    const layout = layoutRef.current;
+    const canvas = canvasRef.current;
+    const rect = layout?.cells?.[cellId];
+    if (!rect || !canvas) return null;
+    const cr = canvas.getBoundingClientRect();
+    return {
+      x: cr.left + rect.x + rect.w / 2,
+      y: cr.top + rect.y + rect.h / 2,
+      size: rect.w,
+    };
+  }, []);
+
   const resolveCellAt = useCallback((clientX, clientY) => {
     const canvas = canvasRef.current;
     const layout = layoutRef.current;
@@ -67,14 +83,45 @@ export default function CanvasBoard({
     return hitTestCell(layout.cells, x, y);
   }, []);
 
-  const { handleCellClick, registerDragGhostListener } = useBoardInteraction({
+  const legalDests = useMemo(
+    () => new Set(highlightedEssential),
+    [highlightedEssential],
+  );
+
+  const { slideOverlay, markSlideHandled } = usePieceSlideOverlay({
+    lastMove,
+    board,
+    getCellCenter,
+    enabled: interactive && enableMoveAnimation,
+  });
+
+  const onDragDropComplete = useCallback((from, to) => {
+    markSlideHandled(from, to);
+  }, [markSlideHandled]);
+
+  const { beginDrag, handleCellClick, registerDragGhostListener } = useBoardInteraction({
     board,
     onCellClick,
     moveFrom,
     interactive,
-    enablePieceDrag: false,
+    enablePieceDrag: true,
     resolveCellAt,
+    legalDests,
+    getCellCenter,
+    onDragDropComplete,
   });
+
+  const toCanvasOverlay = useCallback((overlay) => {
+    if (!overlay?.piece) return null;
+    const canvas = canvasRef.current;
+    if (!canvas) return overlay;
+    const cr = canvas.getBoundingClientRect();
+    return {
+      ...overlay,
+      x: overlay.x - cr.left,
+      y: overlay.y - cr.top,
+    };
+  }, []);
 
   const paint = useCallback(() => {
     const canvas = canvasRef.current;
@@ -94,19 +141,16 @@ export default function CanvasBoard({
 
     drawBoardFrame(ctx, layout, drawTheme);
 
-    let dragGhost = dragGhostDrawRef.current;
-    if (dragGhost?.piece) {
-      const rect = canvas.getBoundingClientRect();
-      dragGhost = {
-        ...dragGhost,
-        x: dragGhost.x - rect.left,
-        y: dragGhost.y - rect.top,
-      };
+    const hiddenPieceCells = new Set();
+    if (slideOverlayDrawRef.current?.toCell != null) {
+      hiddenPieceCells.add(slideOverlayDrawRef.current.toCell);
     }
 
     drawBoardState(ctx, layout, {
       ...state,
-      dragGhost,
+      dragGhost: dragGhostDrawRef.current,
+      slideOverlay: slideOverlayDrawRef.current,
+      hiddenPieceCells,
       theme: drawTheme,
       vectorOnlySprites,
     });
@@ -172,23 +216,41 @@ export default function CanvasBoard({
     lastMove,
     historyFrom,
     historyTo,
+    slideOverlay,
     schedulePaint,
   ]);
 
-  useEffect(() => registerDragGhostListener((ghost) => {
-    dragGhostDrawRef.current = ghost;
+  useEffect(() => {
+    slideOverlayDrawRef.current = toCanvasOverlay(slideOverlay);
     schedulePaint();
-  }), [registerDragGhostListener, schedulePaint]);
+  }, [slideOverlay, toCanvasOverlay, schedulePaint]);
+
+  useEffect(() => registerDragGhostListener((ghost) => {
+    dragGhostDrawRef.current = toCanvasOverlay(ghost);
+    schedulePaint();
+  }), [registerDragGhostListener, schedulePaint, toCanvasOverlay]);
 
   const onPointerDown = useCallback((event) => {
     if (!interactive) return;
     if (event.button != null && event.button !== 0) return;
     const cellId = resolveCellAt(event.clientX, event.clientY);
     if (cellId == null) return;
+
+    const piece = board[cellId];
+    if (piece) {
+      const layout = layoutRef.current;
+      const rect = layout?.cells?.[cellId];
+      const cellSize = rect ? Math.round(rect.w) : 40;
+      event.preventDefault();
+      beginDrag(cellId, event, cellSize);
+      schedulePaint();
+      return;
+    }
+
     event.preventDefault();
     handleCellClick(cellId);
     schedulePaint();
-  }, [interactive, resolveCellAt, handleCellClick, schedulePaint]);
+  }, [interactive, board, resolveCellAt, beginDrag, handleCellClick, schedulePaint]);
 
   return (
     <div ref={containerRef} className="board-content board-content--canvas">

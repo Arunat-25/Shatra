@@ -2,12 +2,22 @@ import { useCallback } from 'react';
 import { GAME_ACTIONS } from '../game/actions';
 import { MSG_WARNING } from '../constants';
 import { getPieceColor } from '../utils';
-import { buildHintPayload, buildMovePayload } from '../utils/wsPayloads';
+import { buildMovePayload } from '../utils/wsPayloads';
+import { computeLocalHints } from '../engine/localHints';
+import { applyLocalMove } from '../engine/localMove';
 import i18n from '../i18n';
 
 function chainCaptureCell(state) {
   const pos = state.posForMandatoryCapture;
   return pos != null ? Number(pos) : null;
+}
+
+function applyLocalHighlights(dispatch, state, fromCell) {
+  const { essential, captured } = computeLocalHints(state, fromCell);
+  dispatch({
+    type: GAME_ACTIONS.HIGHLIGHTS,
+    payload: { essential, captured },
+  });
 }
 
 export default function useCellClick({
@@ -20,10 +30,29 @@ export default function useCellClick({
 }) {
   const selectPiece = useCallback((positionNum) => {
     dispatch({ type: GAME_ACTIONS.SET_MOVE_FROM, payload: positionNum });
-    if (!send(buildHintPayload(positionNum))) {
+    applyLocalHighlights(dispatch, stateRef.current, positionNum);
+  }, [dispatch, stateRef]);
+
+  const trySendMove = useCallback((from, to, { deselect = false } = {}) => {
+    const s = stateRef.current;
+    const wsPayload = buildMovePayload(s, from, to);
+    const { ok, result } = applyLocalMove(s, from, to);
+    if (!ok) return false;
+
+    dispatch({
+      type: GAME_ACTIONS.OPTIMISTIC_MOVE,
+      payload: { result, from, to, ply: wsPayload.ply },
+    });
+
+    if (!send(wsPayload)) {
+      dispatch({ type: GAME_ACTIONS.ROLLBACK_OPTIMISTIC });
       showMessage(i18n.t('game.connectionLost'), MSG_WARNING);
+      return false;
     }
-  }, [dispatch, send, showMessage]);
+
+    if (deselect) deselectPiece();
+    return true;
+  }, [stateRef, dispatch, send, deselectPiece, showMessage]);
 
   return useCallback((positionNum) => {
     if (isBlocked) return;
@@ -37,9 +66,7 @@ export default function useCellClick({
     const chainCell = chainCaptureCell(s);
     if (chainCell != null) {
       if (positionNum === chainCell) {
-        if (!send(buildHintPayload(chainCell))) {
-          showMessage(i18n.t('game.connectionLost'), MSG_WARNING);
-        }
+        applyLocalHighlights(dispatch, s, chainCell);
         return;
       }
 
@@ -48,8 +75,8 @@ export default function useCellClick({
         return;
       }
 
-      if (!send(buildMovePayload(s, chainCell, positionNum))) {
-        showMessage(i18n.t('game.connectionLost'), MSG_WARNING);
+      if (!trySendMove(chainCell, positionNum)) {
+        return;
       }
       return;
     }
@@ -57,7 +84,7 @@ export default function useCellClick({
     if (s.moveFrom === null) {
       const piece = s.board[positionNum];
       if (!piece || getPieceColor(piece) !== s.myColor) return;
-      selectPiece(positionNum, s);
+      selectPiece(positionNum);
       return;
     }
 
@@ -68,14 +95,12 @@ export default function useCellClick({
 
     const targetPiece = s.board[positionNum];
     if (targetPiece && getPieceColor(targetPiece) === s.myColor) {
-      selectPiece(positionNum, s);
+      selectPiece(positionNum);
       return;
     }
 
-    if (!send(buildMovePayload(s, s.moveFrom, positionNum))) {
-      showMessage(i18n.t('game.connectionLost'), MSG_WARNING);
+    if (!trySendMove(s.moveFrom, positionNum, { deselect: true })) {
       return;
     }
-    deselectPiece();
-  }, [isBlocked, stateRef, showMessage, selectPiece, deselectPiece, send]);
+  }, [isBlocked, stateRef, showMessage, selectPiece, deselectPiece, trySendMove, dispatch]);
 }

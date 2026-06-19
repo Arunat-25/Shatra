@@ -1,3 +1,5 @@
+"""WebSocket endpoint for protocol v2 (`/ws/v2/{room_id}/`)."""
+
 import asyncio
 import logging
 
@@ -7,36 +9,35 @@ from backend.state import get_game, get_room, set_room, game_timers
 from backend.ws_manager import manager, handle_player2_join
 from backend.timers import game_ticker
 from backend.models import Room
-from backend.game_helpers import build_game_started_response, get_player_color
+from backend.game_helpers import get_player_color
 from backend.chat import send_chat_history
 from backend.db.session import get_session_factory
 from backend.player_identity import build_players_info, refresh_pvp_ratings_for_room, resolve_user_from_access_token
 from backend.session.ai import _start_ai_game
 from backend.session.disconnect import _handle_disconnect
 from backend.session.rematch import _broadcast_rematch_status
-from backend.session.messages import process_client_message, _send_ws_error
+from backend.session.v2.messages import process_v2_client_message
+from backend.session.v2.protocol import PROTO_VERSION, build_waiting, build_error
 
 logger = logging.getLogger(__name__)
 
 
-async def _wait_for_second_player(
+async def _wait_for_second_player_v2(
     websocket: WebSocket,
     room_id: str,
     room_data: dict,
     client_id: str,
 ) -> dict | None:
-    """Ожидание второго игрока (пока в комнате один участник)."""
     room_type = room_data.get("type")
-    await manager.send_to_player(websocket, {
-        "status": "waiting",
-        "link": room_id,
-        "room_type": room_type,
-        "show_invite_link": (
-            room_type == "private"
-            and client_id == room_data.get("creator_client_id")
+    await manager.send_to_player(
+        websocket,
+        build_waiting(
+            room_id,
+            room_data,
+            client_id=client_id,
+            players_info=build_players_info(room_data),
         ),
-        "players_info": build_players_info(room_data),
-    })
+    )
     try:
         while not room_data.get("game_started"):
             try:
@@ -55,7 +56,7 @@ async def _wait_for_second_player(
         return None
 
 
-async def websocket_endpoint(websocket: WebSocket, room_id: str):
+async def websocket_endpoint_v2(websocket: WebSocket, room_id: str):
     client_id = websocket.query_params.get("client_id")
     if not client_id:
         await websocket.close(code=1008)
@@ -67,7 +68,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
     async with factory() as db:
         user = await resolve_user_from_access_token(access_token, db)
 
-    if not await manager.connect(room_id, websocket, client_id, user=user):
+    if not await manager.connect(room_id, websocket, client_id, user=user, proto=PROTO_VERSION):
         return
 
     room_data = await get_room(room_id)
@@ -100,14 +101,13 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
             if room_data.get("type") in ("public", "private"):
                 await refresh_pvp_ratings_for_room(room_data)
                 await set_room(room_id, room_data)
-            response = build_game_started_response(game, room_data, my_color)
-            await manager.send_to_player(websocket, response)
+            await manager.send_join_state(websocket, room_id, client_id, game, room_data, my_color)
             if game.get("game_over") and not is_ai_room:
                 await _broadcast_rematch_status(room_id, room_data)
             elif room_data.get("time_control") and room_id not in game_timers:
                 game_timers[room_id] = asyncio.create_task(game_ticker(room_id))
     elif players_in_room < 2:
-        room_data = await _wait_for_second_player(websocket, room_id, room_data, client_id)
+        room_data = await _wait_for_second_player_v2(websocket, room_id, room_data, client_id)
         if room_data is None:
             return
     else:
@@ -124,12 +124,12 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
             except WebSocketDisconnect:
                 raise
             except RuntimeError as e:
-                logger.info("WebSocket runtime error in room %s (closing loop): %s", room_id, e)
+                logger.info("WebSocket v2 runtime error in room %s (closing loop): %s", room_id, e)
                 break
             except Exception as e:
                 msg = str(e)
                 if "WebSocket is not connected" in msg:
-                    logger.info("WebSocket not connected in room %s (closing loop)", room_id)
+                    logger.info("WebSocket v2 not connected in room %s (closing loop)", room_id)
                     break
                 logger.warning(
                     "Invalid JSON from client %s in room %s: %s",
@@ -137,14 +137,14 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                     room_id,
                     e,
                 )
-                await _send_ws_error(websocket, "ws.invalid_json")
+                await manager.send_to_player(websocket, build_error("ws.invalid_json"))
                 continue
 
             if not isinstance(data, dict):
-                await _send_ws_error(websocket, "ws.expected_object")
+                await manager.send_to_player(websocket, build_error("ws.expected_object"))
                 continue
 
-            if not await process_client_message(
+            if not await process_v2_client_message(
                 room_id, client_id, data, websocket, is_ai_room=is_ai_room
             ):
                 break

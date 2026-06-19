@@ -19,7 +19,7 @@ def new_client_id() -> str:
 
 
 def ws_path(room_id: str, client_id: str, access_token: str | None = None) -> str:
-    path = f"/ws/{room_id}/?client_id={client_id}"
+    path = f"/ws/v2/{room_id}/?client_id={client_id}"
     if access_token:
         path += f"&access_token={access_token}"
     return path

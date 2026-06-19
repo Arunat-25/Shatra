@@ -14,6 +14,7 @@ from backend.board_utils import (
 from backend.game_helpers import (
     assign_player_color,
     build_move_response,
+    build_move_delta_response,
     is_rejected_move,
     parse_client_event,
     resolve_creator_color,
@@ -126,6 +127,33 @@ class TestMoveHistoryResponse:
         )
         resp = build_move_response(game, result, "белый", 45, 37)
         assert resp["position_for_mandatory_capture"] is None
+
+
+class TestMoveDeltaResponse:
+    """Normal move broadcasts omit full desk (Stage 5)."""
+
+    def test_delta_omits_desk_and_history(self, starting_board):
+        board = dict(starting_board)
+        board[45] = None
+        board[37] = "белый бий"
+        game = {
+            "board": board,
+            "move_history": [{"from_pos": 1, "to_pos": 2, "desk": keys_int_to_str(board)}],
+            "ply": 1,
+        }
+        result = GameEventResult(
+            message_code=TURN_NOW,
+            movers_color="черный",
+            captured_positions=[28],
+        )
+        resp = build_move_delta_response(game, result, "белый", 45, 37)
+        assert "desk" not in resp
+        assert "move_history" not in resp
+        assert resp["from_pos"] == 45
+        assert resp["to_pos"] == 37
+        assert resp["mover"] == "белый"
+        assert resp["ply"] == 1
+        assert resp["captured_positions"] == [28]
 
 
 class TestUpdateCaptures:

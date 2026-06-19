@@ -1,8 +1,9 @@
-import { useReducer, useCallback, useRef, useEffect } from 'react';
+import { useCallback, useRef, useEffect, useReducer } from 'react';
 import { GAME_ACTIONS } from '../game/actions';
 import { gameReducer, initialGameState } from '../game/reducer';
 import { dispatchServerMessage } from '../game/messageHandlers';
 import { playForAction, playForServerError } from '../audio/playGameSound';
+import { classifyIncomingPly, isMoveConfirmation, hasOutstandingPending } from '../game/syncLayer';
 
 export { GAME_ACTIONS } from '../game/actions';
 
@@ -21,14 +22,6 @@ export default function useGameReducer(modeAi, getMyColor) {
 
   const readMyColor = useCallback(() => getMyColorRef.current?.(), []);
 
-  const readSelection = useCallback(() => {
-    const s = stateRef.current;
-    return {
-      moveFrom: s.moveFrom,
-      chainCell: s.posForMandatoryCapture != null ? Number(s.posForMandatoryCapture) : null,
-    };
-  }, []);
-
   const dispatch = useCallback((action) => {
     playForAction(action, stateRef.current, readMyColor);
     baseDispatch(action);
@@ -38,10 +31,23 @@ export default function useGameReducer(modeAi, getMyColor) {
     (data) => {
       if (data?.status === 'error') {
         playForServerError();
+        if (hasOutstandingPending(stateRef.current)) {
+          baseDispatch({ type: GAME_ACTIONS.ROLLBACK_OPTIMISTIC });
+        }
       }
-      return dispatchServerMessage(data, dispatch, modeAi, readMyColor, readSelection);
+
+      if (isMoveConfirmation(data)) {
+        const verdict = classifyIncomingPly(stateRef.current.confirmedPly, data.ply);
+        if (verdict === 'stale') return null;
+        if (verdict === 'gap') {
+          baseDispatch({ type: GAME_ACTIONS.SET_SYNC_STATUS, payload: 'desynced' });
+          return { needSync: true };
+        }
+      }
+
+      return dispatchServerMessage(data, dispatch, modeAi, readMyColor);
     },
-    [modeAi, dispatch, readMyColor, readSelection],
+    [modeAi, dispatch, readMyColor],
   );
 
   const deselectPiece = useCallback(() => {

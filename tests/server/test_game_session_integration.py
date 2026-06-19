@@ -231,20 +231,21 @@ class TestProcessClientMessageMoves:
             with patch("backend.session.messages._decline_draw_offer", new_callable=AsyncMock) as decline:
                 with patch("backend.session.messages.apply_move_result", new_callable=AsyncMock) as apply:
                     apply.return_value = {"message_code": "turn.now", "desk": {}}
-                    with patch("backend.session.messages.logic.handle_event") as handle:
-                        from game_engine.models import GameEventResult
-                        handle.return_value = GameEventResult(
-                            message_code="",
-                            movers_color="черный",
-                            updated_positions=dict(st.game["board"]),
-                        )
-                        await process_client_message(
-                            "room1",
-                            "p-white",
-                            _legal_white_move_payload(st.game),
-                            ws,
-                            is_ai_room=False,
-                        )
+                    with patch("backend.session.messages.manager.broadcast_move", new_callable=AsyncMock):
+                        with patch("backend.session.messages.logic.handle_event") as handle:
+                            from game_engine.models import GameEventResult
+                            handle.return_value = GameEventResult(
+                                message_code="",
+                                movers_color="черный",
+                                updated_positions=dict(st.game["board"]),
+                            )
+                            await process_client_message(
+                                "room1",
+                                "p-white",
+                                _legal_white_move_payload(st.game),
+                                ws,
+                                is_ai_room=False,
+                            )
 
             decline.assert_called_once()
 
@@ -454,7 +455,7 @@ class TestHandlePlayer2Join:
                         with patch("backend.ws_manager.set_room", new_callable=AsyncMock):
                             with patch("backend.ws_manager.manager") as mgr:
                                 mgr.get_ws = MagicMock(side_effect=lambda rid, cid: ws_a if cid == "a" else ws_b)
-                                mgr.send_to_player = AsyncMock()
+                                mgr.send_join_state = AsyncMock()
                                 with patch("backend.ws_manager.game_timers", {}):
                                     with patch("backend.ws_manager.asyncio.create_task") as create_task:
                                         def close_coro(coro):
@@ -465,5 +466,5 @@ class TestHandlePlayer2Join:
                                         await handle_player2_join("j1", room)
 
         assert room["game_started"] is True
-        assert mgr.send_to_player.call_count == 2
+        assert mgr.send_join_state.call_count == 2
         create_task.assert_called_once()

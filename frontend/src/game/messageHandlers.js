@@ -17,16 +17,6 @@ function isAiThinking(modeAi, moversColor, myColor, payload) {
   return moversColor !== myColor;
 }
 
-/** Ignore stale hint responses after the user selected another piece. */
-export function hintMatchesSelection(data, getSelection) {
-  const hintPos = data.hint_position != null ? Number(data.hint_position) : null;
-  if (hintPos == null || Number.isNaN(hintPos)) return true;
-  if (!getSelection) return true;
-  const { moveFrom, chainCell } = getSelection();
-  const expected = moveFrom ?? chainCell;
-  if (expected == null) return false;
-  return hintPos === Number(expected);
-}
 
 export const messageHandlers = [
   {
@@ -95,7 +85,10 @@ export const messageHandlers = [
     },
   },
   {
-    check: (d) => d.desk && (d.message_code != null || d.message),
+    check: (d) => {
+      if (d.message_code == null && !d.message) return false;
+      return d.from_pos != null && d.to_pos != null;
+    },
     handle: (d, dispatch, modeAi, getMyColor) => {
       const myColor = getMyColor?.() || null;
       const aiThinking = isAiThinking(modeAi, d.movers_color, myColor, d);
@@ -103,33 +96,8 @@ export const messageHandlers = [
         dispatch({ type: GAME_ACTIONS.SET_MOVE_HISTORY, payload: d.move_history });
       }
       dispatch({ type: GAME_ACTIONS.MOVE_MADE, payload: { ...d, aiThinking } });
-      if (d.essential_positions?.length && d.movers_color === myColor) {
-        dispatch({
-          type: GAME_ACTIONS.HIGHLIGHTS,
-          payload: {
-            essential: d.essential_positions || [],
-            captured: d.captured_pieces || [],
-          },
-        });
-      }
       if (d.game_over) return null;
       return msg(d, 'info');
-    },
-  },
-  {
-    check: (d) => d.essential_positions !== undefined && !d.message_code && !d.message,
-    handle: (d, dispatch, _modeAi, getMyColor, getSelection) => {
-      const myColor = getMyColor?.() || null;
-      if (d.movers_color != null && d.movers_color !== myColor) return null;
-      if (!hintMatchesSelection(d, getSelection)) return null;
-      dispatch({
-        type: GAME_ACTIONS.HIGHLIGHTS,
-        payload: {
-          essential: d.essential_positions || [],
-          captured: d.captured_pieces || [],
-        },
-      });
-      return null;
     },
   },
   {
@@ -233,10 +201,10 @@ export const messageHandlers = [
   },
 ];
 
-export function dispatchServerMessage(data, dispatch, modeAi, getMyColor, getSelection) {
+export function dispatchServerMessage(data, dispatch, modeAi, getMyColor) {
   for (const { check, handle } of messageHandlers) {
     if (check(data)) {
-      return handle(data, dispatch, modeAi, getMyColor, getSelection);
+      return handle(data, dispatch, modeAi, getMyColor);
     }
   }
   if (import.meta.env?.DEV) {

@@ -7,7 +7,7 @@ import {
   parseWsMessage,
   shouldStopReconnecting,
 } from '../wsReconnect';
-import { isHintWsMessage } from '../utils/wsPayloads';
+import { adaptV2ServerMessage, isV2ServerMessage } from '../ws/v2/adapter';
 
 export default function useWebSocket(roomId, onMessage, onError, onStatus) {
   const wsRef = useRef(null);
@@ -20,12 +20,17 @@ export default function useWebSocket(roomId, onMessage, onError, onStatus) {
   const onMessageRef = useRef(onMessage);
   const onErrorRef = useRef(onError);
   const onStatusRef = useRef(onStatus);
+  const boardRef = useRef({});
 
   useEffect(() => {
     onMessageRef.current = onMessage;
     onErrorRef.current = onError;
     onStatusRef.current = onStatus;
   }, [onMessage, onError, onStatus]);
+
+  const setBoardRef = useCallback((board) => {
+    boardRef.current = board || {};
+  }, []);
 
   const clearReconnectTimer = useCallback(() => {
     if (reconnectTimerRef.current) {
@@ -58,7 +63,16 @@ export default function useWebSocket(roomId, onMessage, onError, onStatus) {
         onErrorRef.current?.(parsed.error);
         return;
       }
-      onMessageRef.current?.(parsed.data);
+      let data = parsed.data;
+      if (isV2ServerMessage(data)) {
+        data = adaptV2ServerMessage(data, { board: boardRef.current });
+        if (data._v2Resync) {
+          onMessageRef.current?.(data._v2Resync);
+          const { _v2Resync, ...errorShape } = data;
+          data = errorShape;
+        }
+      }
+      onMessageRef.current?.(data);
     };
 
     ws.onopen = () => {
@@ -141,7 +155,6 @@ export default function useWebSocket(roomId, onMessage, onError, onStatus) {
       return true;
     }
     if (ws?.readyState === WebSocket.CONNECTING) {
-      if (isHintWsMessage(data)) return false;
       outboundQueueRef.current.push(payload);
       return true;
     }
@@ -164,5 +177,5 @@ export default function useWebSocket(roomId, onMessage, onError, onStatus) {
     wsRef.current?.close();
   }, [clearReconnectTimer]);
 
-  return { send, close, retryConnect, wsRef, intentionalCloseRef };
+  return { send, close, retryConnect, wsRef, intentionalCloseRef, setBoardRef };
 }
