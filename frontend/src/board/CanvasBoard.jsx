@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
+import useMediaQuery from '../hooks/useMediaQuery';
+import { COMPACT_GAME_QUERY } from '../constants';
 import { computeBoardLayout, hitTestCell, readBoardUnitMetrics, readCellNumberScale, readBoardHeightUnits, deriveMetricsFromBoardSlot, BOARD_HEIGHT_UNITS } from './layoutMetrics';
 import { drawBoardFrame, drawBoardState } from './drawBoard';
 import useBoardInteraction from '../hooks/useBoardInteraction';
@@ -72,8 +74,9 @@ export default function CanvasBoard({
   vectorOnlySprites = false,
   getDragLegalDests = null,
 }) {
-  const fillSlotRef = useRef(true);
-  fillSlotRef.current = true;
+  const compactViewport = useMediaQuery(COMPACT_GAME_QUERY);
+  const fillSlotRef = useRef(compactViewport);
+  fillSlotRef.current = compactViewport;
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const layoutRef = useRef(null);
@@ -264,7 +267,7 @@ export default function CanvasBoard({
     }
 
     schedulePaint();
-  }, [myColor, schedulePaint]);
+  }, [myColor, schedulePaint, compactViewport]);
 
   useEffect(() => {
     resizeCanvas();

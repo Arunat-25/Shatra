@@ -28,16 +28,15 @@ function boardFromFixture(cells) {
   return board;
 }
 
-function gameStateFromServer({ board, mover, pending }) {
+function gameStateFromServer({ board, mover, pending, batyrCaptured = [] }) {
   return {
     board,
     moversColor: mover,
     posForMandatoryCapture: pending ?? null,
-    batyrCapturedThisTurn: [],
+    batyrCapturedThisTurn: batyrCaptured,
   };
 }
 
-/** Replay moves with client chain cell derived from server pending (null at turn start). */
 /** Mirror backend persist_pending_mandatory_position on the client. */
 function persistClientChainCell(result, prevMover) {
   const pending = result.positionForMandatoryCapture ?? null;
@@ -47,23 +46,40 @@ function persistClientChainCell(result, prevMover) {
   return null;
 }
 
+/** Mirror backend update_captures on the client replay path. */
+function persistBatyrCaptures(result, prevMover, prevBatyrCaptures) {
+  if (result.moversColor && result.moversColor !== prevMover) {
+    return [];
+  }
+  if (result.capturedPieces?.length) {
+    return [...result.capturedPieces];
+  }
+  if (!result.positionForMandatoryCapture) {
+    return [];
+  }
+  return prevBatyrCaptures;
+}
+
 function replayWithClientRules(moves, scenario = {}) {
   let board = initialBoardForScenario(scenario);
-  let mover = moves[0][0];
+  let mover = scenario.mover ?? moves[0]?.[0] ?? scenario.expect_mover;
   let chainCell = null;
+  let batyrCaptured = [];
 
   for (const [color, from, to] of moves) {
     expect(mover).toBe(color);
     const prevMover = mover;
-    const state = gameStateFromServer({ board, mover, pending: chainCell });
+    const prevBatyr = batyrCaptured;
+    const state = gameStateFromServer({ board, mover, pending: chainCell, batyrCaptured });
     const { ok, result } = applyLocalMove(state, from, to);
     expect(ok).toBe(true);
     board = result.updatedPositions;
     mover = result.moversColor ?? mover;
     chainCell = persistClientChainCell(result, prevMover);
+    batyrCaptured = persistBatyrCaptures(result, prevMover, prevBatyr);
   }
 
-  return { board, mover, chainCell };
+  return { board, mover, chainCell, batyrCaptured };
 }
 
 describe('client/server sync fixtures', () => {
@@ -78,13 +94,14 @@ describe('client/server sync fixtures', () => {
       });
 
       it('legal moves succeed locally with server chain cell', () => {
-        const { board, mover, chainCell } = replayWithClientRules(scenario.moves, scenario);
+        const { board, mover, chainCell, batyrCaptured } = replayWithClientRules(scenario.moves, scenario);
 
         for (const move of scenario.legal_moves || []) {
           const state = gameStateFromServer({
             board,
             mover,
             pending: chainCell,
+            batyrCaptured,
           });
           const { ok, result } = applyLocalMove(state, move.from, move.to);
           expect(ok).toBe(true);
@@ -108,6 +125,24 @@ describe('client/server sync fixtures', () => {
           expect(ok).toBe(false);
           expect(MOVE_REJECT_MESSAGE_CODES.has(result.messageCode)).toBe(true);
           expect(result.messageCode).toBe(move.code);
+        }
+      });
+
+      it('illegal moves without chain are rejected like the server', () => {
+        const { board, mover, chainCell, batyrCaptured } = replayWithClientRules(scenario.moves, scenario);
+
+        for (const move of scenario.illegal_moves || []) {
+          const state = gameStateFromServer({
+            board,
+            mover,
+            pending: chainCell,
+            batyrCaptured,
+          });
+          const { ok, result } = applyLocalMove(state, move.from, move.to);
+          expect(ok).toBe(false);
+          if (move.code) {
+            expect(result.messageCode).toBe(move.code);
+          }
         }
       });
 

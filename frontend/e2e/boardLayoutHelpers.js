@@ -97,12 +97,7 @@ export async function readBoardLayout(page) {
 /** Toggle lite board mode and wait for the board surface to switch. */
 export async function toggleLiteBoard(page) {
   const wasCanvas = (await page.locator('.board-canvas').count()) > 0;
-  let toggle = page.locator('.app-lite-ui-toggle');
-  if (!(await toggle.isVisible().catch(() => false))) {
-    const menuBtn = page.getByRole('button', { name: /меню|menu/i });
-    await menuBtn.click();
-    toggle = page.locator('.app-nav-drawer__link').filter({ hasText: /lite board|облегч/i });
-  }
+  const toggle = page.locator('.app-lite-ui-toggle');
   await expect(toggle).toBeVisible();
   await toggle.click();
   if (wasCanvas) {

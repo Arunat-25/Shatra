@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 from backend.board_utils import get_starting_board
-from backend.game_helpers import bump_ply, persist_pending_mandatory_position
+from backend.game_helpers import bump_ply, persist_pending_mandatory_position, update_captures
 from backend.session.v2.protocol import build_move_event_from_game, build_move_delta, build_snapshot
 from game_engine.game_logic import logic
 from game_engine.models import GameEvent
@@ -55,6 +55,7 @@ def simulate_server_replay(
 
         persist_pending_mandatory_position(state, result, prev_mover)
         state["board"] = result.updated_positions
+        update_captures(state, result)
         if result.movers_color:
             state["mover"] = result.movers_color
         bump_ply(state)
@@ -107,6 +108,7 @@ def try_server_move(
     if result.updated_positions and result.updated_positions != game["board"]:
         persist_pending_mandatory_position(game, result, prev_mover)
         game["board"] = result.updated_positions
+        update_captures(game, result)
         if result.movers_color:
             game["mover"] = result.movers_color
         bump_ply(game)

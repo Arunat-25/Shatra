@@ -164,6 +164,7 @@ export default function AuthNav() {
       >
         <IconMenu />
       </button>
+      {showLiteBoardToggle ? <LiteUiToggle /> : null}
     </div>
   ) : (
     <div ref={topStartRef} className="app-top-start">
@@ -200,11 +201,6 @@ export default function AuthNav() {
             {t('nav.reportBug')}
           </button>
         </div>
-        {showLiteBoardToggle ? (
-          <div className="app-nav-drawer__section">
-            <LiteUiToggle variant="drawer" />
-          </div>
-        ) : null}
         <div className="app-nav-drawer__section app-nav-drawer__section--locale">
           <LocaleSwitcher />
         </div>
@@ -220,6 +216,11 @@ export default function AuthNav() {
       {topTools}
       {!compactMobileNav && (
         <div ref={topEndRef} className="app-top-end">
+          {showLiteBoardToggle ? (
+            <div className="app-lite-board-nav">
+              <LiteUiToggle />
+            </div>
+          ) : null}
           <div className="app-auth-nav">
             <button
               type="button"
@@ -230,7 +231,6 @@ export default function AuthNav() {
             </button>
           </div>
           <div className="app-locale-nav">
-            {showLiteBoardToggle ? <LiteUiToggle /> : null}
             <LocaleSwitcher />
           </div>
           {accountNav(false)}

@@ -75,6 +75,15 @@ describe('AuthNav compact mobile nav', () => {
     expect(document.documentElement.classList.contains('app-shell--game-nav-compact')).toBe(true);
   });
 
+  it('shows lite board toggle next to hamburger on mobile game route', () => {
+    renderNav('/room123');
+    const compactStart = document.querySelector('.app-top-start--compact');
+    expect(compactStart?.querySelector('.app-nav-menu-toggle')).toBeTruthy();
+    expect(compactStart?.querySelector('.app-lite-ui-toggle')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'nav.openMenu' }));
+    expect(document.getElementById('app-nav-drawer')?.querySelector('.app-lite-ui-toggle')).toBeNull();
+  });
+
   it('does not show support button in AuthNav on lobby mobile (rendered in Lobby)', () => {
     renderNav('/');
     expect(screen.queryByRole('link', { name: 'nav.support' })).toBeNull();
@@ -134,6 +143,8 @@ describe('AuthNav compact mobile nav', () => {
     }));
     renderNav('/room123');
     const btn = screen.getByRole('button', { name: 'nav.liteUiOff' });
+    expect(btn.closest('.app-lite-board-nav')).toBeTruthy();
+    expect(btn.closest('.app-locale-nav')).toBeNull();
     expect(btn.getAttribute('aria-pressed')).toBe('false');
     fireEvent.click(btn);
     expect(localStorage.getItem(LITE_UI_KEY)).toBe('true');

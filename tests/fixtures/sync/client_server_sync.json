@@ -1,88 +1,984 @@
 {
+  "version": 1,
+  "generated_by": "scripts/export_client_server_sync.py",
   "scenarios": [
     {
       "id": "user_sequence_28_white_mandatory",
-      "description": "User-reported line: after Black 28-36 White must capture; no single-piece chain lock at turn start",
+      "description": "After Black 28-36 White must capture; no single-piece chain lock at turn start",
       "moves": [
-        ["белый", 40, 32],
-        ["черный", 20, 26],
-        ["белый", 32, 20],
-        ["черный", 12, 28],
-        ["белый", 41, 34],
-        ["черный", 28, 40],
-        ["белый", 39, 41],
-        ["черный", 19, 25],
-        ["белый", 41, 33],
-        ["черный", 25, 41],
-        ["белый", 49, 33],
-        ["черный", 9, 26],
-        ["белый", 33, 19],
-        ["черный", 11, 27],
-        ["белый", 42, 34],
-        ["черный", 27, 41],
-        ["белый", 48, 34],
-        ["черный", 10, 19],
-        ["белый", 34, 26],
-        ["черный", 18, 34],
-        ["белый", 47, 40],
-        ["черный", 21, 28],
-        ["белый", 53, 42],
-        ["черный", 34, 41],
-        ["белый", 50, 49],
-        ["черный", 41, 39],
-        ["белый", 46, 32],
-        ["черный", 28, 36]
+        [
+          "белый",
+          40,
+          32
+        ],
+        [
+          "черный",
+          20,
+          26
+        ],
+        [
+          "белый",
+          32,
+          20
+        ],
+        [
+          "черный",
+          12,
+          28
+        ],
+        [
+          "белый",
+          41,
+          34
+        ],
+        [
+          "черный",
+          28,
+          40
+        ],
+        [
+          "белый",
+          39,
+          41
+        ],
+        [
+          "черный",
+          19,
+          25
+        ],
+        [
+          "белый",
+          41,
+          33
+        ],
+        [
+          "черный",
+          25,
+          41
+        ],
+        [
+          "белый",
+          49,
+          33
+        ],
+        [
+          "черный",
+          9,
+          26
+        ],
+        [
+          "белый",
+          33,
+          19
+        ],
+        [
+          "черный",
+          11,
+          27
+        ],
+        [
+          "белый",
+          42,
+          34
+        ],
+        [
+          "черный",
+          27,
+          41
+        ],
+        [
+          "белый",
+          48,
+          34
+        ],
+        [
+          "черный",
+          10,
+          19
+        ],
+        [
+          "белый",
+          34,
+          26
+        ],
+        [
+          "черный",
+          18,
+          34
+        ],
+        [
+          "белый",
+          47,
+          40
+        ],
+        [
+          "черный",
+          21,
+          28
+        ],
+        [
+          "белый",
+          53,
+          42
+        ],
+        [
+          "черный",
+          34,
+          41
+        ],
+        [
+          "белый",
+          50,
+          49
+        ],
+        [
+          "черный",
+          41,
+          39
+        ],
+        [
+          "белый",
+          46,
+          32
+        ],
+        [
+          "черный",
+          28,
+          36
+        ]
       ],
+      "mover": "белый",
       "expect_mover": "белый",
       "expect_server_pending": null,
-      "expect_delta_chain_cell": null,
       "legal_moves": [
-        { "from": 42, "to": 30, "code": "turn.now", "captures": [36] },
-        { "from": 43, "to": 29, "code": "turn.now", "captures": [36] },
-        { "from": 44, "to": 28, "code": "turn.now", "captures": [36] }
+        {
+          "from": 42,
+          "to": 30,
+          "code": "turn.now",
+          "captures": [
+            36
+          ]
+        },
+        {
+          "from": 43,
+          "to": 29,
+          "code": "turn.now",
+          "captures": [
+            36
+          ]
+        },
+        {
+          "from": 44,
+          "to": 28,
+          "code": "turn.now",
+          "captures": [
+            36
+          ]
+        }
       ],
       "illegal_with_stale_chain": [
-        { "from": 32, "to": 36, "stale_chain": 42, "code": "capture.continue_same" },
-        { "from": 43, "to": 29, "stale_chain": 42, "code": "capture.continue_same" }
+        {
+          "from": 32,
+          "to": 36,
+          "stale_chain": 42,
+          "code": "capture.continue_same"
+        },
+        {
+          "from": 43,
+          "to": 29,
+          "stale_chain": 42,
+          "code": "capture.continue_same"
+        }
+      ],
+      "illegal_moves": [
+        {
+          "from": 42,
+          "to": 36,
+          "code": "move.target_occupied"
+        }
       ]
     },
     {
       "id": "white_shatra_double_capture_chain",
       "description": "Mid-turn chain: pending persists while same player continues",
-      "board": {
-        "20": "белая шатра",
-        "28": "черная шатра",
-        "36": null,
-        "44": "черная шатра",
-        "45": "белая шатра"
-      },
-      "moves": [["белый", 20, 36]],
+      "moves": [
+        [
+          "белый",
+          20,
+          36
+        ]
+      ],
+      "mover": "белый",
       "expect_mover": "белый",
       "expect_server_pending": 36,
+      "board": {
+        "1": null,
+        "2": null,
+        "3": null,
+        "4": null,
+        "5": null,
+        "6": null,
+        "7": null,
+        "8": null,
+        "9": null,
+        "10": null,
+        "11": null,
+        "12": null,
+        "13": null,
+        "14": null,
+        "15": null,
+        "16": null,
+        "17": null,
+        "18": null,
+        "19": null,
+        "20": "белая шатра",
+        "21": null,
+        "22": null,
+        "23": null,
+        "24": null,
+        "25": null,
+        "26": null,
+        "27": null,
+        "28": "черная шатра",
+        "29": null,
+        "30": null,
+        "31": null,
+        "32": null,
+        "33": null,
+        "34": null,
+        "35": null,
+        "36": null,
+        "37": null,
+        "38": null,
+        "39": null,
+        "40": null,
+        "41": null,
+        "42": null,
+        "43": null,
+        "44": "черная шатра",
+        "45": "белая шатра",
+        "46": null,
+        "47": null,
+        "48": null,
+        "49": null,
+        "50": null,
+        "51": null,
+        "52": null,
+        "53": null,
+        "54": null,
+        "55": null,
+        "56": null,
+        "57": null,
+        "58": null,
+        "59": null,
+        "60": null,
+        "61": null,
+        "62": null
+      },
       "expect_delta_chain_cell": 36,
       "legal_moves": [
-        { "from": 36, "to": 52, "code": "turn.now", "captures": [44] }
+        {
+          "from": 36,
+          "to": 52,
+          "code": "turn.now",
+          "captures": [
+            44
+          ]
+        }
       ],
       "illegal_with_stale_chain": [
-        { "from": 45, "to": 37, "stale_chain": 36, "code": "capture.continue_same" }
+        {
+          "from": 45,
+          "to": 37,
+          "stale_chain": 36,
+          "code": "capture.continue_same"
+        }
       ]
     },
     {
       "id": "black_forces_white_capture_from_32",
-      "description": "Regression from AI pending persist tests: single capture then turn passes",
+      "description": "Regression: single mandatory capture then turn passes",
       "moves": [
-        ["белый", 40, 32],
-        ["черный", 19, 25],
-        ["белый", 41, 33],
-        ["черный", 25, 41],
-        ["белый", 42, 40],
-        ["черный", 18, 25]
+        [
+          "белый",
+          40,
+          32
+        ],
+        [
+          "черный",
+          19,
+          25
+        ],
+        [
+          "белый",
+          41,
+          33
+        ],
+        [
+          "черный",
+          25,
+          41
+        ],
+        [
+          "белый",
+          42,
+          40
+        ],
+        [
+          "черный",
+          18,
+          25
+        ]
       ],
+      "mover": "белый",
       "expect_mover": "белый",
       "expect_server_pending": null,
       "legal_moves": [
-        { "from": 32, "to": 18, "code": "turn.now", "captures": [25] }
+        {
+          "from": 32,
+          "to": 18,
+          "code": "turn.now",
+          "captures": [
+            25
+          ]
+        }
       ]
+    },
+    {
+      "id": "black_batyr_chain_ghost_blocks_ray",
+      "description": "Batyr chain: captured cell blocks further targets on same ray",
+      "moves": [
+        [
+          "черный",
+          14,
+          8
+        ]
+      ],
+      "mover": "черный",
+      "expect_mover": "черный",
+      "expect_server_pending": 8,
+      "board": {
+        "1": null,
+        "2": null,
+        "3": null,
+        "4": null,
+        "5": "белая шатра",
+        "6": null,
+        "7": null,
+        "8": null,
+        "9": null,
+        "10": "белая шатра",
+        "11": null,
+        "12": null,
+        "13": null,
+        "14": "черный батыр",
+        "15": null,
+        "16": null,
+        "17": null,
+        "18": null,
+        "19": null,
+        "20": null,
+        "21": "белая шатра",
+        "22": null,
+        "23": null,
+        "24": null,
+        "25": null,
+        "26": null,
+        "27": null,
+        "28": null,
+        "29": null,
+        "30": null,
+        "31": null,
+        "32": null,
+        "33": null,
+        "34": null,
+        "35": null,
+        "36": null,
+        "37": null,
+        "38": null,
+        "39": null,
+        "40": null,
+        "41": null,
+        "42": null,
+        "43": null,
+        "44": null,
+        "45": null,
+        "46": null,
+        "47": null,
+        "48": null,
+        "49": null,
+        "50": null,
+        "51": null,
+        "52": null,
+        "53": null,
+        "54": null,
+        "55": null,
+        "56": null,
+        "57": null,
+        "58": null,
+        "59": null,
+        "60": null,
+        "61": null,
+        "62": null
+      },
+      "expect_delta_chain_cell": 8,
+      "legal_moves": [
+        {
+          "from": 8,
+          "to": 2,
+          "code": "turn.now",
+          "captures": [
+            5
+          ]
+        }
+      ],
+      "illegal_with_stale_chain": [
+        {
+          "from": 21,
+          "to": 28,
+          "stale_chain": 8,
+          "code": "capture.continue_same"
+        }
+      ],
+      "illegal_moves": [
+        {
+          "from": 8,
+          "to": 28,
+          "code": "capture.must_continue"
+        }
+      ]
+    },
+    {
+      "id": "black_batyr_chain_completes_turn",
+      "description": "Batyr finishes capture chain; pending and batyr caps cleared on turn switch",
+      "moves": [
+        [
+          "черный",
+          14,
+          8
+        ],
+        [
+          "черный",
+          8,
+          2
+        ]
+      ],
+      "mover": "черный",
+      "expect_mover": "белый",
+      "expect_server_pending": null,
+      "board": {
+        "1": null,
+        "2": null,
+        "3": null,
+        "4": null,
+        "5": "белая шатра",
+        "6": null,
+        "7": null,
+        "8": null,
+        "9": null,
+        "10": "белая шатра",
+        "11": null,
+        "12": null,
+        "13": null,
+        "14": "черный батыр",
+        "15": null,
+        "16": null,
+        "17": null,
+        "18": null,
+        "19": null,
+        "20": null,
+        "21": "белая шатра",
+        "22": null,
+        "23": null,
+        "24": null,
+        "25": null,
+        "26": null,
+        "27": null,
+        "28": null,
+        "29": null,
+        "30": null,
+        "31": null,
+        "32": null,
+        "33": null,
+        "34": null,
+        "35": null,
+        "36": null,
+        "37": null,
+        "38": null,
+        "39": null,
+        "40": null,
+        "41": null,
+        "42": null,
+        "43": null,
+        "44": null,
+        "45": null,
+        "46": null,
+        "47": null,
+        "48": null,
+        "49": null,
+        "50": null,
+        "51": null,
+        "52": null,
+        "53": null,
+        "54": null,
+        "55": null,
+        "56": null,
+        "57": null,
+        "58": null,
+        "59": null,
+        "60": null,
+        "61": null,
+        "62": null
+      }
+    },
+    {
+      "id": "black_batyr_capture_61_over_55",
+      "description": "Batyr captures by jumping over enemy (land on 53, not 55)",
+      "moves": [],
+      "mover": "черный",
+      "expect_mover": "черный",
+      "expect_server_pending": null,
+      "board": {
+        "1": null,
+        "2": null,
+        "3": null,
+        "4": null,
+        "5": null,
+        "6": null,
+        "7": null,
+        "8": null,
+        "9": null,
+        "10": null,
+        "11": null,
+        "12": null,
+        "13": null,
+        "14": null,
+        "15": null,
+        "16": null,
+        "17": null,
+        "18": null,
+        "19": null,
+        "20": null,
+        "21": null,
+        "22": null,
+        "23": null,
+        "24": null,
+        "25": null,
+        "26": null,
+        "27": null,
+        "28": null,
+        "29": null,
+        "30": null,
+        "31": null,
+        "32": null,
+        "33": null,
+        "34": null,
+        "35": null,
+        "36": null,
+        "37": null,
+        "38": null,
+        "39": null,
+        "40": null,
+        "41": null,
+        "42": null,
+        "43": null,
+        "44": null,
+        "45": null,
+        "46": null,
+        "47": null,
+        "48": null,
+        "49": null,
+        "50": null,
+        "51": null,
+        "52": null,
+        "53": null,
+        "54": null,
+        "55": "белая шатра",
+        "56": null,
+        "57": null,
+        "58": null,
+        "59": null,
+        "60": null,
+        "61": "черный батыр",
+        "62": null
+      },
+      "legal_moves": [
+        {
+          "from": 61,
+          "to": 53,
+          "code": "turn.now",
+          "captures": [
+            55
+          ]
+        }
+      ],
+      "illegal_moves": [
+        {
+          "from": 61,
+          "to": 55,
+          "code": "move.target_occupied"
+        }
+      ]
+    },
+    {
+      "id": "black_shatra_capture_chain",
+      "description": "Black shatra chain: second capture from chain cell",
+      "moves": [
+        [
+          "черный",
+          11,
+          25
+        ]
+      ],
+      "mover": "черный",
+      "expect_mover": "черный",
+      "expect_server_pending": 25,
+      "board": {
+        "1": null,
+        "2": null,
+        "3": null,
+        "4": null,
+        "5": null,
+        "6": null,
+        "7": null,
+        "8": null,
+        "9": null,
+        "10": null,
+        "11": "черная шатра",
+        "12": null,
+        "13": null,
+        "14": null,
+        "15": null,
+        "16": null,
+        "17": null,
+        "18": "белая шатра",
+        "19": null,
+        "20": "черная шатра",
+        "21": null,
+        "22": null,
+        "23": null,
+        "24": null,
+        "25": null,
+        "26": null,
+        "27": null,
+        "28": null,
+        "29": null,
+        "30": null,
+        "31": null,
+        "32": "белая шатра",
+        "33": null,
+        "34": null,
+        "35": null,
+        "36": null,
+        "37": null,
+        "38": null,
+        "39": null,
+        "40": null,
+        "41": null,
+        "42": null,
+        "43": null,
+        "44": null,
+        "45": null,
+        "46": null,
+        "47": null,
+        "48": null,
+        "49": null,
+        "50": null,
+        "51": null,
+        "52": null,
+        "53": null,
+        "54": null,
+        "55": null,
+        "56": null,
+        "57": null,
+        "58": null,
+        "59": null,
+        "60": null,
+        "61": null,
+        "62": null
+      },
+      "expect_delta_chain_cell": 25,
+      "legal_moves": [
+        {
+          "from": 25,
+          "to": 39,
+          "code": "turn.now",
+          "captures": [
+            32
+          ]
+        }
+      ],
+      "illegal_with_stale_chain": [
+        {
+          "from": 20,
+          "to": 32,
+          "stale_chain": 25,
+          "code": "capture.continue_same"
+        }
+      ]
+    },
+    {
+      "id": "white_biy_only_mandatory_flexible",
+      "description": "When only biy can capture, biy may take or make a quiet move",
+      "moves": [],
+      "mover": "белый",
+      "expect_mover": "белый",
+      "expect_server_pending": null,
+      "board": {
+        "1": "черный бий",
+        "2": "черный бий",
+        "3": null,
+        "4": null,
+        "5": null,
+        "6": null,
+        "7": null,
+        "8": null,
+        "9": null,
+        "10": null,
+        "11": null,
+        "12": null,
+        "13": null,
+        "14": null,
+        "15": null,
+        "16": null,
+        "17": null,
+        "18": null,
+        "19": null,
+        "20": null,
+        "21": null,
+        "22": null,
+        "23": null,
+        "24": null,
+        "25": null,
+        "26": null,
+        "27": null,
+        "28": null,
+        "29": null,
+        "30": null,
+        "31": null,
+        "32": null,
+        "33": null,
+        "34": null,
+        "35": null,
+        "36": null,
+        "37": null,
+        "38": null,
+        "39": null,
+        "40": null,
+        "41": null,
+        "42": null,
+        "43": null,
+        "44": null,
+        "45": null,
+        "46": null,
+        "47": "черная шатра",
+        "48": "белый бий",
+        "49": null,
+        "50": null,
+        "51": null,
+        "52": null,
+        "53": null,
+        "54": null,
+        "55": null,
+        "56": null,
+        "57": null,
+        "58": null,
+        "59": null,
+        "60": null,
+        "61": null,
+        "62": null
+      },
+      "legal_moves": [
+        {
+          "from": 48,
+          "to": 46,
+          "code": "turn.now",
+          "captures": [
+            47
+          ]
+        },
+        {
+          "from": 48,
+          "to": 40,
+          "code": "turn.now",
+          "captures": []
+        }
+      ]
+    },
+    {
+      "id": "white_batyr_and_biy_mandatory_fork",
+      "description": "Multiple mandatory attackers at turn start; wrong piece rejected",
+      "moves": [],
+      "mover": "белый",
+      "expect_mover": "белый",
+      "expect_server_pending": null,
+      "board": {
+        "1": "черный бий",
+        "2": "черный бий",
+        "3": null,
+        "4": null,
+        "5": null,
+        "6": null,
+        "7": null,
+        "8": null,
+        "9": null,
+        "10": null,
+        "11": null,
+        "12": null,
+        "13": "черная шатра",
+        "14": null,
+        "15": null,
+        "16": null,
+        "17": null,
+        "18": null,
+        "19": "белый бий",
+        "20": null,
+        "21": null,
+        "22": null,
+        "23": null,
+        "24": null,
+        "25": null,
+        "26": null,
+        "27": null,
+        "28": null,
+        "29": null,
+        "30": null,
+        "31": null,
+        "32": null,
+        "33": null,
+        "34": null,
+        "35": "белый батыр",
+        "36": null,
+        "37": null,
+        "38": null,
+        "39": null,
+        "40": null,
+        "41": null,
+        "42": null,
+        "43": null,
+        "44": null,
+        "45": null,
+        "46": null,
+        "47": null,
+        "48": null,
+        "49": "черная шатра",
+        "50": null,
+        "51": null,
+        "52": "белая шатра",
+        "53": null,
+        "54": null,
+        "55": null,
+        "56": null,
+        "57": null,
+        "58": null,
+        "59": null,
+        "60": null,
+        "61": null,
+        "62": null
+      },
+      "legal_moves": [
+        {
+          "from": 35,
+          "to": 53,
+          "code": "turn.now",
+          "captures": [
+            49
+          ]
+        },
+        {
+          "from": 19,
+          "to": 10,
+          "code": "turn.now",
+          "captures": [
+            13
+          ]
+        }
+      ],
+      "illegal_moves": [
+        {
+          "from": 52,
+          "to": 45,
+          "code": "capture.mandatory_other"
+        }
+      ]
+    },
+    {
+      "id": "white_shatra_promotion_to_batyr",
+      "description": "Shatra promotes to batyr when entering promotion row without capture",
+      "moves": [
+        [
+          "белый",
+          53,
+          45
+        ]
+      ],
+      "mover": "белый",
+      "expect_mover": "черный",
+      "expect_server_pending": null,
+      "board": {
+        "1": null,
+        "2": null,
+        "3": null,
+        "4": null,
+        "5": null,
+        "6": null,
+        "7": null,
+        "8": null,
+        "9": null,
+        "10": null,
+        "11": null,
+        "12": null,
+        "13": null,
+        "14": null,
+        "15": null,
+        "16": null,
+        "17": null,
+        "18": null,
+        "19": null,
+        "20": null,
+        "21": null,
+        "22": null,
+        "23": null,
+        "24": null,
+        "25": null,
+        "26": null,
+        "27": null,
+        "28": null,
+        "29": null,
+        "30": null,
+        "31": null,
+        "32": null,
+        "33": null,
+        "34": null,
+        "35": null,
+        "36": null,
+        "37": null,
+        "38": null,
+        "39": null,
+        "40": null,
+        "41": null,
+        "42": null,
+        "43": null,
+        "44": null,
+        "45": null,
+        "46": null,
+        "47": null,
+        "48": null,
+        "49": null,
+        "50": null,
+        "51": null,
+        "52": null,
+        "53": "белая шатра",
+        "54": null,
+        "55": null,
+        "56": null,
+        "57": null,
+        "58": null,
+        "59": null,
+        "60": null,
+        "61": null,
+        "62": null
+      }
     }
   ]
 }

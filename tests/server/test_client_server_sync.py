@@ -158,13 +158,19 @@ class TestMandatoryWithoutChainUsesValidation:
             assert hint.message_code != CAPTURE_CONTINUE_SAME
 
 
+def _initial_mover(scenario: dict) -> str:
+    return scenario.get("mover") or (
+        scenario["moves"][0][0] if scenario["moves"] else scenario["expect_mover"]
+    )
+
+
 @pytest.mark.parametrize("scenario", _load_scenarios(), ids=lambda s: s["id"])
 class TestFixtureScenarios:
   def test_server_state_after_replay(self, scenario):
       if "board" in scenario:
           game = new_server_game(
               board=_board_from_fixture(scenario["board"]),
-              mover=scenario["moves"][0][0],
+              mover=_initial_mover(scenario),
           )
           game, last, prev = simulate_server_replay(_moves_from_fixture(scenario["moves"]), game=game)
       else:
@@ -189,7 +195,7 @@ class TestFixtureScenarios:
       if "board" in scenario:
           game = new_server_game(
               board=_board_from_fixture(scenario["board"]),
-              mover=scenario["moves"][0][0],
+              mover=_initial_mover(scenario),
           )
           game, _, _ = simulate_server_replay(_moves_from_fixture(scenario["moves"]), game=game)
       else:
@@ -219,7 +225,7 @@ class TestFixtureScenarios:
       if "board" in scenario:
           game = new_server_game(
               board=_board_from_fixture(scenario["board"]),
-              mover=scenario["moves"][0][0],
+              mover=_initial_mover(scenario),
           )
           game, _, _ = simulate_server_replay(_moves_from_fixture(scenario["moves"]), game=game)
       else:
@@ -233,3 +239,21 @@ class TestFixtureScenarios:
               override_chain=move["stale_chain"],
           )
           assert result.message_code == move["code"]
+
+  def test_illegal_moves_rejected_without_stale_chain(self, scenario):
+      if "board" in scenario:
+          game = new_server_game(
+              board=_board_from_fixture(scenario["board"]),
+              mover=_initial_mover(scenario),
+          )
+          game, _, _ = simulate_server_replay(_moves_from_fixture(scenario["moves"]), game=game)
+      else:
+          game, _, _ = simulate_server_replay(_moves_from_fixture(scenario["moves"]))
+
+      for move in scenario.get("illegal_moves", []):
+          probe = deepcopy(game)
+          before = dict(probe["board"])
+          result = try_server_move(probe, move["from"], move["to"])
+          assert probe["board"] == before
+          if move.get("code"):
+              assert result.message_code == move["code"]
