@@ -10,12 +10,13 @@ export function computeLocalHints(gameState, fromCell) {
   const chainCell = gameState.posForMandatoryCapture != null
     ? Number(gameState.posForMandatoryCapture)
     : null;
+  const batyrCaptured = gameState.batyrCapturedThisTurn || [];
 
   const result = getHints({
     cells: board,
     currentColor: gameState.moversColor,
     fromCell: Number(fromCell),
-    batyrCapturedThisTurn: gameState.batyrCapturedThisTurn || [],
+    batyrCapturedThisTurn: batyrCaptured,
     chainCaptureCell: chainCell,
   });
 

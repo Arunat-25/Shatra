@@ -116,6 +116,9 @@ async def handle_ai_move(
         )
         return
 
+    from backend.game_helpers import persist_pending_mandatory_position
+
+    persist_pending_mandatory_position(game, result, prev_mover)
     response = await apply_move_result(room_id, game, result, prev_mover, from_cell, to_cell)
     record_move("ai")
     logger.info(
@@ -124,21 +127,14 @@ async def handle_ai_move(
         from_cell,
         to_cell,
         result.game_over,
-        result.position_for_mandatory_capture,
+        game.get("pending_mandatory_position"),
     )
-    await manager.broadcast_move(room_id, game, result, prev_mover, from_cell, to_cell)
+    await manager.broadcast_move(
+        room_id, game, result, prev_mover, from_cell, to_cell, board_before=board_snapshot,
+    )
 
     if not result.updated_positions or result.updated_positions == board_snapshot:
         return
-
-    from backend.game_helpers import persist_pending_mandatory_position
-
-    persist_pending_mandatory_position(game, result, prev_mover)
-
-    # IMPORTANT: apply_move_result persists game to Redis, but pending_mandatory_position
-    # is updated here (after apply_move_result). Persist it too, otherwise subsequent hint
-    # requests may incorrectly think a chain capture is still active.
-    await set_game(room_id, game)
 
     if result.movers_color == ai_color and not result.game_over:
         await handle_ai_move(

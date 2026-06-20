@@ -248,4 +248,193 @@ describe('gameReducer', () => {
     expect(next.highlightedEssential).toEqual([]);
     expect(next.highlightedCaptured).toEqual([]);
   });
+
+  it('MOVE_MADE with stale mandatory does not leak captured ghosts on turn switch (H31)', () => {
+    const state = {
+      ...initialGameState,
+      myColor: 'белый',
+      moversColor: 'белый',
+      board: { 2: 'белый батыр', 35: 'черная шатра', 42: null },
+      capturedGhostPieces: { 35: 'черная шатра' },
+    };
+    const next = gameReducer(state, {
+      type: GAME_ACTIONS.MOVE_MADE,
+      payload: {
+        from_pos: 2,
+        to_pos: 42,
+        mover: 'белый',
+        movers_color: 'черный',
+        captured_positions: [35],
+        captured_pieces: [35],
+        position_for_mandatory_capture: 42,
+        ply: 1,
+      },
+    });
+    expect(next.posForMandatoryCapture).toBeNull();
+    expect(next.batyrCapturedThisTurn).toEqual([]);
+    expect(next.capturedGhostPieces).toEqual({});
+  });
+
+  it('MOVE_MADE clears batyrCapturedThisTurn when turn switches', () => {
+    const state = {
+      ...initialGameState,
+      myColor: 'белый',
+      moversColor: 'белый',
+      board: { 2: 'белый батыр', 35: 'черная шатра', 42: null },
+      batyrCapturedThisTurn: [58, 55],
+    };
+    const next = gameReducer(state, {
+      type: GAME_ACTIONS.MOVE_MADE,
+      payload: {
+        from_pos: 2,
+        to_pos: 42,
+        mover: 'белый',
+        movers_color: 'черный',
+        captured_positions: [35],
+        captured_pieces: [35],
+        ply: 1,
+      },
+    });
+    expect(next.moversColor).toBe('черный');
+    expect(next.batyrCapturedThisTurn).toEqual([]);
+  });
+
+  it('OPTIMISTIC_MOVE clears chain cell when turn switches', () => {
+    const state = {
+      ...initialGameState,
+      myColor: 'белый',
+      moversColor: 'белый',
+      board: { 45: 'белый бий', 37: null },
+    };
+    const next = gameReducer(state, {
+      type: GAME_ACTIONS.OPTIMISTIC_MOVE,
+      payload: {
+        from: 45,
+        to: 37,
+        ply: 1,
+        result: {
+          updatedPositions: { 45: null, 37: 'белый бий' },
+          moversColor: 'черный',
+          positionForMandatoryCapture: 37,
+          capturedPieces: [],
+          capturedPositions: [],
+        },
+      },
+    });
+    expect(next.posForMandatoryCapture).toBeNull();
+    expect(next.moveFrom).toBeNull();
+  });
+
+  it('MOVE_MADE clears canPass when turn switches even if payload still offers pass', () => {
+    const state = {
+      ...initialGameState,
+      myColor: 'белый',
+      moversColor: 'белый',
+      canPass: true,
+      posForMandatoryCapture: 19,
+      board: { 19: 'белый бий' },
+    };
+    const next = gameReducer(state, {
+      type: GAME_ACTIONS.MOVE_MADE,
+      payload: {
+        from_pos: 0,
+        to_pos: 0,
+        mover: 'белый',
+        movers_color: 'черный',
+        opportunity_pass_the_move: true,
+        position_for_mandatory_capture: 19,
+        ply: 1,
+      },
+    });
+    expect(next.moversColor).toBe('черный');
+    expect(next.canPass).toBe(false);
+    expect(next.posForMandatoryCapture).toBeNull();
+  });
+
+  it('ROLLBACK_OPTIMISTIC restores canPass and batyr from snapshot', () => {
+    const before = {
+      ...initialGameState,
+      board: { 45: 'белый бий', 37: null },
+      moversColor: 'белый',
+      canPass: false,
+      batyrCapturedThisTurn: [],
+      confirmedPly: 1,
+    };
+    const optimistic = gameReducer(before, {
+      type: GAME_ACTIONS.OPTIMISTIC_MOVE,
+      payload: {
+        from: 45,
+        to: 37,
+        ply: 2,
+        result: {
+          updatedPositions: { 45: null, 37: 'белый бий' },
+          moversColor: 'черный',
+          opportunityPassTheMove: true,
+          capturedPieces: [10],
+          positionForMandatoryCapture: 37,
+        },
+      },
+    });
+    expect(optimistic.canPass).toBe(false);
+    const rolled = gameReducer(optimistic, { type: GAME_ACTIONS.ROLLBACK_OPTIMISTIC });
+    expect(rolled.canPass).toBe(false);
+    expect(rolled.batyrCapturedThisTurn).toEqual([]);
+    expect(rolled.board[45]).toBe('белый бий');
+  });
+
+  it('EXIT_HISTORY keeps live chain and batyr state (H28)', () => {
+    const live = {
+      ...initialGameState,
+      myColor: 'белый',
+      moversColor: 'черный',
+      posForMandatoryCapture: 8,
+      batyrCapturedThisTurn: [10],
+      movesHistory: [
+        { from_pos: 14, to_pos: 8, desk: { '8': 'черный батыр', '10': null, '14': null } },
+      ],
+      viewingHistoryIndex: 0,
+      board: { 14: 'черный батыр', 10: 'белая шатра', 8: null },
+    };
+    const next = gameReducer(live, { type: GAME_ACTIONS.EXIT_HISTORY });
+    expect(next.viewingHistoryIndex).toBeNull();
+    expect(next.board[8]).toBe('черный батыр');
+    expect(next.posForMandatoryCapture).toBe(8);
+    expect(next.batyrCapturedThisTurn).toEqual([10]);
+  });
+
+  it('GAME_OVER clears chain highlights and ghosts (H32)', () => {
+    const inChain = {
+      ...initialGameState,
+      posForMandatoryCapture: 19,
+      batyrCapturedThisTurn: [26],
+      moveFrom: 19,
+      capturedGhostPieces: { 26: 'черная шатра' },
+      highlightedEssential: [33],
+      highlightedCaptured: [26],
+      board: { 19: 'белый бий' },
+    };
+    const next = gameReducer(inChain, {
+      type: GAME_ACTIONS.GAME_OVER,
+      payload: { winner_color: 'белый', reason: 'resign', desk: inChain.board },
+    });
+    expect(next.gameOver).toBe(true);
+    expect(next.moveFrom).toBeNull();
+    expect(next.capturedGhostPieces).toEqual({});
+  });
+
+  it('GAME_STARTED restores chain and batyr state from snapshot payload', () => {
+    const next = gameReducer(initialGameState, {
+      type: GAME_ACTIONS.GAME_STARTED,
+      payload: {
+        desk: { 14: 'черный батыр', 8: null },
+        movers_color: 'черный',
+        your_color: 'белый',
+        position_for_mandatory_capture: 8,
+        captured_pieces: [10],
+        ply: 3,
+      },
+    });
+    expect(next.posForMandatoryCapture).toBe(8);
+    expect(next.batyrCapturedThisTurn).toEqual([10]);
+  });
 });

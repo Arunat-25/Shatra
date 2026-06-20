@@ -6,6 +6,9 @@ import { MOVE_REJECT_MESSAGE_CODES } from '@shatra/rules';
 import { getEmptyBoard, getStartingBoard } from '../game/startingBoard';
 import { applyLocalMove } from './localMove';
 import { computeLocalHints } from './localHints';
+import { gameReducer, initialGameState } from '../game/reducer';
+import { GAME_ACTIONS } from '../game/actions';
+import { adaptV2ServerMessage } from '../ws/v2/adapter';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const fixturePath = join(here, '../../../tests/fixtures/sync/client_server_sync.json');
@@ -80,6 +83,108 @@ function replayWithClientRules(moves, scenario = {}) {
   }
 
   return { board, mover, chainCell, batyrCaptured };
+}
+
+/** Mirror server persist + update_captures for wire payload simulation. */
+function applyServerPersist(game, result, prevMover) {
+  if (result.updatedPositions) game.board = result.updatedPositions;
+  const pending = result.positionForMandatoryCapture ?? null;
+  if (pending != null && result.moversColor === prevMover) {
+    game.chainCell = pending;
+  } else {
+    game.chainCell = null;
+  }
+  if (result.moversColor && result.moversColor !== prevMover) {
+    game.batyrCaptured = [];
+  } else if (result.capturedPieces?.length) {
+    game.batyrCaptured = [...result.capturedPieces];
+  } else if (!result.positionForMandatoryCapture) {
+    game.batyrCaptured = [];
+  }
+  if (result.moversColor) game.mover = result.moversColor;
+  game.ply = (game.ply ?? 0) + 1;
+}
+
+function shatraWasPromoted(boardBefore, result, from, to) {
+  if (result.messageCode === 'piece.promoted') return true;
+  const before = boardBefore[from];
+  const after = result.updatedPositions?.[to];
+  if (!before || !before.includes('шатра')) return false;
+  return Boolean(after && after.includes('батыр'));
+}
+
+function buildWireMovePayload(game, result, prevMover, from, to, boardBefore) {
+  return {
+    from_pos: from,
+    to_pos: to,
+    mover: prevMover,
+    movers_color: game.mover,
+    captured_positions: result.capturedPositions || [],
+    captured_pieces: [...(game.batyrCaptured || [])],
+    position_for_mandatory_capture: game.chainCell,
+    opportunity_pass_the_move: Boolean(result.opportunityPassTheMove),
+    promoted: shatraWasPromoted(boardBefore, result, from, to),
+    ply: game.ply,
+    message_code: result.messageCode,
+  };
+}
+
+function buildV2MoveMsg(game, result, prevMover, from, to, boardBefore) {
+  return {
+    v: 2,
+    t: 'move',
+    ply: game.ply,
+    mover: prevMover,
+    from,
+    to,
+    turn: game.mover,
+    captured: result.capturedPositions || [],
+    promoted: shatraWasPromoted(boardBefore, result, from, to),
+    chainCell: game.chainCell,
+    batyrCaptured: [...(game.batyrCaptured || [])],
+    canPass: Boolean(result.opportunityPassTheMove),
+    messageCode: result.messageCode || '',
+  };
+}
+
+function replayThroughReducer(moves, scenario = {}) {
+  let game = {
+    board: initialBoardForScenario(scenario),
+    mover: scenario.mover ?? moves[0]?.[0] ?? scenario.expect_mover,
+    chainCell: null,
+    batyrCaptured: [],
+    ply: 0,
+  };
+  let state = { ...initialGameState, myColor: game.mover, moversColor: game.mover, board: game.board };
+
+  for (const [color, from, to] of moves) {
+    expect(game.mover).toBe(color);
+    const prevMover = game.mover;
+    const prevBoard = { ...game.board };
+    const { ok, result } = applyLocalMove(
+      gameStateFromServer({
+        board: game.board,
+        mover: game.mover,
+        pending: game.chainCell,
+        batyrCaptured: game.batyrCaptured,
+      }),
+      from,
+      to,
+    );
+    expect(ok).toBe(true);
+    applyServerPersist(game, result, prevMover);
+    const payload = buildWireMovePayload(game, result, prevMover, from, to, prevBoard);
+    state = gameReducer(state, { type: GAME_ACTIONS.MOVE_MADE, payload });
+    expect(state.posForMandatoryCapture).toBe(game.chainCell);
+    expect(state.batyrCapturedThisTurn).toEqual(game.batyrCaptured);
+    expect(state.moversColor).toBe(game.mover);
+
+    const v2 = buildV2MoveMsg(game, result, prevMover, from, to, prevBoard);
+    const adapted = adaptV2ServerMessage(v2, { board: prevBoard });
+    expect(adapted.desk).toEqual(state.board);
+  }
+
+  return { game, state };
 }
 
 describe('client/server sync fixtures', () => {
@@ -160,8 +265,115 @@ describe('client/server sync fixtures', () => {
           expect(messageCode).not.toBe('capture.continue_same');
         }
       });
+
+      it('reducer MOVE_MADE replay matches server chain and batyr state', () => {
+        const { game, state } = replayThroughReducer(scenario.moves, scenario);
+        expect(state.moversColor).toBe(scenario.expect_mover);
+        expect(state.posForMandatoryCapture).toBe(scenario.expect_server_pending ?? null);
+        expect(game.mover).toBe(scenario.expect_mover);
+      });
     });
   }
+});
+
+describe('client/server sync: stale batyr hints (H19)', () => {
+  it('stale batyr ghosts suppress re-capture of already-jumped cells', () => {
+    const board = emptyBoard();
+    board[61] = 'черный батыр';
+    board[55] = 'белая шатра';
+
+    const clean = computeLocalHints({
+      board,
+      moversColor: 'черный',
+      myColor: 'черный',
+      posForMandatoryCapture: null,
+      batyrCapturedThisTurn: [],
+    }, 61);
+
+    const stale = computeLocalHints({
+      board,
+      moversColor: 'черный',
+      myColor: 'черный',
+      posForMandatoryCapture: null,
+      batyrCapturedThisTurn: [55],
+    }, 61);
+
+    expect(clean.captured).toContain(55);
+    expect(stale.captured).not.toContain(55);
+  });
+});
+
+describe('client/server sync: local optimistic promotion (H23)', () => {
+  it('applyLocalMove promotes shatra on capture before server confirms', () => {
+    const board = emptyBoard();
+    board[56] = 'черная шатра';
+    board[58] = 'белая шатра';
+    board[60] = null;
+
+    const { ok, result } = applyLocalMove(
+      gameStateFromServer({ board, mover: 'черный', pending: null }),
+      56,
+      60,
+    );
+    expect(ok).toBe(true);
+    expect(result.updatedPositions[60]).toBe('черный батыр');
+    expect(result.updatedPositions[58]).toBeNull();
+  });
+});
+
+describe('client/server sync: pass turn reducer (H24)', () => {
+  it('MOVE_MADE pass clears chain canPass and batyr', () => {
+    const state = {
+      ...initialGameState,
+      myColor: 'белый',
+      moversColor: 'белый',
+      canPass: true,
+      posForMandatoryCapture: 19,
+      batyrCapturedThisTurn: [],
+      board: { 19: 'белый бий', 13: null },
+    };
+    const next = gameReducer(state, {
+      type: GAME_ACTIONS.MOVE_MADE,
+      payload: {
+        from_pos: 0,
+        to_pos: 0,
+        mover: 'белый',
+        movers_color: 'черный',
+        opportunity_pass_the_move: false,
+        position_for_mandatory_capture: null,
+        captured_pieces: [],
+        ply: 1,
+        message_code: 'move.passed',
+      },
+    });
+    expect(next.moversColor).toBe('черный');
+    expect(next.canPass).toBe(false);
+    expect(next.posForMandatoryCapture).toBeNull();
+    expect(next.batyrCapturedThisTurn).toEqual([]);
+    expect(next.moveFrom).toBeNull();
+  });
+});
+
+describe('client/server sync: capture promotion (H17)', () => {
+  it('v2 adapter applies batyr when promoted flag set on capture promotion', () => {
+    const board = { 56: 'черная шатра', 58: 'белая шатра', 60: null };
+    const adapted = adaptV2ServerMessage(
+      {
+        v: 2,
+        t: 'move',
+        ply: 1,
+        from: 56,
+        to: 60,
+        turn: 'белый',
+        captured: [58],
+        promoted: true,
+        messageCode: 'turn.now',
+      },
+      { board },
+    );
+    expect(adapted.desk[60]).toBe('черный батыр');
+    expect(adapted.desk[58]).toBeNull();
+  });
 });
 
 describe('client/server sync: user sequence 28 specifics', () => {

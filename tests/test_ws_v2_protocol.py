@@ -71,17 +71,91 @@ def test_build_move_delta_clears_chain_cell_when_turn_switches_with_mandatory():
 
 
 def test_build_move_delta_after_engine_move():
+    from backend.game_helpers import update_captures
+
     board = empty_board()
     board[45] = "белый бий"
     board[37] = None
-    game = {"board": board, "mover": "белый", "ply": 0}
+    game = {"board": board, "mover": "белый", "ply": 0, "pending_batyr_captures": []}
     result = logic.handle_event(
         GameEvent(positions=board, mover_color="белый", from_pos=45, to_pos=37)
     )
     bump_ply(game)
     game["board"] = result.updated_positions
+    update_captures(game, result)
+    game["mover"] = result.movers_color
     delta = build_move_delta(game, result, "белый", 45, 37, {"time_control": None})
     assert delta["t"] == "move"
     assert delta["ply"] == 1
     assert delta["from"] == 45
     assert delta["to"] == 37
+    assert delta["batyrCaptured"] == []
+
+
+def test_build_move_delta_clears_batyr_captured_when_turn_switches():
+    from backend.game_helpers import update_captures, persist_pending_mandatory_position
+
+    board = empty_board()
+    board.update({
+        61: "черный батыр",
+        55: "белая шатра",
+        1: "белый бий",
+        2: "белый бий",
+    })
+    game = {
+        "board": board,
+        "mover": "черный",
+        "ply": 0,
+        "pending_batyr_captures": [],
+        "pending_mandatory_position": None,
+    }
+    prev = game["mover"]
+    result = logic.handle_event(
+        GameEvent(positions=board, mover_color="черный", from_pos=61, to_pos=53)
+    )
+    persist_pending_mandatory_position(game, result, prev)
+    game["board"] = result.updated_positions
+    update_captures(game, result)
+    game["mover"] = result.movers_color
+    bump_ply(game)
+
+    assert game["pending_batyr_captures"] == []
+    assert result.captured_pieces == [55]
+
+    delta = build_move_delta(game, result, prev, 61, 53, {"time_control": None})
+    assert delta["batyrCaptured"] == []
+    assert delta["turn"] == "белый"
+
+
+def test_build_move_delta_keeps_batyr_captured_during_same_player_chain():
+    from backend.game_helpers import update_captures, persist_pending_mandatory_position
+
+    board = empty_board()
+    board.update({
+        14: "черный батыр",
+        10: "белая шатра",
+        8: None,
+        5: "белая шатра",
+        2: None,
+    })
+    game = {
+        "board": board,
+        "mover": "черный",
+        "ply": 0,
+        "pending_batyr_captures": [],
+        "pending_mandatory_position": None,
+    }
+    prev = game["mover"]
+    result = logic.handle_event(
+        GameEvent(positions=board, mover_color="черный", from_pos=14, to_pos=8)
+    )
+    persist_pending_mandatory_position(game, result, prev)
+    game["board"] = result.updated_positions
+    update_captures(game, result)
+    game["mover"] = result.movers_color
+    bump_ply(game)
+
+    assert game["pending_batyr_captures"] == [10]
+    delta = build_move_delta(game, result, prev, 14, 8, {"time_control": None})
+    assert delta["batyrCaptured"] == [10]
+    assert delta["turn"] == "черный"

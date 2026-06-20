@@ -120,7 +120,6 @@ export default function ShatraPiece({
         filter={glowColor !== 'none' ? `url(#glow-${isTarget ? 'target' : 'select'}-${idBase})` : 'none'}
         style={{
           transition: 'filter 0.2s ease, stroke 0.2s ease',
-          ...(isTarget ? { animation: 'pieceCapture 0.6s ease-out forwards' } : {}),
         }}
       />
 

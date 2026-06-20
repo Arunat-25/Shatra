@@ -133,19 +133,4 @@ export function resolveApiErrorMessage(messageOrCode) {
   return resolveWsErrorMessage(messageOrCode);
 }
 
-/** @deprecated use resolveMessage */
-export function translateServerMessage(message) {
-  return resolveMessage(message);
-}
-
-/** @deprecated use resolveWsErrorMessage */
-export function translateWsErrorMessage(message) {
-  return resolveWsErrorMessage(message);
-}
-
-/** @deprecated use resolveApiErrorMessage */
-export function translateApiErrorMessage(message) {
-  return resolveApiErrorMessage(message);
-}
-
 export { CODE_TO_I18N };

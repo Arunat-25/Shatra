@@ -9,6 +9,26 @@ from backend.state import get_room, set_room, set_game
 from backend.board_utils import keys_int_to_str, keys_str_to_int, change_position_name_from_frontend
 
 
+def shatra_was_promoted(
+    board_before: dict,
+    result,
+    from_cell: int | None,
+    to_cell: int | None,
+) -> bool:
+    """True when a shatra became a batyr (quiet move or capture promotion)."""
+    from game_engine.message_codes import PIECE_PROMOTED
+
+    if result.message_code == PIECE_PROMOTED:
+        return True
+    if from_cell is None or to_cell is None or not result.updated_positions:
+        return False
+    before = board_before.get(from_cell)
+    after = result.updated_positions.get(to_cell)
+    if not before or "шатра" not in before:
+        return False
+    return bool(after and "батыр" in after)
+
+
 def bump_ply(game: dict) -> None:
     game["ply"] = int(game.get("ply", 0)) + 1
 
@@ -151,10 +171,10 @@ def build_move_response(
         "desk": keys_int_to_str(game["board"]),
         "game_over": result.game_over,
         "winner_color": result.winner_color,
-        "position_for_mandatory_capture": result.position_for_mandatory_capture,
+        "position_for_mandatory_capture": game.get("pending_mandatory_position"),
         "opportunity_pass_the_move": result.opportunity_pass_the_move,
         "essential_positions": result.essential_positions,
-        "captured_pieces": result.captured_pieces,
+        "captured_pieces": list(game.get("pending_batyr_captures") or []),
         "captured_positions": result.captured_positions,
         "from_pos": move_from,
         "to_pos": move_to,
@@ -166,8 +186,6 @@ def build_move_response(
     if end_reason:
         response["reason"] = end_reason
     response = {k: v for k, v in response.items() if v is not None}
-    if result.movers_color and result.movers_color != prev_mover:
-        response["position_for_mandatory_capture"] = None
     if hint_position is not None:
         response["hint_position"] = hint_position
     return response
@@ -179,6 +197,8 @@ def build_move_delta_response(
     prev_mover: str,
     move_from: int | None = None,
     move_to: int | None = None,
+    *,
+    board_before: dict | None = None,
 ) -> dict:
     """V1 move broadcast without full desk or move_history (Stage 5)."""
     response = {
@@ -187,14 +207,14 @@ def build_move_delta_response(
         "mover": prev_mover,
         "game_over": result.game_over,
         "winner_color": result.winner_color,
-        "position_for_mandatory_capture": result.position_for_mandatory_capture,
+        "position_for_mandatory_capture": game.get("pending_mandatory_position"),
         "opportunity_pass_the_move": result.opportunity_pass_the_move,
-        "captured_pieces": result.captured_pieces,
+        "captured_pieces": list(game.get("pending_batyr_captures") or []),
         "captured_positions": result.captured_positions,
         "from_pos": move_from,
         "to_pos": move_to,
         "ply": game.get("ply", 0),
-        "promoted": result.message_code == "piece.promoted",
+        "promoted": shatra_was_promoted(board_before or {}, result, move_from, move_to),
     }
     if result.message_params:
         response["message_params"] = result.message_params
@@ -202,8 +222,6 @@ def build_move_delta_response(
     if end_reason:
         response["reason"] = end_reason
     response = {k: v for k, v in response.items() if v is not None}
-    if result.movers_color and result.movers_color != prev_mover:
-        response["position_for_mandatory_capture"] = None
     return response
 
 
@@ -343,7 +361,9 @@ async def apply_move_result(
         bump_ply(game)
 
     await set_game(room_id, game)
-    response = build_move_delta_response(game, result, prev_mover, from_cell, to_cell)
+    response = build_move_delta_response(
+        game, result, prev_mover, from_cell, to_cell, board_before=prev_board,
+    )
     room_data = await get_room(room_id)
     if room_data:
         response.update(_timer_fields(room_data, game))

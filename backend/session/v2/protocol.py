@@ -134,10 +134,12 @@ def build_move_delta(
     from_cell: int | None,
     to_cell: int | None,
     room_data: dict | None = None,
+    *,
+    board_before: dict | None = None,
 ) -> dict:
-    from backend.game_helpers import compute_clock_times, _resolve_game_end_reason
+    from backend.game_helpers import compute_clock_times, _resolve_game_end_reason, shatra_was_promoted
 
-    promoted = result.message_code == "piece.promoted"
+    promoted = shatra_was_promoted(board_before or {}, result, from_cell, to_cell)
 
     payload: dict[str, Any] = {
         "v": PROTO_VERSION,
@@ -149,8 +151,8 @@ def build_move_delta(
         "turn": result.movers_color or game.get("mover"),
         "captured": list(result.captured_positions or []),
         "promoted": promoted,
-        "chainCell": result.position_for_mandatory_capture,
-        "batyrCaptured": list(result.captured_pieces or []),
+        "chainCell": game.get("pending_mandatory_position"),
+        "batyrCaptured": list(game.get("pending_batyr_captures") or []),
         "canPass": bool(result.opportunity_pass_the_move),
         "messageCode": result.message_code or "",
         "gameOver": bool(result.game_over),
@@ -163,8 +165,6 @@ def build_move_delta(
             payload["reason"] = end_reason
         if result.winner_color:
             payload["winner"] = result.winner_color
-    if result.movers_color and result.movers_color != prev_mover:
-        payload["chainCell"] = None
     if room_data:
         clocks = _clocks_payload(room_data, game, compute_clock_times)
         if clocks is not None:

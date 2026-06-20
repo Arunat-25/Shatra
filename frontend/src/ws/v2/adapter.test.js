@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { adaptV2ServerMessage } from './adapter.js';
 import { applyMoveDelta } from './applyDelta.js';
 import { nextClientPly } from './payloads.js';
+import { gameReducer, initialGameState } from '../../game/reducer.js';
+import { GAME_ACTIONS } from '../../game/actions.js';
 
 describe('v2 applyMoveDelta', () => {
   it('moves piece and removes captured cells', () => {
@@ -68,6 +70,61 @@ describe('v2 adapter', () => {
     );
     expect(adapted.movers_color).toBe('белый');
     expect(adapted.position_for_mandatory_capture).toBeNull();
+  });
+
+  it('reject with snapshot exposes resync payload with chain and batyr (H22)', () => {
+    const snapshot = {
+      v: 2,
+      t: 'snapshot',
+      ply: 5,
+      turn: 'черный',
+      board: { '8': 'черный батыр', '10': null, '14': null },
+      yourColor: 'белый',
+      chainCell: 8,
+      batyrCaptured: [10],
+      moveHistory: [],
+    };
+    const adapted = adaptV2ServerMessage({
+      v: 2,
+      t: 'reject',
+      code: 'move.impossible',
+      snapshot,
+    });
+    expect(adapted.status).toBe('error');
+    expect(adapted._v2Resync.status).toBe('game_started');
+    expect(adapted._v2Resync.position_for_mandatory_capture).toBe(8);
+    expect(adapted._v2Resync.captured_pieces).toEqual([10]);
+
+    const next = gameReducer(initialGameState, {
+      type: GAME_ACTIONS.GAME_STARTED,
+      payload: adapted._v2Resync,
+    });
+    expect(next.posForMandatoryCapture).toBe(8);
+    expect(next.batyrCapturedThisTurn).toEqual([10]);
+    expect(next.moversColor).toBe('черный');
+  });
+
+  it('pass move delta keeps board unchanged (H24)', () => {
+    const board = { 19: 'белый бий', 10: 'белый бий' };
+    const adapted = adaptV2ServerMessage(
+      {
+        v: 2,
+        t: 'move',
+        ply: 2,
+        from: 0,
+        to: 0,
+        turn: 'черный',
+        captured: [],
+        canPass: false,
+        chainCell: null,
+        batyrCaptured: [],
+        messageCode: 'move.passed',
+      },
+      { board },
+    );
+    expect(adapted.desk).toEqual(board);
+    expect(adapted.from_pos).toBe(0);
+    expect(adapted.to_pos).toBe(0);
   });
 });
 

@@ -85,14 +85,37 @@ function snapshotForRollback(state) {
   };
 }
 
+function batyrCapturesAfterMove(state, { mover, nextMover, capturedPieces }) {
+  const prevMover = mover;
+  const turnPassed = Boolean(nextMover && prevMover && nextMover !== prevMover);
+  if (turnPassed) return [];
+  if (!Array.isArray(capturedPieces)) return [];
+  return capturedPieces.map(Number);
+}
+
+function chainCellAfterMove(prevMover, nextMover, rawPending) {
+  const turnPassed = Boolean(nextMover && prevMover && nextMover !== prevMover);
+  if (turnPassed || rawPending == null || rawPending === '') return null;
+  return Number(rawPending);
+}
+
+function canPassAfterMove(prevMover, nextMover, rawCanPass) {
+  const turnPassed = Boolean(nextMover && prevMover && nextMover !== prevMover);
+  if (turnPassed) return false;
+  return !!rawCanPass;
+}
+
 function applyOptimisticPayload(state, payload, from, to) {
   const result = payload;
   const desk = result.updatedPositions;
-  const posForMandatoryCapture = result.positionForMandatoryCapture ?? null;
-  const chainCell = posForMandatoryCapture != null ? Number(posForMandatoryCapture) : null;
-  const wasMyMove = state.moversColor === state.myColor;
-  const chainActiveForMe = chainCell != null && wasMyMove;
   const mover = result.moversColor ?? state.moversColor;
+  const posForMandatoryCapture = chainCellAfterMove(
+    state.moversColor,
+    mover,
+    result.positionForMandatoryCapture,
+  );
+  const chainCell = posForMandatoryCapture;
+  const chainActiveForMe = chainCell != null && mover === state.myColor;
   const newLastMove = from && to ? { from: Number(from), to: Number(to) } : state.lastMove;
   const ghostPayload = {
     position_for_mandatory_capture: posForMandatoryCapture,
@@ -102,11 +125,13 @@ function applyOptimisticPayload(state, payload, from, to) {
   return updateBoardState(state, desk, {
     moversColor: mover,
     posForMandatoryCapture,
-    canPass: !!result.opportunityPassTheMove,
+    canPass: canPassAfterMove(state.moversColor, mover, result.opportunityPassTheMove),
     moveFrom: chainActiveForMe ? chainCell : null,
-    batyrCapturedThisTurn: Array.isArray(result.capturedPieces)
-      ? result.capturedPieces.map(Number)
-      : [],
+    batyrCapturedThisTurn: batyrCapturesAfterMove(state, {
+      mover: state.moversColor,
+      nextMover: mover,
+      capturedPieces: result.capturedPieces,
+    }),
     highlightedEssential: chainActiveForMe ? state.highlightedEssential : [],
     highlightedCaptured: chainActiveForMe ? state.highlightedCaptured : [],
     lastMove: newLastMove,
@@ -227,6 +252,11 @@ export function gameReducer(state, action) {
         gameOverReason: '',
         gameOverMessageCode: '',
         moveFrom: null,
+        posForMandatoryCapture: action.payload.position_for_mandatory_capture ?? null,
+        batyrCapturedThisTurn: Array.isArray(action.payload.captured_pieces)
+          ? action.payload.captured_pieces.map(Number)
+          : [],
+        canPass: false,
         timeControl: action.payload.time_control || null,
         increment: action.payload.increment ?? null,
         timer: action.payload.time || null,
@@ -295,9 +325,13 @@ export function gameReducer(state, action) {
       if (verdict === 'stale') return state;
 
       const newLastMove = lastMoveFromPayload(action.payload);
-      const posForMandatoryCapture = action.payload.position_for_mandatory_capture || null;
-      const chainCell = posForMandatoryCapture != null ? Number(posForMandatoryCapture) : null;
       const mover = action.payload.movers_color || state.moversColor;
+      const posForMandatoryCapture = chainCellAfterMove(
+        action.payload.mover,
+        mover,
+        action.payload.position_for_mandatory_capture,
+      );
+      const chainCell = posForMandatoryCapture;
       const chainActiveForMe = chainCell != null && mover === state.myColor;
       const essential = action.payload.essential_positions;
       const captured = action.payload.captured_pieces;
@@ -308,11 +342,13 @@ export function gameReducer(state, action) {
       return applyMovePayload(state, action.payload, {
         moversColor: mover,
         posForMandatoryCapture,
-        canPass: !!action.payload.opportunity_pass_the_move,
+        canPass: canPassAfterMove(action.payload.mover, mover, action.payload.opportunity_pass_the_move),
         moveFrom: chainActiveForMe ? chainCell : null,
-        batyrCapturedThisTurn: Array.isArray(action.payload.captured_pieces)
-          ? action.payload.captured_pieces.map(Number)
-          : [],
+        batyrCapturedThisTurn: batyrCapturesAfterMove(state, {
+          mover: action.payload.mover,
+          nextMover: mover,
+          capturedPieces: action.payload.captured_pieces,
+        }),
         highlightedEssential: chainActiveForMe && essential?.length
           ? essential.map(Number)
           : [],
@@ -324,7 +360,10 @@ export function gameReducer(state, action) {
         historyFrom: null,
         historyTo: null,
         lastMove: newLastMove ?? state.lastMove,
-        capturedGhostPieces: buildCapturedGhostPieces(state, action.payload),
+        capturedGhostPieces: buildCapturedGhostPieces(state, {
+          ...action.payload,
+          position_for_mandatory_capture: posForMandatoryCapture,
+        }),
         timer: action.payload.time ?? state.timer,
         timerSyncedAt: action.payload.time ? Date.now() : state.timerSyncedAt,
         confirmedPly,

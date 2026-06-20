@@ -258,13 +258,16 @@ class ConnectionManager:
         prev_mover: str,
         from_cell: int | None,
         to_cell: int | None,
+        *,
+        board_before: dict | None = None,
     ) -> None:
         from backend.session.v2.protocol import build_move_delta
         from backend.state import get_room
 
         room_data = await get_room(room_id)
         payload = build_move_delta(
-            game, result, prev_mover, from_cell, to_cell, room_data
+            game, result, prev_mover, from_cell, to_cell, room_data,
+            board_before=board_before,
         )
         await self.send_to_room(room_id, payload)
 

@@ -1,10 +1,10 @@
 # Shatra Target Architecture V2
 
 > Целевая архитектура уровня Lichess.  
-> Ветка: `architecture/lichess-target-v2`  
-> Статус: **проектирование** (не реализация)  
+> Реализация: влита в `main` (этапы 0–8 ✅)  
+> Статус: **реализовано** (этапы 0–8); открыты только опциональные 8b, 9, premove, SPN  
 > Дата: 2025-06-19  
-> Ревизия: **2025-06-19b** — выбран **Вариант F** (Python authoritative + TypeScript client rules)
+> Ревизия: **2025-06-20** — миграция V2 завершена; документ отражает текущее состояние
 
 ---
 
@@ -106,26 +106,24 @@ User drops piece
 
 ---
 
-### 1.2 Сравнение с текущей Shatra
+### 1.2 Сравнение с Shatra после миграции V2
 
-| Принцип Lichess | Shatra сейчас | Разрыв |
+| Принцип Lichess | Shatra (main) | Статус |
 |-----------------|---------------|--------|
-| Движок на клиенте | `game_engine` только Python на сервере | **Критический** |
-| Легальные ходы локально | WS hint-request → `get_hints()` | **Критический** — RTT на каждый клик |
-| Optimistic UI | Доска обновляется только на `MOVE_MADE` | **Критический** |
-| Минимальный WS payload | Полная `board` client→server, полный `desk`+`move_history` server→client | **Высокий** |
-| Delta sync | Full desk каждый ход | **Высокий** |
-| Versioned state | Нет version/ply | **Высокий** |
-| Drag без сети | Ghost локальный, позиция — с сервера | **Средний** |
-| Часы: local interp | ✅ `useClockCountdown` — уже Lichess-style | Минимальный |
-| Server authoritative | ✅ Redis game state, validation | Сохранить |
-| Hint stale protection | ✅ `hintMatchesSelection` | Сохранить, станет не нужен для hints |
+| Движок на клиенте | `packages/shatra-rules` (TypeScript) + Python `game_engine` на сервере | ✅ |
+| Легальные ходы локально | `localHints` / `getHints` без hint WS | ✅ |
+| Optimistic UI | `syncLayer`, pending moves, display state | ✅ |
+| Минимальный WS payload | `{from, to, ply}` client→server; delta server→client | ✅ |
+| Delta sync | v2 `move` delta; `desk` только в `snapshot` | ✅ |
+| Versioned state | `ply` + reconcile (`classifyIncomingPly`) | ✅ |
+| Drag без сети | `useBoardInteraction`, canvas/DOM board | ✅ |
+| Часы: local interp | `useClockCountdown` | ✅ |
+| Server authoritative | Redis game state, server-only validation | ✅ |
+| Conformance tests | pytest fixtures → vitest + client-server sync suite | ✅ |
 
-**Асимметрия Shatra (скрытый баг будущего optimistic UI):**
-- Hints считаются по **серверной** доске (`build_hint_event_from_game`).
-- Moves применяются к **клиентской** доске (`data["board"]` в `parse_client_event`).
-
-Это нужно устранить в V2: **один источник позиции на сервере**, клиент шлёт только `{from, to, ply}`.
+**Оставшиеся отличия от Lichess (не блокеры):**
+- Нет premove, SPN, турниров, server-side analysis — см. §12 и Этапы 8b/9.
+- Контрольные события (chat/draw/resign) ещё проходят через v1-shaped handler layer на клиенте и сервере — косметический техдолг.
 
 ---
 
@@ -152,7 +150,7 @@ User drops piece
 | `endgame.py` | Победа бием, ничья, repetition | **C) Shared** (частично) | Клиент: UI endgame dialog; сервер: финализация |
 | `message_codes.py` | Коды ошибок/событий | **C) Shared** | i18n на клиенте по кодам |
 | `game_rules.md` | Человекочитаемая спецификация | **C) Shared** | Canonical spec document |
-| `словари.py` | Legacy duplicate? | **D) Заменить** | Удалить дубликат, оставить `dictionaries.py` |
+| ~~`словари.py`~~ | *(удалён)* | — | Legacy-дубликат `dictionaries.py`; файл и `.pyc` убраны из репозитория |
 | `backend/ai.py` | Minimax/alpha-beta search | **A) Server only** | Тяжёлые вычисления, секретные веса |
 | `backend/ai_trained.py` | Веса, глубина поиска | **A) Server only** | |
 | `backend/ai_weights.py` | ML weights | **A) Server only** | Не раскрывать клиенту |
@@ -1036,11 +1034,11 @@ Lichess: Scala + TypeScript + Rust (fishnet). Shatra V2: **Python (server rules)
 |------|-----------|
 | 2025-06-19 | Первая версия; primary: Rust/WASM |
 | 2025-06-19b | Пересмотр: **Вариант F (Python + TS)** как primary; Rust/WASM → опциональный Этап 8b |
+| 2025-06-20 | Этапы 0–8 реализованы в `main`; обновлены §1.2 и статус документа |
 
 ---
 
 ## Связанные документы
 
-- [Текущий аудит (предыдущий анализ)](../..) — см. историю чата
 - `game_engine/game_rules.md` — human spec
-- Ветка реализации: `architecture/lichess-target-v2`
+- `scripts/export_rules_contract.py`, `scripts/export_client_server_sync.py` — регенерация conformance-фикстур

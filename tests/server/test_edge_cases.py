@@ -126,7 +126,7 @@ class TestMoveHistoryResponse:
             position_for_mandatory_capture=11,
         )
         resp = build_move_response(game, result, "белый", 45, 37)
-        assert resp["position_for_mandatory_capture"] is None
+        assert resp.get("position_for_mandatory_capture") is None
 
 
 class TestMoveDeltaResponse:

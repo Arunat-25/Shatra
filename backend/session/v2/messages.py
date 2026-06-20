@@ -65,12 +65,15 @@ async def _apply_and_broadcast_move(
     raw_to: int | None,
     *,
     is_ai_room: bool,
+    board_before: dict | None = None,
 ) -> None:
     response = await apply_move_result(
         room_id, game, result, prev_mover, raw_from, raw_to
     )
     record_move("player")
-    await manager.broadcast_move(room_id, game, result, prev_mover, raw_from, raw_to)
+    await manager.broadcast_move(
+        room_id, game, result, prev_mover, raw_from, raw_to, board_before=board_before,
+    )
 
     room_data = await get_room(room_id)
     if is_ai_room and not result.game_over and room_data and game["mover"] == get_ai_color(room_data):
@@ -210,6 +213,8 @@ async def _process_v2_client_message_locked(
     persist_pending_mandatory_position(game, result, prev_mover)
 
     await _apply_and_broadcast_move(
-        room_id, game, result, prev_mover, raw_from, raw_to, is_ai_room=is_ai_room
+        room_id, game, result, prev_mover, raw_from, raw_to,
+        is_ai_room=is_ai_room,
+        board_before=prev_board,
     )
     return True
