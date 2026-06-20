@@ -3,7 +3,7 @@ import logging
 import time
 
 from backend.game_helpers import build_game_started_response
-from backend.game_archive import archive_finished_game, mark_game_started
+from backend.game_archive import mark_game_started, _archive_finished_game_locked
 from backend.message_codes import DRAW_OPPONENT_DECLINED, DRAW_OFFER_CANCELLED, ws_payload
 from backend.session.v2.outbound import broadcast_control_v1, send_control_v1
 from backend.session.v2.protocol import PROTO_VERSION
@@ -34,7 +34,10 @@ async def _broadcast_rematch_status(room_id: str, room_data: dict) -> None:
 
 
 async def _start_rematch(room_id: str, room_data: dict) -> None:
-    """Сбрасывает игру и запускает реванш для обоих подключённых игроков."""
+    """Сбрасывает игру и запускает реванш для обоих подключённых игроков.
+
+    Caller must hold ``get_room_lock(room_id)`` (see handle_request_rematch).
+    """
     stop_game_timer(room_id)
 
     players = room_data.get("players") or {}
@@ -42,7 +45,7 @@ async def _start_rematch(room_id: str, room_data: dict) -> None:
         players[cid] = _opposite_color(players[cid])
     room_data["players"] = players
 
-    await archive_finished_game(room_id)
+    await _archive_finished_game_locked(room_id)
     await init_game(room_id)
     game = await get_game(room_id)
     if not game:

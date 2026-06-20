@@ -57,7 +57,7 @@ class TestV2ControlOutbound:
         with patch("backend.session.v2.outbound.manager", mgr):
             with patch("backend.session.rematch.manager", mgr):
                 with patch("backend.session.rematch.stop_game_timer"):
-                    with patch("backend.session.rematch.archive_finished_game", new_callable=AsyncMock):
+                    with patch("backend.session.rematch._archive_finished_game_locked", new_callable=AsyncMock):
                         with patch("backend.session.rematch.init_game", new_callable=AsyncMock):
                             with patch(
                                 "backend.session.rematch.get_game",
