@@ -178,7 +178,10 @@ function expectNear(value, expected, tolerancePx, label, errors) {
 
 /**
  * @param {ReturnType<typeof readBoardLayoutSnapshot>} snapshot
- * @param {'desktop-regular' | 'desktop-lite' | 'mobile-regular' | 'mobile-lite'} profile
+ * @param {
+ *   'desktop-regular' | 'desktop-lite' | 'mobile-regular' | 'mobile-lite'
+ *   | 'tutorial-mobile-regular' | 'tutorial-mobile-lite'
+ * } profile
  * @returns {{ ok: boolean, errors: string[] }}
  */
 export function assertBoardLayout(snapshot, profile) {
@@ -187,7 +190,9 @@ export function assertBoardLayout(snapshot, profile) {
     return { ok: false, errors: ['no snapshot'] };
   }
 
-  const [viewportKind, boardKind] = profile.split('-');
+  const isTutorial = profile.startsWith('tutorial-');
+  const baseProfile = isTutorial ? profile.slice('tutorial-'.length) : profile;
+  const [viewportKind, boardKind] = baseProfile.split('-');
   const isDesktop = viewportKind === 'desktop';
   const isLite = boardKind === 'lite';
 
@@ -204,11 +209,11 @@ export function assertBoardLayout(snapshot, profile) {
     errors.push('regular board must not use canvas');
   }
 
-  if (snapshot.overlapsTopBar) {
+  if (!isTutorial && snapshot.overlapsTopBar) {
     errors.push('board overlaps top player bar');
   }
 
-  if (snapshot.mode.isCompact) {
+  if (snapshot.mode.isCompact && !isTutorial) {
     expectNear(snapshot.gapBelowTopBar, 0, TOLERANCE_PX, 'gapBelowTopBar', errors);
     expectNear(snapshot.gapAboveBottomBar, 0, TOLERANCE_PX, 'gapAboveBottomBar', errors);
   }
@@ -247,6 +252,10 @@ export function assertBoardLayout(snapshot, profile) {
     if (snapshot.fortBottomVisible !== true) {
       errors.push('bottom fortress not visible in slot');
     }
+  }
+
+  if (snapshot.mode.isCompact && !isLite && snapshot.heightUnits && snapshot.heightUnits !== '13.16') {
+    errors.push(`mobile heightUnits: expected 13.16, got ${snapshot.heightUnits}`);
   }
 
   return { ok: errors.length === 0, errors };

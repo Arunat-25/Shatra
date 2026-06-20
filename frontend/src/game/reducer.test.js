@@ -437,4 +437,38 @@ describe('gameReducer', () => {
     expect(next.posForMandatoryCapture).toBe(8);
     expect(next.batyrCapturedThisTurn).toEqual([10]);
   });
+
+  it('GAME_STARTED resync replaces stale client chain and ghost state (reconnect)', () => {
+    const stale = {
+      ...initialGameState,
+      myColor: 'белый',
+      moversColor: 'белый',
+      board: { 45: 'белый бий', 28: 'черная шатра' },
+      posForMandatoryCapture: 45,
+      batyrCapturedThisTurn: [99],
+      capturedGhostPieces: { 28: 'черная шатра' },
+      moveFrom: 45,
+      highlightedEssential: [33],
+      confirmedPly: 1,
+      waiting: false,
+    };
+    const next = gameReducer(stale, {
+      type: GAME_ACTIONS.GAME_STARTED,
+      payload: {
+        desk: { 8: 'черный батыр', 10: null, 14: null },
+        movers_color: 'черный',
+        your_color: 'белый',
+        position_for_mandatory_capture: 8,
+        captured_pieces: [10],
+        ply: 5,
+      },
+    });
+    expect(next.confirmedPly).toBe(5);
+    expect(next.moversColor).toBe('черный');
+    expect(next.posForMandatoryCapture).toBe(8);
+    expect(next.batyrCapturedThisTurn).toEqual([10]);
+    expect(next.capturedGhostPieces).toEqual({});
+    expect(next.moveFrom).toBeNull();
+    expect(next.highlightedEssential).toEqual([]);
+  });
 });

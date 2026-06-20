@@ -1,7 +1,5 @@
 import { readBoardLayoutSnapshot } from '../board/boardLayoutGeometry';
-
-const ENDPOINT = 'http://127.0.0.1:7570/ingest/7c8a0073-ab4a-4548-b425-fe00951377e1';
-const SESSION = 'a9d1b1';
+import { sendDevProbe } from './devProbe';
 
 function rect(el) {
   if (!el) return null;
@@ -18,6 +16,7 @@ function cs(el, prop) {
   return el ? getComputedStyle(el).getPropertyValue(prop) : null;
 }
 
+/** Debug probe: tutorial page layout (overflow, board units). Dev only. */
 export function probeTutorialLayout(tag, extra = {}) {
   const shell = document.querySelector('.app-shell');
   const appMain = document.querySelector('.app-main');
@@ -105,20 +104,13 @@ export function probeTutorialLayout(tag, extra = {}) {
     ...extra,
   };
 
-  // #region agent log
-  fetch(ENDPOINT, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': SESSION },
-    body: JSON.stringify({
-      sessionId: SESSION,
-      location: 'tutorialLayoutProbe.js',
-      message: 'tutorial layout probe',
-      hypothesisId: 'H1-H5',
-      data,
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
+  sendDevProbe({
+    sessionId: 'dev',
+    hypothesisId: 'tutorial-layout',
+    location: 'tutorialLayoutProbe.js',
+    message: 'tutorial layout probe',
+    data,
+  });
 
   return data;
 }

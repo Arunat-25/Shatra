@@ -1,5 +1,4 @@
-const ENDPOINT = 'http://127.0.0.1:7570/ingest/7c8a0073-ab4a-4548-b425-fe00951377e1';
-const SESSION = '97ed31';
+import { sendDevProbe } from './devProbe';
 
 function rect(el) {
   if (!el) return null;
@@ -12,8 +11,8 @@ function rect(el) {
   };
 }
 
+/** Debug probe: lobby emblem flame alignment. Dev only. */
 export function probeEmblemFlame(tag, extra = {}) {
-  const svg = document.querySelector('.lobby-emblem-svg, .auth-card .lobby-emblem-svg, svg.lobby-emblem-svg');
   const emblemSvg = document.querySelector('.lobby-emblem-svg') || document.querySelector('.auth-card svg');
   const flame = emblemSvg?.querySelector('.game-emblem-flame');
   const logs = emblemSvg?.querySelector('path[d="M17 49.5 L43 49.5"]');
@@ -48,20 +47,13 @@ export function probeEmblemFlame(tag, extra = {}) {
     ...extra,
   };
 
-  // #region agent log
-  fetch(ENDPOINT, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': SESSION },
-    body: JSON.stringify({
-      sessionId: SESSION,
-      location: 'emblemFlameProbe.js',
-      message: 'emblem flame probe',
-      hypothesisId: 'H4-centering',
-      data,
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
+  sendDevProbe({
+    sessionId: 'dev',
+    hypothesisId: 'emblem-flame',
+    location: 'emblemFlameProbe.js',
+    message: 'emblem flame probe',
+    data,
+  });
 
   return data;
 }

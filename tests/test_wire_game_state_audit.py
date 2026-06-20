@@ -329,3 +329,20 @@ def test_pass_move_wire_can_pass_false_after_turn_switch():
     assert delta.get("canPass") is False
     assert delta.get("chainCell") is None
     assert delta.get("batyrCaptured") == []
+
+
+def test_reconnect_snapshot_carries_persisted_batyr_chain():
+    """Reconnect/resync snapshot must expose Redis pending chain, not stale wire leaks."""
+    board = empty_board()
+    board.update({8: "черный батыр", 10: None, 14: None})
+    game = new_server_game(board=board, mover="черный")
+    game["pending_mandatory_position"] = 8
+    game["pending_batyr_captures"] = [10]
+    game["ply"] = 5
+
+    snap = build_snapshot(game, {"type": "ai", "time_control": None}, "белый")
+
+    assert snap["ply"] == 5
+    assert snap["chainCell"] == 8
+    assert snap["batyrCaptured"] == [10]
+    assert snap["turn"] == "черный"

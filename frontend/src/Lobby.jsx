@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { probeEmblemFlame } from './debug/emblemFlameProbe';
+import useDevLayoutProbe from './hooks/useDevLayoutProbe';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { createRoom, listRooms, joinRoom } from './api';
@@ -118,16 +119,7 @@ export default function Lobby() {
 
   const showLoading = refreshing && rooms.length === 0;
 
-  useEffect(() => {
-    const run = () => probeEmblemFlame('lobby-emblem');
-    run();
-    const tId = window.setTimeout(run, 150);
-    window.addEventListener('resize', run);
-    return () => {
-      window.clearTimeout(tId);
-      window.removeEventListener('resize', run);
-    };
-  }, [scale, hostHeight]);
+  useDevLayoutProbe(() => probeEmblemFlame('lobby-emblem'), [scale, hostHeight]);
 
   return (
     <div className="lobby-page">

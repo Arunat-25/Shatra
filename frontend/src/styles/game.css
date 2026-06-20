@@ -61,7 +61,7 @@
   top: var(--app-top-chrome-offset, 72px);
 }
 
-/* Доска вписывается в рамку слота (игра; урок — в tutorial.css) */
+/* Доска вписывается в рамку слота (игра и обучение — см. boardBundle.css) */
 .app-shell--game .room-board-wrap {
   position: relative;
   min-width: 0;

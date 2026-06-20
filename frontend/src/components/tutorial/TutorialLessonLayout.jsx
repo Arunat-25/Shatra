@@ -1,9 +1,8 @@
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import '../../styles/board.css';
-import '../../styles/game.css';
-import '../../styles/game-mobile.css';
+import '../../styles/boardBundle.css';
 import { probeTutorialLayout } from '../../debug/tutorialLayoutProbe';
+import useDevLayoutProbe from '../../hooks/useDevLayoutProbe';
 import { useLiteUi } from '../../context/LiteUiContext';
 import BoardSurface from '../BoardSurface';
 
@@ -32,16 +31,13 @@ export default function TutorialLessonLayout({
   const { t } = useTranslation();
   const { enabled: liteUi } = useLiteUi();
 
-  useEffect(() => {
-    const run = () => probeTutorialLayout('tutorial-lesson');
-    run();
-    const tId = window.setTimeout(run, 150);
-    window.addEventListener('resize', run);
-    return () => {
-      window.clearTimeout(tId);
-      window.removeEventListener('resize', run);
-    };
-  }, [text, instruction, interactive, canProceed]);
+  useDevLayoutProbe(() => probeTutorialLayout('tutorial-lesson'), [
+    text,
+    instruction,
+    interactive,
+    canProceed,
+    liteUi,
+  ]);
 
   const boardClass = [
     'board',

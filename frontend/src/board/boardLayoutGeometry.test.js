@@ -108,6 +108,26 @@ describe('boardLayoutGeometry', () => {
     expect(result.errors).toContain('board overlaps top player bar');
   });
 
+  it('assertBoardLayout passes tutorial mobile regular snapshot', () => {
+    const result = assertBoardLayout(
+      makeSnapshot({
+        viewport: { width: 390, height: 760 },
+        mode: { isLite: false, isCanvas: false, isCompact: true },
+        topBar: null,
+        bottomBar: null,
+        gapBelowTopBar: null,
+        gapAboveBottomBar: null,
+        overlapsTopBar: null,
+        contentInsetTop: 0,
+        contentInsetBottom: 0,
+        heightUnits: '13.16',
+        boardFlexShrink: '1',
+      }),
+      'tutorial-mobile-regular',
+    );
+    expect(result.ok).toBe(true);
+  });
+
   it('readBoardLayoutSnapshot returns null without board', () => {
     const doc = document.implementation.createHTMLDocument('test');
     expect(readBoardLayoutSnapshot(doc)).toBeNull();

@@ -1,0 +1,4 @@
+/* Shared board rendering: game, tutorial, canvas lite — keep in sync everywhere. */
+@import './board.css';
+@import './game.css';
+@import './game-mobile.css';

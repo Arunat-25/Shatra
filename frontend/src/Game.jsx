@@ -1,6 +1,4 @@
-import './styles/board.css';
-import './styles/game.css';
-import './styles/game-mobile.css';
+import './styles/boardBundle.css';
 import { useEffect, useCallback, useRef } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';

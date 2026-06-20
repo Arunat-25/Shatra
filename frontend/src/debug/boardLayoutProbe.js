@@ -1,15 +1,16 @@
 import { readBoardLayoutSnapshot } from '../board/boardLayoutGeometry';
+import { sendDevProbe } from './devProbe';
 
-/** Debug probe: board slot vs content geometry (overflow check). */
+/** Debug probe: board slot vs content geometry (overflow check). Dev only. */
 export function probeBoardLayout(trigger, extra = {}) {
   if (typeof window === 'undefined') return;
 
   const snapshot = readBoardLayoutSnapshot(document);
-  if (!snapshot) return;
+  if (!snapshot) return snapshot;
 
-  const payload = {
-    sessionId: 'a9d1b1',
-    hypothesisId: 'overflow',
+  sendDevProbe({
+    sessionId: 'dev',
+    hypothesisId: 'layout',
     location: 'boardLayoutProbe.js',
     message: 'board layout probe',
     data: {
@@ -31,17 +32,9 @@ export function probeBoardLayout(trigger, extra = {}) {
       boardUnit: snapshot.boardUnit,
       heightUnits: snapshot.heightUnits,
       boardFlexShrink: snapshot.boardFlexShrink,
-      runId: extra.runId ?? 'overflow-fix',
       ...extra,
     },
-    timestamp: Date.now(),
-  };
+  });
 
-  // #region agent log
-  fetch('http://127.0.0.1:7570/ingest/7c8a0073-ab4a-4548-b425-fe00951377e1', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'a9d1b1' },
-    body: JSON.stringify(payload),
-  }).catch(() => {});
-  // #endregion
+  return snapshot;
 }

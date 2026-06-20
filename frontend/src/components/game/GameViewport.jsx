@@ -1,6 +1,8 @@
 import { useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { probeBoardLayout } from '../../debug/boardLayoutProbe';
+import useDevLayoutProbe from '../../hooks/useDevLayoutProbe';
+import { isDevProbeEnabled } from '../../debug/devProbe';
 import { useLiteUi } from '../../context/LiteUiContext';
 import { computeLocalHints } from '../../engine/localHints';
 import BoardSurface from '../BoardSurface';
@@ -35,21 +37,23 @@ export default function GameViewport({
     waiting: state.waiting,
   };
 
-  useEffect(() => {
-    if (state.waiting) return undefined;
-    const run = () => probeBoardLayout('state-change', {
+  useDevLayoutProbe(() => {
+    if (state.waiting) return;
+    probeBoardLayout('state-change', {
       moveFrom: state.moveFrom,
       aiThinking: state.aiThinking,
       liteUi,
-      runId: 'overflow-fix',
     });
-    run();
+  }, [state.waiting, state.moveFrom, state.aiThinking, state.myColor, liteUi]);
+
+  useEffect(() => {
+    if (!isDevProbeEnabled() || state.waiting) return undefined;
     const slot = document.querySelector('.room-board');
     if (!slot) return undefined;
-    const ro = new ResizeObserver(() => probeBoardLayout('resize', { liteUi, runId: 'overflow-fix' }));
+    const ro = new ResizeObserver(() => probeBoardLayout('resize', { liteUi }));
     ro.observe(slot);
     return () => ro.disconnect();
-  }, [state.waiting, state.moveFrom, state.aiThinking, state.myColor, liteUi]);
+  }, [state.waiting, liteUi]);
 
   return (
     <div className="game-viewport-column">
