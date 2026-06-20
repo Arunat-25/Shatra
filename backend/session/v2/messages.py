@@ -123,6 +123,9 @@ async def _process_v2_client_message_locked(
         snapshot = build_snapshot(game, room_data, my_color)
         snapshot["resync"] = True
         await _send_v2(websocket, snapshot)
+        if game.get("game_over") and room_data.get("type") != "ai":
+            from backend.session.rematch import _broadcast_rematch_status
+            await _broadcast_rematch_status(room_id, room_data)
         return True
 
     if msg_type in CONTROL_MESSAGE_TYPES:

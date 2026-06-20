@@ -33,6 +33,21 @@ describe('gameReducer', () => {
     expect(next.disconnectTimeout).toBe(30);
   });
 
+  it('OPPONENT_RECONNECTED clears rematchUnavailable after finished game', () => {
+    const next = gameReducer(
+      {
+        ...initialGameState,
+        gameOver: true,
+        rematchUnavailable: true,
+        opponentDisconnected: true,
+        disconnectCountdown: 12,
+      },
+      { type: GAME_ACTIONS.OPPONENT_RECONNECTED },
+    );
+    expect(next.rematchUnavailable).toBe(false);
+    expect(next.opponentDisconnected).toBe(false);
+  });
+
   it('SET_REMATCH_STATUS tracks both sides', () => {
     const next = gameReducer(initialGameState, {
       type: GAME_ACTIONS.SET_REMATCH_STATUS,

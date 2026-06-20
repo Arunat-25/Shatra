@@ -33,3 +33,41 @@ async def test_sync_snapshot_includes_resync_flag():
     assert len(sent) == 1
     assert sent[0]["t"] == "snapshot"
     assert sent[0]["resync"] is True
+
+
+@pytest.mark.asyncio
+async def test_sync_finished_game_rebroadcasts_rematch_status():
+    game = {
+        "board": {},
+        "mover": "белый",
+        "ply": 4,
+        "move_history": [],
+        "game_over": True,
+        "winner_color": "черный",
+    }
+    room = {"type": "public", "players": {"c1": "белый", "c2": "черный"}, "rematch_ready": ["c1"]}
+    ws = AsyncMock()
+    sent = []
+
+    async def capture_send(_ws, payload):
+        sent.append(payload)
+
+    with patch("backend.session.v2.messages.get_game", AsyncMock(return_value=game)):
+        with patch("backend.session.v2.messages.get_room", AsyncMock(return_value=room)):
+            with patch("backend.session.v2.messages.get_player_color", return_value="белый"):
+                with patch("backend.session.v2.messages._send_v2", side_effect=capture_send):
+                    with patch(
+                        "backend.session.rematch._broadcast_rematch_status",
+                        new_callable=AsyncMock,
+                    ) as broadcast:
+                        ok = await _process_v2_client_message_locked(
+                            "room1",
+                            "c1",
+                            {"v": 2, "t": "sync", "ply": 4},
+                            ws,
+                            is_ai_room=False,
+                        )
+
+    assert ok is True
+    assert sent[0]["t"] == "snapshot"
+    broadcast.assert_awaited_once_with("room1", room)

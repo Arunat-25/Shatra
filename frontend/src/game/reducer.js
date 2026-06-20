@@ -467,6 +467,7 @@ export function gameReducer(state, action) {
         opponentDisconnected: false,
         disconnectTimeout: 0,
         disconnectCountdown: 0,
+        rematchUnavailable: state.gameOver ? false : state.rematchUnavailable,
       };
 
     case GAME_ACTIONS.DISCONNECT_TICK:

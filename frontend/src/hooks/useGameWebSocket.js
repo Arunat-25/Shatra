@@ -82,7 +82,8 @@ export default function useGameWebSocket(roomId, modeAi, {
       }
       if (isReconnect) {
         const s = stateRef.current;
-        if (!s.waiting && !s.gameOver) {
+        const shouldSync = !s.waiting;
+        if (shouldSync) {
           sendRef.current(buildV2SyncPayload(s.confirmedPly));
         }
       }
