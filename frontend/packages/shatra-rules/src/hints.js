@@ -183,6 +183,16 @@ function getAllCandidates(cells, currentColor, fromCell, pieceType) {
   return [...candidates];
 }
 
+function collectCaptureHighlightCells(cells, fromCell, essentialPositions, piece, batyrCapturedThisTurn) {
+  if (!piece || !essentialPositions.length) return [];
+  const enemies = new Set();
+  for (const toCell of essentialPositions) {
+    const enemy = findCapturedEnemy(cells, piece, fromCell, toCell, batyrCapturedThisTurn);
+    if (enemy != null) enemies.add(enemy);
+  }
+  return [...enemies].sort((a, b) => a - b);
+}
+
 function getChainHints(cells, currentColor, fromCell, batyrCapturedThisTurn, piece) {
   const allowed = [];
   if (piece.getType() === 'шатра' || piece.getType() === 'бий') {
@@ -224,7 +234,7 @@ export function getHints({
   const piece = board.getPieceObject(fromCell);
 
   if (!piece || piece.getColor() !== currentColor) {
-    return { essentialPositions: [], capturedPieces: caps, messageCode: '' };
+    return { essentialPositions: [], capturedPieces: caps, captureHighlightCells: [], messageCode: '' };
   }
 
   if (chainCaptureCell && chainCaptureCell !== 0) {
@@ -232,12 +242,17 @@ export function getHints({
       return {
         essentialPositions: [],
         capturedPieces: caps,
+        captureHighlightCells: [],
         messageCode: 'capture.continue_same',
       };
     }
+    const chainAllowed = getChainHints(cells, currentColor, fromCell, caps, piece);
     return {
-      essentialPositions: getChainHints(cells, currentColor, fromCell, caps, piece),
+      essentialPositions: chainAllowed,
       capturedPieces: caps,
+      captureHighlightCells: collectCaptureHighlightCells(
+        cells, fromCell, chainAllowed, piece, caps,
+      ),
       messageCode: '',
     };
   }
@@ -252,6 +267,9 @@ export function getHints({
   return {
     essentialPositions: allowed,
     capturedPieces: caps,
+    captureHighlightCells: collectCaptureHighlightCells(
+      cells, fromCell, allowed, piece, caps,
+    ),
     messageCode: '',
   };
 }

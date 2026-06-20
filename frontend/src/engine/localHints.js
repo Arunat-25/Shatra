@@ -21,7 +21,7 @@ export function computeLocalHints(gameState, fromCell) {
 
   return {
     essential: result.essentialPositions || [],
-    captured: result.capturedPieces || [],
+    captured: result.captureHighlightCells || [],
     messageCode: result.messageCode || '',
   };
 }

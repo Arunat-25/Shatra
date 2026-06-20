@@ -29,8 +29,12 @@ export default function useCellClick({
   isBlocked,
 }) {
   const selectPiece = useCallback((positionNum) => {
-    dispatch({ type: GAME_ACTIONS.SET_MOVE_FROM, payload: positionNum });
-    applyLocalHighlights(dispatch, stateRef.current, positionNum);
+    const { essential, captured } = computeLocalHints(stateRef.current, positionNum);
+    dispatch({
+      type: GAME_ACTIONS.SET_MOVE_FROM,
+      payload: positionNum,
+      highlights: { essential, captured },
+    });
   }, [dispatch, stateRef]);
 
   const trySendMove = useCallback((from, to, { deselect = false } = {}) => {

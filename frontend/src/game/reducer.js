@@ -200,13 +200,15 @@ export function gameReducer(state, action) {
       };
     }
 
-    case GAME_ACTIONS.SET_MOVE_FROM:
+    case GAME_ACTIONS.SET_MOVE_FROM: {
+      const highlights = action.highlights;
       return {
         ...state,
         moveFrom: action.payload,
-        highlightedEssential: [],
-        highlightedCaptured: [],
+        highlightedEssential: highlights?.essential ?? [],
+        highlightedCaptured: highlights?.captured ?? [],
       };
+    }
 
     case GAME_ACTIONS.DESELECT:
       return { ...state, moveFrom: null, highlightedEssential: [], highlightedCaptured: [] };

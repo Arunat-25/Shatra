@@ -110,12 +110,14 @@ describe('useCellClick normal moves', () => {
     });
 
     expect(send).not.toHaveBeenCalled();
-    expect(dispatch).toHaveBeenCalledWith({
-      type: GAME_ACTIONS.SET_MOVE_FROM,
-      payload: 53,
-    });
     expect(dispatch).toHaveBeenCalledWith(
-      expect.objectContaining({ type: GAME_ACTIONS.HIGHLIGHTS }),
+      expect.objectContaining({
+        type: GAME_ACTIONS.SET_MOVE_FROM,
+        payload: 53,
+        highlights: expect.objectContaining({
+          essential: expect.any(Array),
+        }),
+      }),
     );
   });
 
@@ -139,6 +141,9 @@ describe('useCellClick normal moves', () => {
     expect(dispatch).toHaveBeenCalledWith({
       type: GAME_ACTIONS.SET_MOVE_FROM,
       payload: 10,
+      highlights: expect.objectContaining({
+        essential: expect.any(Array),
+      }),
     });
 
     hookProps.stateRef.current = { ...state, moveFrom: 10 };
