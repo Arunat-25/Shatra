@@ -75,6 +75,17 @@ html:has(.app-shell--lobby)::after {
 .board.board--lite {
   background: var(--lite-board-pad) !important;
   box-shadow: none !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+.board.board--lite.board-dimmed {
+  opacity: 1 !important;
+}
+
+.board.board--lite.board-ai-thinking {
+  border-color: rgba(94, 64, 38, 0.2) !important;
+  box-shadow: none !important;
 }
 
 /* Canvas lite: same outer box as .board (padding, radius, placement); only palette is lighter */

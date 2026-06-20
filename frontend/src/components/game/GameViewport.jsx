@@ -76,7 +76,7 @@ export default function GameViewport({
                     'board',
                     liteUi ? 'board--lite' : '',
                     isBoardBlocked ? 'disabled' : '',
-                    state.aiThinking ? 'board-dimmed board-ai-thinking' : '',
+                    !liteUi && state.aiThinking ? 'board-dimmed board-ai-thinking' : '',
                   ].filter(Boolean).join(' ')}
                 >
                   <BoardSurface

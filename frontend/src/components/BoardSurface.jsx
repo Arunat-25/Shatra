@@ -16,7 +16,14 @@ export default function BoardSurface(props) {
   }, [liteUi]);
 
   if (liteUi) {
-    return <CanvasBoard {...props} drawTheme="lite" vectorOnlySprites />;
+    return (
+      <CanvasBoard
+        {...props}
+        drawTheme="lite"
+        vectorOnlySprites
+        enableMoveAnimation={false}
+      />
+    );
   }
 
   const useLitePieces = compactViewport;

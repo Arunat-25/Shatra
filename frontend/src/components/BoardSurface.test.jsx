@@ -62,6 +62,7 @@ describe('BoardSurface', () => {
     expect(lastCanvasProps).not.toBeNull();
     expect(lastCanvasProps.drawTheme).toBe('lite');
     expect(lastCanvasProps.vectorOnlySprites).toBe(true);
+    expect(lastCanvasProps.enableMoveAnimation).toBe(false);
     expect(lastBoardGridProps).toBeNull();
   });
 

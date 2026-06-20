@@ -6,6 +6,7 @@ import {
   computeBoardLayout,
   hitTestCell,
   layoutDrawScale,
+  viewportToLayoutPoint,
 } from './layoutMetrics';
 
 const DESKTOP_METRICS = {
@@ -77,6 +78,22 @@ describe('layoutMetrics', () => {
       offsetX: 0,
       offsetY: 0,
     });
+  });
+
+  it('viewportToLayoutPoint inverts canvas draw transform', () => {
+    const layout = computeBoardLayout('белый', MOBILE_METRICS);
+    const displayW = 360;
+    const displayH = 520;
+    const scale = layoutDrawScale(layout, displayW, displayH, true);
+    const cell = layout.cells[25];
+    const layoutCx = cell.x + cell.w / 2;
+    const layoutCy = cell.y + cell.h / 2;
+    const canvasRect = { left: 10, top: 20, width: displayW, height: displayH };
+    const clientX = canvasRect.left + scale.offsetX + layoutCx * scale.x;
+    const clientY = canvasRect.top + scale.offsetY + layoutCy * scale.y;
+    const point = viewportToLayoutPoint(clientX, clientY, canvasRect, layout, true);
+    expect(point.x).toBeCloseTo(layoutCx, 5);
+    expect(point.y).toBeCloseTo(layoutCy, 5);
   });
 
   it('hit-tests in CSS pixels (not device pixels)', () => {

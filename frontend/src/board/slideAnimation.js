@@ -1,3 +1,5 @@
+import { isLiteUiEnabled } from '../ui/liteUiSettings';
+
 export const SLIDE_DURATION_MS = 200;
 
 export function easeOutCubic(t) {
@@ -6,6 +8,7 @@ export function easeOutCubic(t) {
 
 export function slideDurationMs() {
   if (typeof window === 'undefined' || !window.matchMedia) return SLIDE_DURATION_MS;
+  if (isLiteUiEnabled()) return 0;
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : SLIDE_DURATION_MS;
 }
 

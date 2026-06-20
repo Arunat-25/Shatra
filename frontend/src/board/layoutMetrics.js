@@ -222,6 +222,21 @@ export function layoutDrawScale(layout, displayW, displayH, fillSlot) {
   };
 }
 
+/**
+ * Convert viewport (client) coordinates to canvas layout space used by drawBoard.
+ * @param {number} clientX
+ * @param {number} clientY
+ * @param {{ left: number, top: number, width: number, height: number }} canvasRect
+ */
+export function viewportToLayoutPoint(clientX, clientY, canvasRect, layout, fillSlot) {
+  const scale = layoutDrawScale(layout, canvasRect.width, canvasRect.height, fillSlot);
+  return {
+    x: (clientX - canvasRect.left - scale.offsetX) / scale.x,
+    y: (clientY - canvasRect.top - scale.offsetY) / scale.y,
+    scale,
+  };
+}
+
 export function hitTestCell(cells, x, y, padding = 3) {
   for (const [id, rect] of Object.entries(cells)) {
     if (

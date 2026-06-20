@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { easeOutCubic, runSlideAnimation } from './slideAnimation';
+import { easeOutCubic, runSlideAnimation, slideDurationMs } from './slideAnimation';
+import { setLiteUiEnabled, LITE_UI_KEY } from '../ui/liteUiSettings';
 
 describe('easeOutCubic', () => {
   it('starts at 0 and ends at 1', () => {
@@ -9,6 +10,14 @@ describe('easeOutCubic', () => {
 
   it('eases midpoints', () => {
     expect(easeOutCubic(0.5)).toBeGreaterThan(0.5);
+  });
+});
+
+describe('slideDurationMs', () => {
+  it('returns 0 when lite UI is enabled', () => {
+    setLiteUiEnabled(true);
+    expect(slideDurationMs()).toBe(0);
+    localStorage.removeItem(LITE_UI_KEY);
   });
 });
 

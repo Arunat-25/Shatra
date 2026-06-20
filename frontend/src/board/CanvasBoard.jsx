@@ -9,6 +9,7 @@ import {
   readCellNumberScale,
   readBoardHeightUnits,
   deriveMetricsFromBoardSlot,
+  viewportToLayoutPoint,
   BOARD_HEIGHT_UNITS,
 } from './layoutMetrics';
 import { drawBoardFrame, drawBoardState } from './drawBoard';
@@ -170,12 +171,21 @@ export default function CanvasBoard({
   const toCanvasOverlay = useCallback((overlay) => {
     if (!overlay?.piece) return null;
     const canvas = canvasRef.current;
-    if (!canvas) return overlay;
+    const layout = layoutRef.current;
+    if (!canvas || !layout) return overlay;
     const cr = canvas.getBoundingClientRect();
+    const { x, y, scale } = viewportToLayoutPoint(
+      overlay.x,
+      overlay.y,
+      cr,
+      layout,
+      fillSlotRef.current,
+    );
     return {
       ...overlay,
-      x: overlay.x - cr.left,
-      y: overlay.y - cr.top,
+      x,
+      y,
+      size: overlay.size != null ? overlay.size / scale.x : overlay.size,
     };
   }, []);
 
@@ -341,7 +351,8 @@ export default function CanvasBoard({
     if (piece) {
       const layout = layoutRef.current;
       const rect = layout?.cells?.[cellId];
-      const cellSize = rect ? Math.round(rect.w) : 40;
+      const center = getCellCenter(cellId);
+      const cellSize = center?.size ?? (rect ? Math.round(rect.w) : 40);
       event.preventDefault();
       beginDrag(cellId, event, cellSize);
       schedulePaint();
@@ -351,7 +362,7 @@ export default function CanvasBoard({
     event.preventDefault();
     handleCellClick(cellId);
     schedulePaint();
-  }, [interactive, board, resolveCellAt, beginDrag, handleCellClick, schedulePaint]);
+  }, [interactive, board, resolveCellAt, beginDrag, handleCellClick, schedulePaint, getCellCenter]);
 
   return (
     <div ref={containerRef} className="board-content board-content--canvas">

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render } from '@testing-library/react';
 import { LiteUiProvider } from '../../context/LiteUiContext';
+import { setLiteUiEnabled, LITE_UI_KEY } from '../../ui/liteUiSettings';
 import GameViewport from './GameViewport';
 
 vi.mock('../BoardSurface', () => ({
@@ -18,6 +19,7 @@ vi.mock('../PlayerBar', () => ({
 describe('GameViewport', () => {
   afterEach(() => {
     cleanup();
+    localStorage.removeItem(LITE_UI_KEY);
   });
 
   const baseState = {
@@ -60,5 +62,46 @@ describe('GameViewport', () => {
     expect(container.querySelector('.game-viewport-below-fold')).toBeTruthy();
     expect(container.querySelector('.game-viewport-actions')).toBeNull();
     expect(container.querySelector('.game-viewport-below-fold')?.closest('.game-viewport-first')).toBeNull();
+  });
+
+  it('does not dim board in lite mode while AI thinks', () => {
+    setLiteUiEnabled(true);
+    const { container } = render(
+      <LiteUiProvider>
+        <GameViewport
+          boardTop="белый"
+          boardBottom="черный"
+          state={{ ...baseState, aiThinking: true, opponentDisconnected: false }}
+          isBoardBlocked
+          onCellClick={vi.fn()}
+          actionsBar={null}
+          moveHistoryProps={{}}
+        />
+      </LiteUiProvider>,
+    );
+    const board = container.querySelector('.board');
+    expect(board?.classList.contains('board--lite')).toBe(true);
+    expect(board?.classList.contains('board-dimmed')).toBe(false);
+    expect(board?.classList.contains('board-ai-thinking')).toBe(false);
+  });
+
+  it('dims board in regular mode while AI thinks', () => {
+    setLiteUiEnabled(false);
+    const { container } = render(
+      <LiteUiProvider>
+        <GameViewport
+          boardTop="белый"
+          boardBottom="черный"
+          state={{ ...baseState, aiThinking: true, opponentDisconnected: false }}
+          isBoardBlocked
+          onCellClick={vi.fn()}
+          actionsBar={null}
+          moveHistoryProps={{}}
+        />
+      </LiteUiProvider>,
+    );
+    const board = container.querySelector('.board');
+    expect(board?.classList.contains('board-dimmed')).toBe(true);
+    expect(board?.classList.contains('board-ai-thinking')).toBe(true);
   });
 });
