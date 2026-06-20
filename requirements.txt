@@ -47,3 +47,5 @@ asyncpg==0.30.0
 alembic==1.16.1
 bcrypt==4.3.0
 PyJWT==2.10.1
+grpcio==1.71.0
+protobuf==5.29.4

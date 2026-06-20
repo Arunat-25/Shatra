@@ -57,11 +57,15 @@ cd shatra
 
 ## 2. Запуск
 
-**Только приложение** (app + postgres + redis + nginx + certbot):
+**Только приложение** (app + postgres + redis + **shatra-ai** + nginx + certbot):
 
 ```bash
 docker compose -f docker-compose.prod.yml up -d --build
 ```
+
+Сервис `shatra-ai` (Rust gRPC) поднимается в internal network. По умолчанию `AI_ENGINE=python` — app использует встроенный движок. После порта rules/search в Rust: `AI_ENGINE=grpc` в `.env`. Rollback: вернуть `AI_ENGINE=python` и перезапустить только `app`.
+
+Подробнее: [services/shatra-ai/README.md](../services/shatra-ai/README.md).
 
 ### 2b. Первый TLS-сертификат
 

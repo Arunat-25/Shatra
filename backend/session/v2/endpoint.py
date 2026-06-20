@@ -27,6 +27,8 @@ async def _wait_for_second_player_v2(
     room_id: str,
     room_data: dict,
     client_id: str,
+    *,
+    is_ai_room: bool,
 ) -> dict | None:
     room_type = room_data.get("type")
     await manager.send_to_player(
@@ -40,13 +42,22 @@ async def _wait_for_second_player_v2(
     )
     try:
         while not room_data.get("game_started"):
-            try:
-                await asyncio.wait_for(websocket.receive_json(), timeout=1.0)
-            except asyncio.TimeoutError:
-                pass
             rd = await get_room(room_id)
             if rd:
                 room_data = rd
+            if room_data.get("game_started"):
+                break
+            try:
+                data = await asyncio.wait_for(websocket.receive_json(), timeout=0.5)
+            except asyncio.TimeoutError:
+                continue
+            if isinstance(data, dict):
+                await process_v2_client_message(
+                    room_id, client_id, data, websocket, is_ai_room=is_ai_room
+                )
+                rd = await get_room(room_id)
+                if rd:
+                    room_data = rd
         return room_data
     except WebSocketDisconnect:
         await manager.disconnect(room_id, websocket)
@@ -107,7 +118,9 @@ async def websocket_endpoint_v2(websocket: WebSocket, room_id: str):
             elif room_data.get("time_control") and room_id not in game_timers:
                 game_timers[room_id] = asyncio.create_task(game_ticker(room_id))
     elif players_in_room < 2:
-        room_data = await _wait_for_second_player_v2(websocket, room_id, room_data, client_id)
+        room_data = await _wait_for_second_player_v2(
+            websocket, room_id, room_data, client_id, is_ai_room=is_ai_room
+        )
         if room_data is None:
             return
     else:

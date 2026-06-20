@@ -49,6 +49,14 @@ class Settings(BaseSettings):
 
     admin_user_ids: str = ""
 
+    # AI microservice (shatra-ai gRPC). Default python = in-process engine.
+    ai_engine: str = "python"
+    ai_service_url: str = "shatra-ai:50051"
+    ai_move_time_ms: int = 300
+    ai_search_depth: int = 6
+    ai_grpc_timeout_ms: int = 500
+    ai_shadow_verify: bool = False
+
     @property
     def admin_user_id_set(self) -> frozenset[str]:
         if not self.admin_user_ids.strip():

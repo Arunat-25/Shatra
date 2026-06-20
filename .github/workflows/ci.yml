@@ -81,6 +81,20 @@ jobs:
       - run: npm test
       - run: npm run build
 
+  shatra-ai:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install protoc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+      - name: Cargo test shatra-engine
+        run: cargo test -p shatra-engine
+      - name: Build shatra-ai release
+        run: cargo build --release -p shatra-ai
+
   e2e:
     runs-on: ubuntu-latest
     services:

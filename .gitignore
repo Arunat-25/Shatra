@@ -35,3 +35,6 @@ data/ai_trained_weights.smoke.json
 
 # Playwright
 frontend/test-results/
+
+# Rust
+target/

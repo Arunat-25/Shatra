@@ -61,6 +61,17 @@ describe('boardLayoutGeometry', () => {
     expect(result.diffs).toEqual([]);
   });
 
+  it('compareBoardSnapshots skips inner grid when canvas vs DOM', () => {
+    const regular = makeSnapshot();
+    const lite = makeSnapshot({
+      mode: { isLite: true, isCanvas: true, isCompact: false },
+      canvas: { x: 80, y: 90, width: 400, height: 600 },
+    });
+    const result = compareBoardSnapshots(regular, lite);
+    expect(result.ok).toBe(true);
+    expect(result.diffs).toEqual([]);
+  });
+
   it('compareBoardSnapshots reports board size drift', () => {
     const a = makeSnapshot();
     const b = makeSnapshot({

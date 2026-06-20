@@ -26,6 +26,7 @@ from backend.presence import touch_lobby_presence, count_online_for_lobby, end_l
 from backend.session.v2.endpoint import websocket_endpoint_v2
 from backend.state import init_redis, close_redis, get_room
 from backend.db.session import init_db, close_db
+from backend.ai_client import close_ai_grpc
 from backend.auth.router import router as auth_router
 from backend.admin.router import router as admin_router
 from backend.bug_reports.router import admin_router as bug_reports_admin_router
@@ -42,6 +43,7 @@ async def lifespan(app: FastAPI):
     await init_db()
     yield
     # Shutdown
+    await close_ai_grpc()
     await close_db()
     await close_redis()
 

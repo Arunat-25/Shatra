@@ -190,23 +190,42 @@ export async function expectChatMessage(page, text, { timeout = 15_000 } = {}) {
   }, { timeout, message: `Expected chat to contain "${text}"` }).toBe(true);
 }
 
+/** Панель действий: sidebar на desktop, viewport-actions на mobile. */
+export async function resolveGameActionsBar(page) {
+  const sidebar = page.locator('.room-side-panel .game-actions-bar--sidebar');
+  if (await sidebar.count()) {
+    return sidebar;
+  }
+  return page.locator('.game-viewport-actions .game-actions-bar');
+}
+
 /** Завершить PvP сдачей (broadcast game_over обоим игрокам). */
 export async function endPvpGameByResign(page) {
-  const sidebar = page.locator('.room-side-panel .game-actions-bar--sidebar');
-  const resignBtn = sidebar.locator('button.room-icon-btn--danger').first();
+  const bar = await resolveGameActionsBar(page);
+  const resignBtn = bar.locator('button.room-icon-btn--danger').first();
   await expect(resignBtn).toBeVisible();
   await resignBtn.click({ force: true });
-  await expect(resignBtn).toHaveClass(/room-icon-btn--resign-armed/, { timeout: 3000 });
-  await page.waitForTimeout(100);
-  await sidebar.locator('button.room-icon-btn--resign-armed').first().click({ force: true });
+  const armedBtn = bar.locator('button.room-icon-btn--resign-armed').first();
+  await expect(armedBtn).toBeVisible({ timeout: 3000 });
+  await armedBtn.click({ force: true });
 }
+
+function visibleGameOverBars(page) {
+  return page.locator('.game-actions-bar--game-over').filter({ visible: true });
+}
+
+export function visibleOpponentDisconnectBanner(page) {
+  return page.locator('.opponent-disconnect-status').filter({ visible: true });
+}
+
+export { visibleGameOverBars };
 
 /** Завершить PvP до экрана результата (отмена до первого хода, optimistic на инициаторе). */
 export async function endPvpGameForRematch(page) {
-  const cancelBtn = page.locator('.room-side-panel').getByRole('button', { name: /отменить игру|cancel/i });
+  const cancelBtn = page.getByRole('button', { name: /отменить игру|cancel/i });
   await expect(cancelBtn).toBeEnabled({ timeout: 10_000 });
   await cancelBtn.click();
-  await expect(page.locator('.game-actions-bar--sidebar.game-actions-bar--game-over')).toBeVisible({ timeout: 20_000 });
+  await expect(visibleGameOverBars(page).first()).toBeVisible({ timeout: 20_000 });
 }
 
 /** Двойной клик по «Сдаться» (arm + confirm). */
@@ -216,13 +235,13 @@ export async function resignGame(page) {
 
 /** После реванша — снова активная партия (не экран результата). */
 export async function expectActiveGame(page, { timeout = 20_000 } = {}) {
-  await expect(page.locator('.game-actions-bar--game-over')).toHaveCount(0, { timeout });
+  await expect(visibleGameOverBars(page)).toHaveCount(0, { timeout });
   await waitForGameBoard(page, { timeout });
 }
 
 /** Кнопка «Реванш» на экране результата. */
 export async function clickRematch(page) {
-  const btn = page.locator('.room-side-panel .game-result-btn--rematch').first();
+  const btn = page.locator('.game-result-btn--rematch').filter({ visible: true }).first();
   await expect(btn).toBeEnabled({ timeout: 10_000 });
   await btn.click({ force: true });
 }

@@ -3,17 +3,17 @@ import logging
 
 from fastapi import WebSocket
 
-from game_engine.models import GameEvent, GameEventResult
-from game_engine.game_logic import logic
+from game_engine.models import GameEventResult
+from backend.ai_client import compute_ai_turn_async
 from backend.state import get_game, set_game, set_room, game_timers
 from backend.ws_manager import manager, init_game
 from backend.timers import game_ticker
-from backend.ai_trained import get_best_move as get_ai_move
 from backend.game_helpers import (
     build_game_started_response,
     build_move_response,
     apply_move_result,
     get_ai_color,
+    persist_pending_mandatory_position,
 )
 from backend.game_archive import mark_game_started
 from backend.game_finish import complete_game_after_move
@@ -26,9 +26,6 @@ MAX_AI_CAPTURE_CHAIN_STEPS = 20
 MAX_AI_MOVE_RETRIES = 5
 
 
-AI_SEARCH_DEPTH = 6
-
-
 async def handle_ai_move(
     room_id: str,
     game: dict,
@@ -36,7 +33,7 @@ async def handle_ai_move(
     chain_step: int = 0,
     room_data: dict | None = None,
 ):
-    """Вычислить и отправить ход AI."""
+    """Вычислить и отправить ход AI (gRPC shatra-ai или in-process Python)."""
     if chain_step > MAX_AI_CAPTURE_CHAIN_STEPS:
         logger.warning(
             "AI capture chain exceeded %s steps in room %s — stopping",
@@ -44,30 +41,18 @@ async def handle_ai_move(
             room_id,
         )
         return
-    await asyncio.sleep(0.3)
 
     if room_data is None:
         from backend.state import get_room
         room_data = await get_room(room_id)
 
-    board = game["board"]
-    board_snapshot = dict(board)
+    board_snapshot = dict(game.get("board") or {})
     ai_color = game["mover"]
-    position_history = game.setdefault("position_history", {})
-    loop = asyncio.get_running_loop()
-    move = await loop.run_in_executor(
-        None,
-        lambda: get_ai_move(
-            board,
-            ai_color,
-            AI_SEARCH_DEPTH,
-            game.get("pending_batyr_captures"),
-            game.get("pending_mandatory_position"),
-            position_history,
-        ),
-    )
-    if move is None:
+    outcome = await compute_ai_turn_async(game, ai_color)
+
+    if outcome is None:
         logger.warning("AI has no legal moves in room %s — game over", room_id)
+        board = game.get("board") or {}
         response = build_move_response(
             game,
             GameEventResult(
@@ -88,27 +73,21 @@ async def handle_ai_move(
         await complete_game_after_move(room_id)
         return
 
-    from_cell, to_cell = move
+    from_cell, to_cell = outcome.from_pos, outcome.to_pos
     prev_mover = game["mover"]
-    result = logic.handle_event(
-        GameEvent(
-            positions=board,
-            mover_color=ai_color,
-            from_pos=from_cell,
-            to_pos=to_cell,
-            position_for_mandatory_capture=game.get("pending_mandatory_position"),
-        ),
-        batyr_captured_this_turn=game.get("pending_batyr_captures"),
-        position_history=position_history,
-    )
+    result = outcome.result
 
-    if result.updated_positions and result.updated_positions == board and game["mover"] == ai_color:
+    if result.updated_positions and result.updated_positions == board_snapshot and game["mover"] == ai_color:
         logger.warning(
-            "AI move %s->%s rejected in room %s: %s. Retrying...",
-            from_cell, to_cell, room_id, result.message_code,
+            "AI move %s->%s rejected in room %s: %s (engine=%s). Retrying...",
+            from_cell,
+            to_cell,
+            room_id,
+            result.message_code,
+            outcome.engine,
         )
         game.pop("pending_mandatory_position", None)
-        game["board"] = board
+        game["board"] = board_snapshot
         if max_retries <= 1:
             return
         await handle_ai_move(
@@ -116,18 +95,17 @@ async def handle_ai_move(
         )
         return
 
-    from backend.game_helpers import persist_pending_mandatory_position
-
     persist_pending_mandatory_position(game, result, prev_mover)
-    response = await apply_move_result(room_id, game, result, prev_mover, from_cell, to_cell)
+    await apply_move_result(room_id, game, result, prev_mover, from_cell, to_cell)
     record_move("ai")
     logger.info(
-        "AI move for room %s: %s -> %s, game_over=%s, chain_next=%s",
+        "AI move for room %s: %s -> %s, game_over=%s, chain_next=%s, engine=%s",
         room_id,
         from_cell,
         to_cell,
         result.game_over,
         game.get("pending_mandatory_position"),
+        outcome.engine,
     )
     await manager.broadcast_move(
         room_id, game, result, prev_mover, from_cell, to_cell, board_before=board_snapshot,

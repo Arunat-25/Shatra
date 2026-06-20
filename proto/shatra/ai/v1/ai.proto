@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package shatra.ai.v1;
+
+// AI turn: search best move + apply rules in one call.
+service AiService {
+  rpc ComputeAiTurn(ComputeAiTurnRequest) returns (ComputeAiTurnResponse);
+  rpc Health(HealthRequest) returns (HealthResponse);
+}
+
+message ComputeAiTurnRequest {
+  map<int32, string> board = 1;
+  string mover_color = 2;
+  int32 depth = 3;
+  int32 time_ms = 4;
+  repeated int32 pending_batyr_captures = 5;
+  optional int32 pending_mandatory_position = 6;
+  map<string, int32> position_history = 7;
+  int32 moves_with_two_biys = 8;
+}
+
+message MoveResult {
+  string message_code = 1;
+  optional string movers_color = 2;
+  bool game_over = 3;
+  optional string winner_color = 4;
+  map<int32, string> updated_positions = 5;
+  repeated int32 captured_positions = 6;
+  repeated int32 captured_pieces = 7;
+  optional int32 position_for_mandatory_capture = 8;
+  bool opportunity_pass_the_move = 9;
+  int32 from_pos = 10;
+  int32 to_pos = 11;
+}
+
+message ComputeAiTurnResponse {
+  optional MoveResult result = 1;
+  int32 depth_reached = 2;
+  int32 search_ms = 3;
+  int32 apply_ms = 4;
+}
+
+message HealthRequest {}
+
+message HealthResponse {
+  string status = 1;
+  string version = 2;
+}
