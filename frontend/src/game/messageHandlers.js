@@ -111,8 +111,11 @@ export const messageHandlers = [
       if (d.move_history) {
         dispatch({ type: GAME_ACTIONS.SET_MOVE_HISTORY, payload: d.move_history });
       }
-      trackGameEvent('game_started', { modeAi, moversColor: d.movers_color });
+      if (!d._resync) {
+        trackGameEvent('game_started', { modeAi, moversColor: d.movers_color });
+      }
       dispatch({ type: GAME_ACTIONS.GAME_STARTED, payload: { ...d, aiThinking } });
+      if (d._resync) return null;
       return { text: t('game.gameStarted'), type: 'info' };
     },
   },

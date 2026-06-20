@@ -34,7 +34,10 @@ describe('playGameSound', () => {
 
   it('plays move on MOVE_MADE without captures', () => {
     playForAction(
-      { type: GAME_ACTIONS.MOVE_MADE, payload: { desk: {}, from_pos: 11, to_pos: 19 } },
+      {
+        type: GAME_ACTIONS.MOVE_MADE,
+        payload: { desk: {}, from_pos: 11, to_pos: 19, movers_color: 'черный' },
+      },
       { myColor: 'белый' },
       () => 'белый',
     );
@@ -42,11 +45,44 @@ describe('playGameSound', () => {
     expect(sounds.playCapture).not.toHaveBeenCalled();
   });
 
+  it('does not replay move sound when server confirms optimistic move', () => {
+    playForAction(
+      {
+        type: GAME_ACTIONS.OPTIMISTIC_MOVE,
+        payload: { result: { capturedPositions: [] }, from: 11, to: 19, ply: 1 },
+      },
+      { myColor: 'белый' },
+      () => 'белый',
+    );
+    expect(sounds.playMove).toHaveBeenCalledTimes(1);
+
+    playForAction(
+      {
+        type: GAME_ACTIONS.MOVE_MADE,
+        payload: {
+          from_pos: 11,
+          to_pos: 19,
+          movers_color: 'белый',
+          mover: 'белый',
+        },
+      },
+      { myColor: 'белый', pendingMove: { from: 11, to: 19, ply: 1 } },
+      () => 'белый',
+    );
+    expect(sounds.playMove).toHaveBeenCalledTimes(1);
+  });
+
   it('plays capture when captured_positions present', () => {
     playForAction(
       {
         type: GAME_ACTIONS.MOVE_MADE,
-        payload: { desk: {}, from_pos: 11, to_pos: 19, captured_positions: [19] },
+        payload: {
+          desk: {},
+          from_pos: 11,
+          to_pos: 19,
+          captured_positions: [19],
+          movers_color: 'черный',
+        },
       },
       { myColor: 'белый' },
       () => 'белый',
@@ -115,5 +151,23 @@ describe('playGameSound', () => {
   it('plays error on server error helper', () => {
     playForServerError();
     expect(sounds.playError).toHaveBeenCalled();
+  });
+
+  it('skips game start sound on resync snapshot', () => {
+    playForAction(
+      { type: GAME_ACTIONS.GAME_STARTED, payload: { _resync: true, desk: {} } },
+      {},
+      () => 'белый',
+    );
+    expect(sounds.playGameStart).not.toHaveBeenCalled();
+  });
+
+  it('skips duplicate cancel sound after optimistic cancel (H11)', () => {
+    playForAction(
+      { type: GAME_ACTIONS.GAME_CANCELLED, payload: { message_code: 'cancel.you' } },
+      { gameOver: true, gameOverReason: 'cancelled' },
+      () => 'белый',
+    );
+    expect(sounds.playDraw).not.toHaveBeenCalled();
   });
 });

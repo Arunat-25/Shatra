@@ -217,6 +217,20 @@ describe('dispatchServerMessage', () => {
     expect(calls[0].payload.text).toBe('gg');
   });
 
+  it('resync game_started skips toast', () => {
+    trackGameEventMock.mockClear();
+    const { msg, calls } = collectDispatches({
+      status: 'game_started',
+      desk: { '10': 'белый бий' },
+      movers_color: 'белый',
+      your_color: 'белый',
+      _resync: true,
+    });
+    expect(msg).toBeNull();
+    expect(trackGameEventMock).not.toHaveBeenCalled();
+    expect(calls.some((c) => c.type === GAME_ACTIONS.GAME_STARTED)).toBe(true);
+  });
+
   it('game_started includes players_info dispatch', () => {
     trackGameEventMock.mockClear();
     const info = [{ client_id: 'c1', display_name: 'u' }];

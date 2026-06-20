@@ -3,7 +3,13 @@ import { GAME_ACTIONS } from '../game/actions';
 import { gameReducer, initialGameState } from '../game/reducer';
 import { dispatchServerMessage } from '../game/messageHandlers';
 import { playForAction, playForServerError } from '../audio/playGameSound';
-import { classifyIncomingPly, isMoveConfirmation, hasOutstandingPending } from '../game/syncLayer';
+import {
+  classifyIncomingPly,
+  isMoveConfirmation,
+  hasOutstandingPending,
+  isOwnOptimisticConfirmation,
+  isDuplicateRematchToast,
+} from '../game/syncLayer';
 
 export { GAME_ACTIONS } from '../game/actions';
 
@@ -45,7 +51,18 @@ export default function useGameReducer(modeAi, getMyColor) {
         }
       }
 
-      return dispatchServerMessage(data, dispatch, modeAi, readMyColor);
+      const result = dispatchServerMessage(data, dispatch, modeAi, readMyColor);
+      if (
+        result?.text
+        && isMoveConfirmation(data)
+        && isOwnOptimisticConfirmation(data, stateRef.current, readMyColor())
+      ) {
+        return null;
+      }
+      if (result?.text && isDuplicateRematchToast(data, stateRef.current)) {
+        return null;
+      }
+      return result;
     },
     [modeAi, dispatch, readMyColor],
   );

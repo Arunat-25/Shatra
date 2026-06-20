@@ -120,7 +120,9 @@ async def _process_v2_client_message_locked(
         if not game or not room_data:
             return False
         my_color = get_player_color(room_data, client_id)
-        await _send_v2(websocket, build_snapshot(game, room_data, my_color))
+        snapshot = build_snapshot(game, room_data, my_color)
+        snapshot["resync"] = True
+        await _send_v2(websocket, snapshot)
         return True
 
     if msg_type in CONTROL_MESSAGE_TYPES:

@@ -31,6 +31,23 @@ describe('v2 adapter', () => {
     expect(adapted.status).toBe('game_started');
     expect(adapted.ply).toBe(3);
     expect(adapted.your_color).toBe('белый');
+    expect(adapted._resync).toBeFalsy();
+  });
+
+  it('sync snapshot sets resync flag (H8)', () => {
+    const adapted = adaptV2ServerMessage({
+      v: 2,
+      t: 'snapshot',
+      resync: true,
+      ply: 5,
+      turn: 'черный',
+      board: { '10': 'белый бий' },
+      yourColor: 'белый',
+      chainCell: null,
+      batyrCaptured: [],
+      moveHistory: [],
+    });
+    expect(adapted._resync).toBe(true);
   });
 
   it('converts move delta using previous board', () => {
@@ -114,6 +131,7 @@ describe('v2 adapter', () => {
     });
     expect(adapted.status).toBe('error');
     expect(adapted._v2Resync.status).toBe('game_started');
+    expect(adapted._v2Resync._resync).toBe(true);
     expect(adapted._v2Resync.position_for_mandatory_capture).toBe(8);
     expect(adapted._v2Resync.captured_pieces).toEqual([10]);
 

@@ -57,3 +57,23 @@ export function isMoveConfirmation(data) {
   if (data.from_pos == null || data.to_pos == null) return false;
   return data.message_code != null || data.message;
 }
+
+/** Server payload confirming our optimistic WS send — client already reacted locally. */
+export function isOwnOptimisticConfirmation(payload, state, myColor) {
+  if (!myColor || !hasOutstandingPending(state)) return false;
+  const mover = payload?.mover ?? payload?.movers_color;
+  return mover === myColor;
+}
+
+/** Rematch status echo after optimistic SET_REMATCH_STATUS or duplicate broadcast. */
+export function isDuplicateRematchToast(data, state) {
+  if (data?.status !== 'rematch_status') return false;
+  if (data.self_ready && state.rematchReady) return true;
+  if (data.opponent_ready && state.rematchOpponentReady && !data.self_ready) return true;
+  return false;
+}
+
+/** game_cancelled echo after optimistic GAME_CANCELLED from cancelGame(). */
+export function isDuplicateCancelConfirmation(state) {
+  return Boolean(state.gameOver && state.gameOverReason === 'cancelled');
+}

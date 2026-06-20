@@ -75,7 +75,7 @@ export function adaptV2ServerMessage(msg, ctx = {}) {
 
   switch (msg.t) {
     case 'snapshot':
-      return snapshotToV1(msg);
+      return { ...snapshotToV1(msg), _resync: Boolean(msg.resync) };
     case 'move':
       return moveDeltaToV1(msg, ctx.board);
     case 'waiting':
@@ -86,7 +86,7 @@ export function adaptV2ServerMessage(msg, ctx = {}) {
           status: 'error',
           message_code: msg.code,
           message_params: msg.messageParams,
-          _v2Resync: adaptV2ServerMessage(msg.snapshot),
+          _v2Resync: { ...adaptV2ServerMessage(msg.snapshot), _resync: true },
         };
       }
       return { status: 'error', message_code: msg.code, message_params: msg.messageParams };

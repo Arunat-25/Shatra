@@ -57,7 +57,9 @@ export default function useGameWebSocket(roomId, modeAi, {
     if (result?.needSync) {
       sendRef.current(buildV2SyncPayload(stateRef.current.confirmedPly));
     }
-    if (result?.text) showMessageRef.current(result.text, result.type);
+    if (result?.text) {
+      showMessageRef.current(result.text, result.type);
+    }
   }, []);
 
   const handleWsStatus = useCallback((statusInfo) => {
@@ -75,7 +77,9 @@ export default function useGameWebSocket(roomId, modeAi, {
         joinedRef.current = true;
         trackGameEvent('game_joined', { roomId, modeAi });
       }
-      showMessage(t('game.connectionRestored'));
+      if (isReconnect) {
+        showMessage(t('game.connectionRestored'));
+      }
       if (isReconnect) {
         const s = stateRef.current;
         if (!s.waiting && !s.gameOver) {
