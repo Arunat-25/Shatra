@@ -235,6 +235,9 @@ def wrap_control_v1(v1_payload: dict) -> dict:
     msg_type = v1_payload.get("type") or v1_payload.get("status")
     if not msg_type:
         return v1_payload
-    out = {"v": PROTO_VERSION, "t": msg_type, **v1_payload}
-    out.pop("type", None)
+    out: dict = {"v": PROTO_VERSION, "t": msg_type}
+    for key, value in v1_payload.items():
+        if key in ("type", "status", "v", "t"):
+            continue
+        out[key] = value
     return out

@@ -5,6 +5,7 @@ import {
   BOARD_WIDTH_CELLS,
   computeBoardLayout,
   hitTestCell,
+  layoutDrawScale,
 } from './layoutMetrics';
 
 const DESKTOP_METRICS = {
@@ -58,6 +59,24 @@ describe('layoutMetrics', () => {
     const cy = cell.y + cell.h / 2;
     expect(hitTestCell(layout.cells, cx, cy)).toBe(25);
     expect(hitTestCell(layout.cells, -1, -1)).toBeNull();
+  });
+
+  it('layoutDrawScale uses uniform scale when filling slot', () => {
+    const layout = computeBoardLayout('белый', MOBILE_METRICS);
+    const scale = layoutDrawScale(layout, 360, 520, true);
+    expect(scale.x).toBeCloseTo(scale.y, 10);
+    const cell = layout.cells[25];
+    expect(cell.w * scale.x).toBeCloseTo(cell.h * scale.y, 5);
+  });
+
+  it('layoutDrawScale is identity when not filling slot', () => {
+    const layout = computeBoardLayout('белый', DESKTOP_METRICS);
+    expect(layoutDrawScale(layout, 400, 600, false)).toEqual({
+      x: 1,
+      y: 1,
+      offsetX: 0,
+      offsetY: 0,
+    });
   });
 
   it('hit-tests in CSS pixels (not device pixels)', () => {

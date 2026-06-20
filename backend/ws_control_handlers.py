@@ -19,6 +19,7 @@ from backend.message_codes import (
     CANCEL_TOO_LATE,
 )
 from backend.game_finish import _finish_game_locked
+from backend.session.v2.outbound import send_control_v1
 from backend.state import get_game, set_game, get_room, set_room
 from backend.ws_manager import manager
 
@@ -56,7 +57,7 @@ async def handle_request_rematch(
 
     conns = manager.connections.get(room_id, {})
     if len(conns) < 2:
-        await manager.send_to_player(websocket, {
+        await send_control_v1(room_id, client_id, websocket, {
             "status": "rematch_status",
             "self_ready": True,
             "opponent_ready": False,
@@ -110,7 +111,7 @@ async def handle_offer_draw(
         if game.get("draw_offer_from"):
             game.pop("draw_offer_from", None)
             await set_game(room_id, game)
-        await manager.send_to_player(websocket, {
+        await send_control_v1(room_id, client_id, websocket, {
             "status": "draw_declined",
             **ws_payload(DRAW_BOT_DECLINED),
         })
@@ -133,7 +134,7 @@ async def handle_offer_draw(
         return True
 
     if pending == my_color:
-        await manager.send_to_player(websocket, {
+        await send_control_v1(room_id, client_id, websocket, {
             "status": "draw_offered",
             **ws_payload(DRAW_ALREADY_OFFERED),
         })
@@ -142,13 +143,15 @@ async def handle_offer_draw(
     game["draw_offer_from"] = my_color
     await set_game(room_id, game)
 
-    for cid, ws in manager.connections.get(room_id, {}).items():
+    from backend.session.v2.outbound import broadcast_control_v1
+
+    def build_draw_payload(cid: str) -> dict:
         color = room_data.get("players", {}).get(cid)
         code = DRAW_YOU_OFFERED if color == my_color else DRAW_OPPONENT_OFFERS
-        try:
-            await ws.send_json({"status": "draw_offered", "by": my_color, **ws_payload(code)})
-        except Exception:
-            pass
+        payload = {"status": "draw_offered", "by": my_color, **ws_payload(code)}
+        return payload
+
+    await broadcast_control_v1(room_id, build_draw_payload)
     return True
 
 

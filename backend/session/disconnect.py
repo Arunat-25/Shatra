@@ -13,6 +13,7 @@ from backend.state import (
     DISCONNECT_TIMEOUT,
     drop_room_lock,
 )
+from backend.session.v2.outbound import send_control_v1
 from backend.ws_manager import manager
 from backend.timers import stop_game_timer, disconnect_timer as dt_func
 
@@ -53,14 +54,20 @@ async def _handle_finished_game_disconnect(
         if disconnected_client_id
         else None
     )
-    if opponent:
-        try:
-            await opponent.send_json({
-                "status": "rematch_cancelled",
-                "message_code": "rematch.opponent_left",
-            })
-        except Exception:
-            pass
+    if opponent and disconnected_client_id:
+        opponent_cid = next(
+            (cid for cid, ws in manager.connections.get(room_id, {}).items()
+             if cid != disconnected_client_id and ws is opponent),
+            None,
+        )
+        if opponent_cid:
+            try:
+                await send_control_v1(room_id, opponent_cid, opponent, {
+                    "status": "rematch_cancelled",
+                    "message_code": "rematch.opponent_left",
+                })
+            except Exception:
+                pass
 
     if not manager.connections.get(room_id):
         await _remove_room_from_redis(room_id)
@@ -107,13 +114,19 @@ async def _handle_disconnect(
     )
 
     if disconnected_client_id and opponent:
-        try:
-            await opponent.send_json({
-                "status": "opponent_disconnected",
-                "timeout": DISCONNECT_TIMEOUT,
-            })
-        except Exception:
-            pass
+        opponent_cid = next(
+            (cid for cid, ws in manager.connections.get(room_id, {}).items()
+             if cid != disconnected_client_id and ws is opponent),
+            None,
+        )
+        if opponent_cid:
+            try:
+                await send_control_v1(room_id, opponent_cid, opponent, {
+                    "status": "opponent_disconnected",
+                    "timeout": DISCONNECT_TIMEOUT,
+                })
+            except Exception:
+                pass
         prior = disconnect_timers.pop(room_id, None)
         if prior and not prior.done():
             prior.cancel()

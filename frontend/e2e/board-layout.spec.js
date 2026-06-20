@@ -95,6 +95,30 @@ test.describe('lite ↔ regular parity', () => {
     await expect(page.locator('.board-canvas')).toBeVisible();
   });
 
+  test('mobile lite canvas cells stay square', async ({ page }) => {
+    await page.setViewportSize(MOBILE_VIEWPORT);
+    await setLiteUi(page, true);
+    await startAiGame(page);
+    await page.waitForFunction(() => {
+      const canvas = document.querySelector('.board-canvas');
+      return canvas?.dataset?.scaleRatio != null;
+    });
+
+    const squareness = await page.evaluate(() => {
+      const canvas = document.querySelector('.board-canvas');
+      if (!canvas) return null;
+      return {
+        scaleRatio: parseFloat(canvas.dataset.scaleRatio),
+        cellW: parseFloat(canvas.dataset.cellRenderW),
+        cellH: parseFloat(canvas.dataset.cellRenderH),
+      };
+    });
+
+    expect(squareness).not.toBeNull();
+    expect(squareness.scaleRatio).toBeCloseTo(1, 3);
+    expect(squareness.cellW).toBeCloseTo(squareness.cellH, 1);
+  });
+
   test('mobile lite matches regular after toggle', async ({ page }) => {
     await page.setViewportSize(MOBILE_VIEWPORT);
     await setLiteUi(page, false);

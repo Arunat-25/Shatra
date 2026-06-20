@@ -64,9 +64,12 @@ async def patch_disconnect_io(
     mgr.get_client_id = MagicMock(return_value=client_id)
     mgr.get_opponent_ws = MagicMock(return_value=opponent_ws)
     mgr.connections = connections if connections is not None else {}
+    mgr.connection_proto = MagicMock(return_value=1)
+    mgr.send_to_player = AsyncMock()
 
     with (
         patch("backend.session.disconnect.manager", mgr),
+        patch("backend.session.v2.outbound.manager", mgr),
         patch("backend.session.disconnect.get_game", new_callable=AsyncMock, return_value=game),
         patch("backend.session.disconnect.get_room", new_callable=AsyncMock, return_value=room),
         patch("backend.session.disconnect.set_room", new_callable=AsyncMock) as set_room,

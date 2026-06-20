@@ -102,10 +102,17 @@ export default function useGameActions({
 
   const requestRematch = useCallback(() => {
     const s = stateRef.current;
-    if (s.gameOver && !modeAi && !s.rematchReady && !s.rematchUnavailable) {
-      send(buildRequestRematchPayload());
+    if (!s.gameOver || modeAi || s.rematchReady || s.rematchUnavailable) return;
+    const ok = send(buildRequestRematchPayload());
+    if (!ok) {
+      showMessage(t('game.connectionLost'), MSG_WARNING);
+      return;
     }
-  }, [modeAi, send, stateRef]);
+    dispatch({
+      type: GAME_ACTIONS.SET_REMATCH_STATUS,
+      payload: { self_ready: true, opponent_ready: s.rematchOpponentReady },
+    });
+  }, [modeAi, send, showMessage, dispatch, stateRef, t]);
 
   const drawPending = state.drawOfferFrom != null && state.drawOfferFrom === state.myColor;
   const drawIncoming = state.drawOfferFrom != null && state.drawOfferFrom !== state.myColor;

@@ -20,15 +20,18 @@ class TestDeclineDrawOffer:
         manager_mock.connections = {
             "r1": {"w": ws_white, "b": ws_black},
         }
+        manager_mock.connection_proto = MagicMock(return_value=1)
+        manager_mock.send_to_player = AsyncMock()
 
-        with patch("backend.session.rematch.manager", manager_mock):
+        with patch("backend.session.v2.outbound.manager", manager_mock):
             with patch("backend.session.rematch.set_game", new_callable=AsyncMock):
                 ok = await _decline_draw_offer("r1", game, room)
 
         assert ok is True
         assert "draw_offer_from" not in game
-        assert ws_white.send_json.called
-        assert ws_black.send_json.called
+        assert manager_mock.send_to_player.await_count == 2
+        p_white = manager_mock.send_to_player.await_args_list[0].args[1]
+        assert p_white["status"] == "draw_declined"
 
     async def test_decline_without_active_offer_is_noop(self):
         game = {}
@@ -49,14 +52,16 @@ class TestRematchBroadcast:
         ws2 = AsyncMock()
         manager_mock = MagicMock()
         manager_mock.connections = {"r1": {"p1": ws1, "p2": ws2}}
+        manager_mock.connection_proto = MagicMock(return_value=1)
+        manager_mock.send_to_player = AsyncMock()
 
-        with patch("backend.session.rematch.manager", manager_mock):
-            await _broadcast_rematch_status("r1", room)
+        with patch("backend.session.v2.outbound.manager", manager_mock):
+            with patch("backend.session.rematch.manager", manager_mock):
+                await _broadcast_rematch_status("r1", room)
 
-        assert ws1.send_json.called
-        assert ws2.send_json.called
-        p1_data = ws1.send_json.call_args[0][0]
-        p2_data = ws2.send_json.call_args[0][0]
+        assert manager_mock.send_to_player.await_count == 2
+        p1_data = manager_mock.send_to_player.await_args_list[0].args[1]
+        p2_data = manager_mock.send_to_player.await_args_list[1].args[1]
         assert p1_data["self_ready"] is True
         assert p1_data["opponent_ready"] is False
         assert p2_data["self_ready"] is False

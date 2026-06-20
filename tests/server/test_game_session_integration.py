@@ -359,8 +359,9 @@ class TestHandleDisconnectRematch:
 
         assert room["rematch_ready"] == []
         mocks["set_room"].assert_called_once()
-        opponent_ws.send_json.assert_called_once()
-        assert opponent_ws.send_json.call_args[0][0]["status"] == "rematch_cancelled"
+        mocks["mgr"].send_to_player.assert_called_once()
+        payload = mocks["mgr"].send_to_player.call_args.args[1]
+        assert payload["status"] == "rematch_cancelled"
         mocks["delete_game"].assert_not_called()
         mocks["delete_room"].assert_not_called()
 

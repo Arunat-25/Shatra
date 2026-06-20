@@ -72,6 +72,28 @@ describe('v2 adapter', () => {
     expect(adapted.position_for_mandatory_capture).toBeNull();
   });
 
+  it('rematch_status v2 envelope maps to handler shape', () => {
+    const adapted = adaptV2ServerMessage({
+      v: 2,
+      t: 'rematch_status',
+      self_ready: true,
+      opponent_ready: false,
+    });
+    expect(adapted.status).toBe('rematch_status');
+    expect(adapted.self_ready).toBe(true);
+    expect(adapted.opponent_ready).toBe(false);
+  });
+
+  it('draw_declined v2 envelope maps to handler shape', () => {
+    const adapted = adaptV2ServerMessage({
+      v: 2,
+      t: 'draw_declined',
+      message_code: 'draw.opponent_declined',
+    });
+    expect(adapted.status).toBe('draw_declined');
+    expect(adapted.message_code).toBe('draw.opponent_declined');
+  });
+
   it('reject with snapshot exposes resync payload with chain and batyr (H22)', () => {
     const snapshot = {
       v: 2,

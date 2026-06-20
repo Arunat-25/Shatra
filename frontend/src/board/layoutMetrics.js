@@ -201,6 +201,27 @@ export function computeBoardLayout(myColor, metrics) {
   };
 }
 
+/**
+ * Map layout coordinates to display pixels when the canvas fills its slot.
+ * Uniform scale keeps cells square (same idea as min(cqw/7, cqh/units) on DOM board).
+ * @returns {{ x: number, y: number, offsetX: number, offsetY: number }}
+ */
+export function layoutDrawScale(layout, displayW, displayH, fillSlot) {
+  if (!fillSlot) {
+    return { x: 1, y: 1, offsetX: 0, offsetY: 0 };
+  }
+  if (!layout?.width || !layout?.contentHeight || displayW <= 0 || displayH <= 0) {
+    return { x: 1, y: 1, offsetX: 0, offsetY: 0 };
+  }
+  const scale = Math.min(displayW / layout.width, displayH / layout.contentHeight);
+  return {
+    x: scale,
+    y: scale,
+    offsetX: (displayW - layout.width * scale) / 2,
+    offsetY: (displayH - layout.contentHeight * scale) / 2,
+  };
+}
+
 export function hitTestCell(cells, x, y, padding = 3) {
   for (const [id, rect] of Object.entries(cells)) {
     if (

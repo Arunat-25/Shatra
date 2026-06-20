@@ -1,21 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import useMediaQuery from '../hooks/useMediaQuery';
 import { COMPACT_GAME_QUERY } from '../constants';
-import { computeBoardLayout, hitTestCell, readBoardUnitMetrics, readCellNumberScale, readBoardHeightUnits, deriveMetricsFromBoardSlot, BOARD_HEIGHT_UNITS } from './layoutMetrics';
+import {
+  computeBoardLayout,
+  hitTestCell,
+  layoutDrawScale,
+  readBoardUnitMetrics,
+  readCellNumberScale,
+  readBoardHeightUnits,
+  deriveMetricsFromBoardSlot,
+  BOARD_HEIGHT_UNITS,
+} from './layoutMetrics';
 import { drawBoardFrame, drawBoardState } from './drawBoard';
 import useBoardInteraction from '../hooks/useBoardInteraction';
 import usePieceSlideOverlay from '../hooks/usePieceSlideOverlay';
 
 const BOARD_ASPECT = 7 / BOARD_HEIGHT_UNITS;
-
-function layoutDrawScale(layout, displayW, displayH, fillSlot) {
-  if (!fillSlot) return { x: 1, y: 1 };
-  if (!layout?.width || !layout?.contentHeight) return { x: 1, y: 1 };
-  return {
-    x: displayW / layout.width,
-    y: displayH / layout.contentHeight,
-  };
-}
 
 function measureCanvasLayout(container, myColor) {
   const boardEl = container?.closest?.('.board');
@@ -105,8 +105,8 @@ export default function CanvasBoard({
     const cr = canvas.getBoundingClientRect();
     const scale = layoutDrawScale(layout, cr.width, cr.height, fillSlotRef.current);
     return {
-      x: cr.left + (rect.x + rect.w / 2) * scale.x,
-      y: cr.top + (rect.y + rect.h / 2) * scale.y,
+      x: cr.left + scale.offsetX + (rect.x + rect.w / 2) * scale.x,
+      y: cr.top + scale.offsetY + (rect.y + rect.h / 2) * scale.y,
       size: rect.w * scale.x,
     };
   }, []);
@@ -119,10 +119,10 @@ export default function CanvasBoard({
     const cr = canvas.getBoundingClientRect();
     const scale = layoutDrawScale(layout, cr.width, cr.height, fillSlotRef.current);
     return {
-      left: cr.left + rect.x * scale.x,
-      top: cr.top + rect.y * scale.y,
-      right: cr.left + (rect.x + rect.w) * scale.x,
-      bottom: cr.top + (rect.y + rect.h) * scale.y,
+      left: cr.left + scale.offsetX + rect.x * scale.x,
+      top: cr.top + scale.offsetY + rect.y * scale.y,
+      right: cr.left + scale.offsetX + (rect.x + rect.w) * scale.x,
+      bottom: cr.top + scale.offsetY + (rect.y + rect.h) * scale.y,
     };
   }, []);
 
@@ -132,8 +132,8 @@ export default function CanvasBoard({
     if (!canvas || !layout) return null;
     const rect = canvas.getBoundingClientRect();
     const scale = layoutDrawScale(layout, rect.width, rect.height, fillSlotRef.current);
-    const x = (clientX - rect.left) / (scale.x || 1);
-    const y = (clientY - rect.top) / (scale.y || 1);
+    const x = (clientX - rect.left - scale.offsetX) / (scale.x || 1);
+    const y = (clientY - rect.top - scale.offsetY) / (scale.y || 1);
     return hitTestCell(layout.cells, x, y);
   }, []);
 
@@ -196,7 +196,14 @@ export default function CanvasBoard({
     const displayW = canvas.clientWidth || layout.width;
     const displayH = canvas.clientHeight || layout.contentHeight;
     const scale = layoutDrawScale(layout, displayW, displayH, fillSlotRef.current);
-    ctx.setTransform(dpr * scale.x, 0, 0, dpr * scale.y, 0, 0);
+    ctx.setTransform(
+      dpr * scale.x,
+      0,
+      0,
+      dpr * scale.y,
+      dpr * scale.offsetX,
+      dpr * scale.offsetY,
+    );
 
     drawBoardFrame(ctx, layout, drawTheme, myColor);
 
@@ -264,6 +271,18 @@ export default function CanvasBoard({
       canvas.height = Math.floor(h * dpr);
       canvas.style.width = `${w}px`;
       canvas.style.height = `${h}px`;
+    }
+
+    const scale = layoutDrawScale(layout, w, h, fillSlot);
+    if (canvas && layout) {
+      canvas.dataset.scaleX = String(scale.x);
+      canvas.dataset.scaleY = String(scale.y);
+      canvas.dataset.scaleRatio = scale.y > 0 ? String(scale.x / scale.y) : '1';
+      const cell = layout.cells?.[25];
+      if (cell) {
+        canvas.dataset.cellRenderW = String(cell.w * scale.x);
+        canvas.dataset.cellRenderH = String(cell.h * scale.y);
+      }
     }
 
     schedulePaint();

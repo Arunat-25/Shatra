@@ -55,6 +55,19 @@ describe('dispatchServerMessage', () => {
     expect(calls[0].payload.opponent_ready).toBe(false);
   });
 
+  it('rematch_status v2 adapted payload sets ready flags', () => {
+    const { calls } = collectDispatches({
+      v: 2,
+      t: 'rematch_status',
+      self_ready: true,
+      opponent_ready: true,
+      status: 'rematch_status',
+    });
+    expect(calls[0].type).toBe(GAME_ACTIONS.SET_REMATCH_STATUS);
+    expect(calls[0].payload.self_ready).toBe(true);
+    expect(calls[0].payload.opponent_ready).toBe(true);
+  });
+
   it('rematch_cancelled marks unavailable', () => {
     const { calls } = collectDispatches({
       status: 'rematch_cancelled',

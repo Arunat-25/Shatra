@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import { computeBoardLayout } from '../src/board/layoutMetrics.js';
+import { computeBoardLayout, layoutDrawScale } from '../src/board/layoutMetrics.js';
 
 /** Дождаться старта партии: зал ожидания скрыт, доска видна (DOM или canvas). */
 export async function waitForGameBoard(page, { timeout = 60_000 } = {}) {
@@ -59,9 +59,10 @@ export async function getBoardCellCenter(page, cellId, myColor = 'белый') {
     const layout = computeBoardLayout(myColor, metrics);
     const cell = layout.cells[cellId];
     if (!cell) throw new Error(`Cell ${cellId} not in layout`);
+    const scale = layoutDrawScale(layout, box.width, box.height, true);
     return {
-      x: box.x + cell.x + cell.w / 2,
-      y: box.y + cell.y + cell.h / 2,
+      x: box.x + scale.offsetX + (cell.x + cell.w / 2) * scale.x,
+      y: box.y + scale.offsetY + (cell.y + cell.h / 2) * scale.y,
       isCanvas: true,
     };
   }
