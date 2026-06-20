@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MSG_ERROR, MSG_WARNING, ROOM_AI, ROOM_PUBLIC } from '../constants';
 import { createRoom } from '../api';
@@ -13,6 +13,8 @@ import {
   buildChatPayload,
 } from '../utils/wsPayloads';
 
+const RESIGN_ARM_MS = 4000;
+
 export default function useGameActions({
   send,
   showMessage,
@@ -23,6 +25,28 @@ export default function useGameActions({
   state,
 }) {
   const { t } = useTranslation();
+  const [resignArmed, setResignArmed] = useState(false);
+  const resignArmedRef = useRef(false);
+
+  useEffect(() => {
+    resignArmedRef.current = resignArmed;
+  }, [resignArmed]);
+
+  useEffect(() => {
+    if (!resignArmed) return undefined;
+    const timer = setTimeout(() => {
+      resignArmedRef.current = false;
+      setResignArmed(false);
+    }, RESIGN_ARM_MS);
+    return () => clearTimeout(timer);
+  }, [resignArmed]);
+
+  useEffect(() => {
+    if (state.gameOver) {
+      resignArmedRef.current = false;
+      setResignArmed(false);
+    }
+  }, [state.gameOver]);
 
   const goToLobby = useCallback(() => navigate('/'), [navigate]);
 
@@ -31,7 +55,14 @@ export default function useGameActions({
     dispatch({ type: GAME_ACTIONS.CLEAR_CAN_PASS });
   }, [send, dispatch, stateRef]);
 
-  const resign = useCallback(() => {
+  const handleResignClick = useCallback(() => {
+    if (!resignArmedRef.current) {
+      resignArmedRef.current = true;
+      setResignArmed(true);
+      return;
+    }
+    resignArmedRef.current = false;
+    setResignArmed(false);
     if (stateRef.current.gameOver) return;
     send(buildResignPayload());
   }, [send, stateRef]);
@@ -125,7 +156,8 @@ export default function useGameActions({
   return {
     goToLobby,
     skipTurn,
-    resign,
+    handleResignClick,
+    resignArmed,
     offerDraw,
     acceptDraw,
     declineDraw,

@@ -46,7 +46,8 @@ export default function GameActionsBar({
           onAcceptDraw={actions.acceptDraw}
           onDeclineDraw={actions.declineDraw}
           onCancelGame={actions.cancelGame}
-          onResign={actions.resign}
+          onResignClick={actions.handleResignClick}
+          resignArmed={actions.resignArmed}
           drawPending={actions.drawPending}
           drawIncoming={actions.drawIncoming}
           canCancelGame={actions.canCancelGame}

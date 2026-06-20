@@ -1,7 +1,7 @@
 import { GAME_ACTIONS } from '../game/actions';
 import { getClientId } from '../api';
 import { getEffectiveVolume } from './soundSettings';
-import { isDuplicateCancelConfirmation, isOwnOptimisticConfirmation } from '../game/syncLayer';
+import { shouldSuppressActionSound } from '../game/serverFeedback';
 import * as sounds from './gameSounds';
 
 function vol() {
@@ -15,30 +15,20 @@ function isDrawResult(payload) {
   return !winner;
 }
 
-function isRealMove(payload) {
-  const from = payload?.from_pos;
-  const to = payload?.to_pos;
-  if (from == null || to == null) return false;
-  const f = Number(from);
-  const t = Number(to);
-  return f > 0 && t > 0 && f !== t;
-}
-
 export function playForAction(action, prevState, getMyColor) {
   if (vol() <= 0 || !action?.type) return;
 
   const myColor = getMyColor?.() ?? prevState?.myColor ?? null;
+  if (shouldSuppressActionSound(action, prevState, myColor)) return;
+
   const v = vol();
 
   switch (action.type) {
     case GAME_ACTIONS.GAME_STARTED:
-      if (action.payload?._resync) break;
       sounds.playGameStart(v);
       break;
 
     case GAME_ACTIONS.MOVE_MADE: {
-      if (!isRealMove(action.payload)) break;
-      if (isOwnOptimisticConfirmation(action.payload, prevState, myColor)) break;
       const captured = action.payload?.captured_positions;
       if (Array.isArray(captured) && captured.length > 0) {
         sounds.playCapture(v);
@@ -75,7 +65,6 @@ export function playForAction(action, prevState, getMyColor) {
     }
 
     case GAME_ACTIONS.GAME_CANCELLED:
-      if (isDuplicateCancelConfirmation(prevState)) break;
       sounds.playDraw(v);
       break;
 

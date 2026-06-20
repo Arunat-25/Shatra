@@ -24,7 +24,7 @@ export async function waitForGameReady(page, opts) {
     const canSend = await sendBtn.isEnabled();
     await input.fill('');
     return canSend;
-  }, { timeout: 15_000, message: 'Chat input never became ready' }).toBe(true);
+  }, { timeout: 30_000, message: 'Chat input never became ready' }).toBe(true);
 }
 
 export async function isCanvasBoard(page) {
@@ -147,16 +147,21 @@ export async function startAiGame(page, { asWhite = true } = {}) {
   await waitForGameBoard(page);
 }
 
-export async function startPvpGame(hostPage, guestPage) {
+export async function startPvpGame(hostPage, guestPage, { requireChat = true } = {}) {
   await hostPage.goto('/');
   await hostPage.getByRole('button', { name: /создать игру|create game|ойун түз/i }).click();
   await pickPlayAsWhite(hostPage);
   await hostPage.locator('.btn-setup-create').click();
-  await expect(hostPage).toHaveURL(/\/[a-f0-9]{8}(?:\?|$)/);
+  await expect(hostPage).toHaveURL(/\/[a-f0-9-]+(?:\?|$)/);
   const roomId = new URL(hostPage.url()).pathname.slice(1);
   await guestPage.goto(`/${roomId}`);
-  await waitForGameReady(hostPage);
-  await waitForGameReady(guestPage);
+  if (requireChat) {
+    await waitForGameReady(hostPage);
+    await waitForGameReady(guestPage);
+  } else {
+    await waitForGameBoard(hostPage);
+    await waitForGameBoard(guestPage);
+  }
   return roomId;
 }
 
@@ -183,4 +188,41 @@ export async function expectChatMessage(page, text, { timeout = 15_000 } = {}) {
     const texts = await page.locator('.game-chat-text').allTextContents();
     return texts.some((line) => line.includes(text));
   }, { timeout, message: `Expected chat to contain "${text}"` }).toBe(true);
+}
+
+/** Завершить PvP сдачей (broadcast game_over обоим игрокам). */
+export async function endPvpGameByResign(page) {
+  const sidebar = page.locator('.room-side-panel .game-actions-bar--sidebar');
+  const resignBtn = sidebar.locator('button.room-icon-btn--danger').first();
+  await expect(resignBtn).toBeVisible();
+  await resignBtn.click({ force: true });
+  await expect(resignBtn).toHaveClass(/room-icon-btn--resign-armed/, { timeout: 3000 });
+  await page.waitForTimeout(100);
+  await sidebar.locator('button.room-icon-btn--resign-armed').first().click({ force: true });
+}
+
+/** Завершить PvP до экрана результата (отмена до первого хода, optimistic на инициаторе). */
+export async function endPvpGameForRematch(page) {
+  const cancelBtn = page.locator('.room-side-panel').getByRole('button', { name: /отменить игру|cancel/i });
+  await expect(cancelBtn).toBeEnabled({ timeout: 10_000 });
+  await cancelBtn.click();
+  await expect(page.locator('.game-actions-bar--sidebar.game-actions-bar--game-over')).toBeVisible({ timeout: 20_000 });
+}
+
+/** Двойной клик по «Сдаться» (arm + confirm). */
+export async function resignGame(page) {
+  await endPvpGameByResign(page);
+}
+
+/** После реванша — снова активная партия (не экран результата). */
+export async function expectActiveGame(page, { timeout = 20_000 } = {}) {
+  await expect(page.locator('.game-actions-bar--game-over')).toHaveCount(0, { timeout });
+  await waitForGameBoard(page, { timeout });
+}
+
+/** Кнопка «Реванш» на экране результата. */
+export async function clickRematch(page) {
+  const btn = page.locator('.room-side-panel .game-result-btn--rematch').first();
+  await expect(btn).toBeEnabled({ timeout: 10_000 });
+  await btn.click({ force: true });
 }

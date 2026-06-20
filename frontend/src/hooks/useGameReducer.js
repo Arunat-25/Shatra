@@ -7,9 +7,8 @@ import {
   classifyIncomingPly,
   isMoveConfirmation,
   hasOutstandingPending,
-  isOwnOptimisticConfirmation,
-  isDuplicateRematchToast,
 } from '../game/syncLayer';
+import { shouldSuppressServerToast } from '../game/serverFeedback';
 
 export { GAME_ACTIONS } from '../game/actions';
 
@@ -52,14 +51,7 @@ export default function useGameReducer(modeAi, getMyColor) {
       }
 
       const result = dispatchServerMessage(data, dispatch, modeAi, readMyColor);
-      if (
-        result?.text
-        && isMoveConfirmation(data)
-        && isOwnOptimisticConfirmation(data, stateRef.current, readMyColor())
-      ) {
-        return null;
-      }
-      if (result?.text && isDuplicateRematchToast(data, stateRef.current)) {
+      if (result?.text && shouldSuppressServerToast(data, stateRef.current, readMyColor())) {
         return null;
       }
       return result;

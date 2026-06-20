@@ -486,4 +486,38 @@ describe('gameReducer', () => {
     expect(next.moveFrom).toBeNull();
     expect(next.highlightedEssential).toEqual([]);
   });
+
+  it('GAME_STARTED after game over starts rematch (clears result state)', () => {
+    const finished = {
+      ...initialGameState,
+      gameOver: true,
+      gameOverReason: 'resign',
+      winnerColor: 'черный',
+      rematchReady: true,
+      rematchOpponentReady: true,
+      movesHistory: [{ from_pos: 45, to_pos: 37, desk: {} }],
+      confirmedPly: 1,
+      board: { 45: null, 37: 'белый бий' },
+      waiting: false,
+    };
+    const withHistory = gameReducer(finished, {
+      type: GAME_ACTIONS.SET_MOVE_HISTORY,
+      payload: [],
+    });
+    const next = gameReducer(withHistory, {
+      type: GAME_ACTIONS.GAME_STARTED,
+      payload: {
+        desk: { 45: 'белый бий', 37: null },
+        movers_color: 'белый',
+        your_color: 'белый',
+        ply: 0,
+      },
+    });
+    expect(next.gameOver).toBe(false);
+    expect(next.winnerColor).toBe('');
+    expect(next.rematchReady).toBe(false);
+    expect(next.rematchOpponentReady).toBe(false);
+    expect(next.confirmedPly).toBe(0);
+    expect(next.movesHistory).toEqual([]);
+  });
 });

@@ -80,7 +80,12 @@ DISCONNECT_TIMEOUT = settings.disconnect_timeout
 
 
 def get_room_lock(room_id: str) -> asyncio.Lock:
-    """Возвращает (создавая при необходимости) лок для комнаты."""
+    """Per-room mutex for read-modify-write on game/room Redis keys.
+
+    Callers already holding this lock must use ``_*_locked`` helpers
+    (e.g. ``_finish_game_locked``, ``_archive_finished_game_locked``) —
+    never the public wrappers that acquire the lock again (deadlock).
+    """
     lock = _room_locks.get(room_id)
     if lock is None:
         lock = asyncio.Lock()

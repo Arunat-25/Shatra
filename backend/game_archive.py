@@ -201,7 +201,10 @@ async def _archive_finished_game_locked(room_id: str) -> uuid.UUID | None:
 
 
 async def archive_finished_game(room_id: str) -> uuid.UUID | None:
-    """Insert finished game if eligible and not yet archived."""
+    """Insert finished game if eligible and not yet archived.
+
+    Acquires ``get_room_lock``. Do not call from code already holding that lock.
+    """
     async with get_room_lock(room_id):
         return await _archive_finished_game_locked(room_id)
 

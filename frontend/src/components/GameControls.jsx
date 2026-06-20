@@ -1,9 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { isSoundEnabled, setSoundEnabled } from '../audio/soundSettings';
 import { resumeAudioContext, preloadGameSounds } from '../audio/gameSounds';
-
-const RESIGN_ARM_MS = 4000;
 
 function SoundIcon({ muted }) {
   return (
@@ -69,14 +67,14 @@ export default function GameControls({
   onAcceptDraw,
   onDeclineDraw,
   onCancelGame,
-  onResign,
+  onResignClick,
+  resignArmed = false,
   drawPending = false,
   drawIncoming = false,
   canCancelGame = false,
   hideDraw = false,
 }) {
   const { t } = useTranslation();
-  const [resignArmed, setResignArmed] = useState(false);
   const [soundOn, setSoundOn] = useState(() => isSoundEnabled());
 
   const toggleSound = useCallback(async () => {
@@ -86,21 +84,6 @@ export default function GameControls({
     setSoundOn(next);
     setSoundEnabled(next);
   }, [soundOn]);
-
-  useEffect(() => {
-    if (!resignArmed) return undefined;
-    const timer = setTimeout(() => setResignArmed(false), RESIGN_ARM_MS);
-    return () => clearTimeout(timer);
-  }, [resignArmed]);
-
-  const handleResignClick = useCallback(() => {
-    if (!resignArmed) {
-      setResignArmed(true);
-      return;
-    }
-    setResignArmed(false);
-    onResign();
-  }, [resignArmed, onResign]);
 
   return (
     <div className="room-actions-block">
@@ -180,7 +163,7 @@ export default function GameControls({
             'room-icon-btn--danger',
             resignArmed ? 'room-icon-btn--resign-armed' : '',
           ].filter(Boolean).join(' ')}
-          onClick={handleResignClick}
+          onClick={onResignClick}
           title={resignArmed ? t('controls.resignConfirm') : t('controls.resign')}
           aria-label={resignArmed ? t('controls.resignConfirmAria') : t('controls.resign')}
         >
