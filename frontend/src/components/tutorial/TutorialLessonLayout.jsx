@@ -1,9 +1,11 @@
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../styles/board.css';
+import '../../styles/game.css';
+import '../../styles/game-mobile.css';
 import { probeTutorialLayout } from '../../debug/tutorialLayoutProbe';
 import { useLiteUi } from '../../context/LiteUiContext';
-import BoardGrid from '../../BoardGrid';
+import BoardSurface from '../BoardSurface';
 
 const noop = () => {};
 
@@ -41,7 +43,11 @@ export default function TutorialLessonLayout({
     };
   }, [text, instruction, interactive, canProceed]);
 
-  const boardClass = ['board', interactive ? '' : 'disabled'].filter(Boolean).join(' ');
+  const boardClass = [
+    'board',
+    liteUi ? 'board--lite' : '',
+    interactive ? '' : 'disabled',
+  ].filter(Boolean).join(' ');
 
   return (
     <div className="tutorial-lesson">
@@ -49,18 +55,17 @@ export default function TutorialLessonLayout({
         <div className="room-board-wrap">
           <div className="room-board">
             <div className={boardClass}>
-              <BoardGrid
+              <BoardSurface
                 board={board}
                 onCellClick={interactive && onCellClick ? onCellClick : noop}
                 myColor="белый"
                 interactive={interactive}
                 enablePieceDrag={false}
-                pieceVariant={liteUi ? 'lite' : 'full'}
-                tutorialDimmedCells={tutorialDimmedCells}
                 highlightedEssential={highlightedEssential}
                 highlightedCaptured={highlightedCaptured}
                 capturedGhostPieces={capturedGhostPieces}
                 moveFrom={moveFrom}
+                tutorialDimmedCells={tutorialDimmedCells}
               />
             </div>
           </div>

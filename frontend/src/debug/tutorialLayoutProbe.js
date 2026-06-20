@@ -1,5 +1,7 @@
+import { readBoardLayoutSnapshot } from '../board/boardLayoutGeometry';
+
 const ENDPOINT = 'http://127.0.0.1:7570/ingest/7c8a0073-ab4a-4548-b425-fe00951377e1';
-const SESSION = '97ed31';
+const SESSION = 'a9d1b1';
 
 function rect(el) {
   if (!el) return null;
@@ -21,11 +23,15 @@ export function probeTutorialLayout(tag, extra = {}) {
   const appMain = document.querySelector('.app-main');
   const pageTransition = document.querySelector('.page-transition');
   const lesson = document.querySelector('.tutorial-lesson');
+  const stage = document.querySelector('.tutorial-lesson__stage');
   const board = document.querySelector('.tutorial-lesson .board');
   const panel = document.querySelector('.tutorial-lesson__panel');
   const tutorialPage = document.querySelector('.tutorial-page');
   const sampleCell = document.querySelector('.tutorial-lesson .field-of-king .kletka');
   const sampleRow = document.querySelector('.tutorial-lesson .field-of-king .row');
+  const layoutSnapshot = readBoardLayoutSnapshot(document);
+  const boardCs = board ? getComputedStyle(board) : null;
+  const cellCs = sampleCell ? getComputedStyle(sampleCell) : null;
 
   const data = {
     tag,
@@ -63,6 +69,7 @@ export function probeTutorialLayout(tag, extra = {}) {
       inlineHeight: pageTransition?.style?.height ?? null,
     },
     lesson: rect(lesson),
+    stage: rect(stage),
     board: rect(board),
     panel: rect(panel),
     tutorialPage: rect(tutorialPage),
@@ -74,7 +81,14 @@ export function probeTutorialLayout(tag, extra = {}) {
       cellHeight: cs(sampleCell, 'height'),
       rowDisplay: cs(sampleRow, 'display'),
       boardUnit: cs(board, '--board-unit')?.trim() ?? null,
+      boardHeightUnits: cs(board, '--board-height-units')?.trim() ?? null,
+      cellHighlightRing: boardCs?.getPropertyValue('--cell-highlight-ring')?.trim() ?? null,
+      cellBorderWidth: boardCs?.getPropertyValue('--cell-border-width')?.trim() ?? null,
+      highlightEssentialShadow: cellCs?.boxShadow ?? null,
       boardCssLoaded: cs(sampleRow, 'display') === 'flex',
+      isLite: board?.classList.contains('board--lite') ?? false,
+      isCanvas: Boolean(document.querySelector('.tutorial-lesson .board-canvas')),
+      layoutSnapshot,
     },
     chromeOffset: cs(document.documentElement, '--app-top-chrome-offset'),
     lobbyNavClear: cs(document.documentElement, '--lobby-nav-clear-top'),
@@ -83,6 +97,11 @@ export function probeTutorialLayout(tag, extra = {}) {
       || (board && board.getBoundingClientRect().height < 80)
       || (pageTransition && pageTransition.getBoundingClientRect().height < 80)
       || (sampleCell && sampleCell.getBoundingClientRect().height < 30 && sampleCell.getBoundingClientRect().width > 100),
+    stageOverflow:
+      stage && board
+        ? board.getBoundingClientRect().bottom > stage.getBoundingClientRect().bottom + 1
+          || board.getBoundingClientRect().top < stage.getBoundingClientRect().top - 1
+        : null,
     ...extra,
   };
 

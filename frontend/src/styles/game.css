@@ -79,7 +79,8 @@
   box-sizing: border-box;
 }
 
-.app-shell--game .room-board .board {
+.app-shell--game .room-board .board,
+.tutorial-lesson .room-board .board {
   flex: 0 1 auto;
   width: 100%;
   max-width: 560px;
@@ -119,7 +120,8 @@
   height: var(--cell-size);
 }
 
-.app-shell--game .room-board .board .board-content {
+.app-shell--game .room-board .board .board-content,
+.tutorial-lesson .room-board .board .board-content {
   width: 100%;
   height: 100%;
   max-width: 100%;
@@ -137,14 +139,16 @@
 }
 
 @media (min-width: 1320px) {
-  .app-shell--game .room-board .board:has(.board-content--canvas) {
+  .app-shell--game .room-board .board:has(.board-content--canvas),
+  .tutorial-lesson .room-board .board:has(.board-content--canvas) {
     height: 100%;
     max-height: 100%;
     align-items: center;
     justify-content: center;
   }
 
-  .app-shell--game .room-board .board .board-content--canvas {
+  .app-shell--game .room-board .board .board-content--canvas,
+  .tutorial-lesson .room-board .board .board-content--canvas {
     width: fit-content;
     height: fit-content;
     max-width: 100%;
@@ -153,13 +157,6 @@
     align-self: center;
     margin: 0;
   }
-}
-
-.tutorial-lesson .room-board .board .board-content {
-  width: fit-content;
-  height: fit-content;
-  max-width: 100%;
-  max-height: 100%;
 }
 
 .room-board {

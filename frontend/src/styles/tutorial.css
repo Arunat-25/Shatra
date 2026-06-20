@@ -141,7 +141,7 @@ body:has(.app-shell--tutorial-lesson) #root {
   height: 100%;
   padding: 0;
   box-sizing: border-box;
-  overflow: visible;
+  overflow: hidden;
 }
 
 /* Доска обучения растягивается по высоте как игровая доска */
@@ -171,24 +171,20 @@ body:has(.app-shell--tutorial-lesson) #root {
   justify-content: center;
   overflow: hidden;
   container-type: size;
-  container-name: tutorial-board-slot;
+  container-name: board-slot;
 }
 
 .tutorial-lesson .room-board .board {
-  flex: 0 0 auto;
+  flex: 1 1 auto;
   width: 100%;
   max-width: 560px;
   height: 100%;
   max-height: 100%;
+  min-height: 0;
+  min-width: 0;
   margin: 0 auto;
   overflow: hidden;
   box-sizing: border-box;
-  --board-unit: min(
-    calc((100cqh - 20px) / 13.6),
-    calc((100cqw - 20px) / 7)
-  );
-  --cell-size: var(--board-unit);
-  --reserve-cell-size: calc(var(--board-unit) * 0.86);
 }
 
 .tutorial-lesson .room-board .board .board-content {
@@ -403,25 +399,12 @@ body:has(.app-shell--tutorial-lesson) #root {
     height: 100%;
     max-height: 100%;
     container-type: size;
-    container-name: tutorial-board-slot;
+    container-name: board-slot;
     overflow: hidden;
   }
 
   .tutorial-lesson .room-board .board {
-    flex: 0 1 auto;
-    width: 100%;
-    max-width: 560px;
-    height: 100%;
-    max-height: 100%;
-    padding: 3px;
-    border-radius: var(--radius-lg);
-    overflow: hidden;
-    --board-unit: min(
-      calc((100dvh - var(--app-top-chrome-offset, 24px) - var(--tutorial-panel-height) - 24px) / 13.6),
-      calc((100cqw - 20px) / 7)
-    );
-    --cell-size: var(--board-unit);
-    --reserve-cell-size: calc(var(--board-unit) * 0.86);
+    max-width: 100%;
   }
 
   .tutorial-lesson .room-board .board .board-content {

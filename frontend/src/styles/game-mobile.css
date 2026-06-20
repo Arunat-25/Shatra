@@ -350,7 +350,8 @@
   }
 
   /* Fill middle viewport row; cells sized to content units (13.16) with zero section gaps */
-  .app-shell--game .room-board .board {
+  .app-shell--game .room-board .board,
+  .app-shell--tutorial-lesson .tutorial-lesson .room-board .board {
     flex: 1 1 auto;
     flex-shrink: 1;
     width: 100%;
@@ -375,7 +376,8 @@
   }
 
   @container board-slot (min-height: 120px) {
-    .app-shell--game .room-board .board {
+    .app-shell--game .room-board .board,
+    .app-shell--tutorial-lesson .tutorial-lesson .room-board .board {
       width: min(100%, calc((100cqh - 4px) * 7 / var(--board-height-units, 13.16)));
       --board-unit: min(
         calc((100cqw - 6px) / 7),
@@ -386,11 +388,13 @@
     }
   }
 
-  .app-shell--game .room-board .board.board-dimmed {
+  .app-shell--game .room-board .board.board-dimmed,
+  .app-shell--tutorial-lesson .tutorial-lesson .room-board .board.board-dimmed {
     transform: none;
   }
 
-  .app-shell--game .room-board .board .board-content {
+  .app-shell--game .room-board .board .board-content,
+  .app-shell--tutorial-lesson .tutorial-lesson .room-board .board .board-content {
     flex: 1 1 auto;
     height: 100%;
     min-height: 0;
@@ -714,39 +718,47 @@ html.app-shell--game-nav-compact .app-shell--game .waiting-screen--invite {
 
 /* Lighter board rendering on phones — fewer gradients/shadows/animations for smoother FPS */
 @media (max-width: 960px) {
-  html.app-shell--game-nav-compact .app-shell--game .board {
+  html.app-shell--game-nav-compact .app-shell--game .board,
+  html.app-shell--game-nav-compact .app-shell--tutorial-lesson .tutorial-lesson .board {
     box-shadow: var(--shadow-md);
   }
 
-  html.app-shell--game-nav-compact .app-shell--game .board::before {
+  html.app-shell--game-nav-compact .app-shell--game .board::before,
+  html.app-shell--game-nav-compact .app-shell--tutorial-lesson .tutorial-lesson .board::before {
     display: none;
   }
 
-  html.app-shell--game-nav-compact .app-shell--game .cell-light {
+  html.app-shell--game-nav-compact .app-shell--game .cell-light,
+  html.app-shell--game-nav-compact .app-shell--tutorial-lesson .tutorial-lesson .cell-light {
     background: var(--cell-light);
     box-shadow: none;
   }
 
-  html.app-shell--game-nav-compact .app-shell--game .cell-dark {
+  html.app-shell--game-nav-compact .app-shell--game .cell-dark,
+  html.app-shell--game-nav-compact .app-shell--tutorial-lesson .tutorial-lesson .cell-dark {
     background: var(--cell-dark);
     box-shadow: none;
   }
 
-  html.app-shell--game-nav-compact .app-shell--game .kletka {
+  html.app-shell--game-nav-compact .app-shell--game .kletka,
+  html.app-shell--game-nav-compact .app-shell--tutorial-lesson .tutorial-lesson .kletka {
     transition: none;
   }
 
-  html.app-shell--game-nav-compact .app-shell--game .kletka:not(.board.disabled .kletka):hover {
+  html.app-shell--game-nav-compact .app-shell--game .kletka:not(.board.disabled .kletka):hover,
+  html.app-shell--game-nav-compact .app-shell--tutorial-lesson .tutorial-lesson .kletka:not(.board.disabled .kletka):hover {
     transform: none;
     filter: none;
   }
 
-  html.app-shell--game-nav-compact .app-shell--game .highlight-essential {
+  html.app-shell--game-nav-compact .app-shell--game .highlight-essential,
+  html.app-shell--game-nav-compact .app-shell--tutorial-lesson .tutorial-lesson .highlight-essential {
     animation: none;
     box-shadow: inset 0 0 0 var(--cell-highlight-ring) rgba(45, 212, 191, 0.85) !important;
   }
 
-  html.app-shell--game-nav-compact .app-shell--game .highlight-black {
+  html.app-shell--game-nav-compact .app-shell--game .highlight-black,
+  html.app-shell--game-nav-compact .app-shell--tutorial-lesson .tutorial-lesson .highlight-black {
     box-shadow: inset 0 0 0 var(--cell-highlight-ring) rgba(45, 212, 191, 0.85) !important;
   }
 

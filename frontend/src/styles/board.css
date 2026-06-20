@@ -268,14 +268,6 @@
   pointer-events: none;
 }
 
-/* ===== MOAT ===== */
-.main-field .row .kletka:nth-child(4) {
-  box-shadow: inset 0 0 10px rgba(45, 212, 191, 0.12);
-}
-.main-field .row .kletka:nth-child(4)::before {
-  border: 2px solid rgba(45, 212, 191, 0.35);
-}
-
 /* ===== INTERACTIONS ===== */
 .board-content--dragging .kletka,
 .board-content--dragging .kletka:hover,
