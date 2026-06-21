@@ -25,6 +25,13 @@ logger = logging.getLogger(__name__)
 _EMPTY_ROOM_GRACE_SECONDS = settings.empty_room_grace_seconds
 
 
+async def _close_ws_quietly(ws: WebSocket, *, code: int = 1000, reason: str = "") -> None:
+    try:
+        await ws.close(code=code, reason=reason)
+    except Exception:
+        pass
+
+
 async def _delete_room_after_grace(room_id: str, delay_seconds: float):
     """
     Удаляет комнату/игру после небольшой задержки, если за это время никто не переподключился.
@@ -105,10 +112,28 @@ class ConnectionManager:
                 room_id=room_id,
             )
 
-        # Reconnect: client_id уже в комнате — только если нет активного WS
+        # Reconnect: client_id уже в комнате
         if client_id in players:
+            existing_ws = self.connections.get(room_id, {}).get(client_id)
+            if existing_ws is not None and existing_ws is not websocket:
+                await _close_ws_quietly(existing_ws, code=1000, reason="replaced_by_reconnect")
+                self.connections[room_id][client_id] = websocket
+                self._proto.setdefault(room_id, {})[client_id] = proto
+                task = disconnect_timers.pop(room_id, None)
+                if task and not task.done():
+                    task.cancel()
+                opponent = self.get_opponent_ws(room_id, client_id)
+                if opponent:
+                    try:
+                        await opponent.send_json({"status": "opponent_reconnected"})
+                    except Exception:
+                        pass
+                await set_room(room_id, room_data)
+                await _record_presence()
+                record_ws_connect(reason="reconnect_replace")
+                return True
+
             if client_id in self.connections.get(room_id, {}):
-                # Уже есть активное соединение — это не reconnect, а дубль
                 await websocket.close(code=1008, reason="already_in_game")
                 record_ws_reject("already_in_game")
                 logger.warning(

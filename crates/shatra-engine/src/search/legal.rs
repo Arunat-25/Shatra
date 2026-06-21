@@ -375,6 +375,11 @@ pub fn move_limit(state: &SearchState, weights: &EvalWeights) -> i32 {
     limit
 }
 
+/// When legal moves fit in the search window, skip heuristic pruning.
+pub fn needs_move_pruning(state: &SearchState, move_count: usize, weights: &EvalWeights) -> bool {
+    move_count > move_limit(state, weights) as usize
+}
+
 pub fn select_moves_for_search(
     state: &SearchState,
     moves: Vec<Move>,
@@ -386,6 +391,10 @@ pub fn select_moves_for_search(
     weights: &EvalWeights,
 ) -> Vec<Move> {
     if moves.is_empty() {
+        return moves;
+    }
+    let cap = tier3_cap.unwrap_or_else(|| move_limit(state, weights)) as usize;
+    if moves.len() <= cap {
         return moves;
     }
     if moves.len() > 24 && super::time_exceeded(start_time, time_limit) {
@@ -460,14 +469,18 @@ pub fn ordered_moves(
     if moves.is_empty() {
         return moves;
     }
-    let moves = if maximizing {
+    let narrow = !needs_move_pruning(state, moves.len(), weights);
+    let candidates = if maximizing && state.to_move == ai_color && !narrow {
         filter_moves_for_ai(state, moves, ai_color, weights)
     } else {
         moves
     };
+    if narrow {
+        return candidates;
+    }
     select_moves_for_search(
         state,
-        moves,
+        candidates,
         ai_color,
         maximizing,
         start_time,
@@ -476,7 +489,6 @@ pub fn ordered_moves(
         weights,
     )
 }
-
 pub fn pick_chain_move(state: &SearchState, ai_color: &str, weights: &EvalWeights) -> Option<Move> {
     let chain = state.chain_cell?;
     let hints = crate::rules::hints::get_hints(
@@ -493,6 +505,9 @@ pub fn pick_chain_move(state: &SearchState, ai_color: &str, weights: &EvalWeight
         .collect();
     if moves.is_empty() {
         return None;
+    }
+    if moves.len() == 1 {
+        return Some(moves[0]);
     }
     let mut safe = filter_moves_for_ai(state, moves, ai_color, weights);
     safe.sort_by_key(|m| std::cmp::Reverse(move_sort_key(state, *m, ai_color, weights)));

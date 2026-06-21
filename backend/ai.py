@@ -1052,6 +1052,10 @@ def _move_limit(state: SearchState, maximizing: bool) -> int:
     return limit
 
 
+def _needs_move_pruning(state: SearchState, move_count: int) -> bool:
+    return move_count > _move_limit(state, True)
+
+
 def _select_moves_for_search(
     state: SearchState,
     moves: List[Move],
@@ -1063,6 +1067,9 @@ def _select_moves_for_search(
 ) -> List[Move]:
     """Tier1 (must) + Tier2 (tactical) + capped Tier3 — never drop mandatory captures."""
     if not moves:
+        return moves
+    cap = tier3_cap if tier3_cap is not None else _move_limit(state, maximizing)
+    if len(moves) <= cap:
         return moves
     if len(moves) > 24 and _time_exceeded(start_time, time_limit):
         mandatory = _mandatory_moves_set(state)
@@ -1138,8 +1145,11 @@ def _ordered_moves(
     moves = get_legal_moves(state)
     if not moves:
         return moves
-    if maximizing:
+    narrow = not _needs_move_pruning(state, len(moves))
+    if maximizing and state.to_move == ai_color and not narrow:
         moves = _filter_moves_for_ai(state, moves, ai_color)
+    if narrow:
+        return moves
     return _select_moves_for_search(
         state, moves, ai_color, maximizing, start_time, time_limit,
     )
@@ -1168,6 +1178,7 @@ def quiescence(state, alpha, beta, maximizing, ai_color, depth=0, start_time=Non
     tactical = _select_moves_for_search(
         state, tactical, ai_color, maximizing, start_time, time_limit, tier3_cap=q_cap,
     )
+    forced = len(tactical) == 1
 
     for move in tactical:
         if _time_exceeded(start_time, time_limit):
@@ -1192,6 +1203,8 @@ def quiescence(state, alpha, beta, maximizing, ai_color, depth=0, start_time=Non
             )
             if mandatory_chain:
                 next_depth = depth + 1
+            elif forced:
+                next_depth = depth
             else:
                 next_depth = min(depth + 1 + extra_depth, MAX_QUIESCE_DEPTH + 2)
             val = quiescence(child, alpha, beta, next_max, ai_color, next_depth, start_time, time_limit)
@@ -1237,6 +1250,7 @@ def minimax(state, depth, alpha, beta, maximizing, ai_color, start_time=None, ti
     if not moves:
         return (LOSE_SCORE if maximizing else WIN_SCORE), None
 
+    forced = len(moves) == 1
     best_move, best_val = (None, -math.inf) if maximizing else (None, math.inf)
 
     if maximizing:
@@ -1249,7 +1263,8 @@ def minimax(state, depth, alpha, beta, maximizing, ai_color, start_time=None, ti
             if child is None:
                 continue
             terminal = _terminal_score(result, ai_color)
-            val = terminal if terminal is not None else minimax(child, current_depth - 1, alpha, beta, child.to_move == ai_color, ai_color, start_time, time_limit)[0]
+            child_depth = current_depth if forced else current_depth - 1
+            val = terminal if terminal is not None else minimax(child, child_depth, alpha, beta, child.to_move == ai_color, ai_color, start_time, time_limit)[0]
             if state.to_move == ai_color:
                 val -= _fortress_deploy_search_penalty(state, move, ai_color)
                 val += _mandatory_capture_chain_bonus(state, move, ai_color)
@@ -1273,7 +1288,8 @@ def minimax(state, depth, alpha, beta, maximizing, ai_color, start_time=None, ti
             if child is None:
                 continue
             terminal = _terminal_score(result, ai_color)
-            val = terminal if terminal is not None else minimax(child, current_depth - 1, alpha, beta, child.to_move == ai_color, ai_color, start_time, time_limit)[0]
+            child_depth = current_depth if forced else current_depth - 1
+            val = terminal if terminal is not None else minimax(child, child_depth, alpha, beta, child.to_move == ai_color, ai_color, start_time, time_limit)[0]
             val += _fortress_entry_search_adjustment(state, move, ai_color)
             if val < best_val:
                 best_val, best_move = val, move
@@ -1301,6 +1317,8 @@ def _pick_chain_move(state, ai_color):
     moves = [(state.chain_cell, t) for t in (hints.essential_positions or [])]
     if not moves:
         return None
+    if len(moves) == 1:
+        return moves[0]
     safe = _filter_moves_for_ai(state, moves, ai_color)
     safe.sort(key=lambda m: _move_sort_key(state, m, ai_color), reverse=True)
     return safe[0]
@@ -1360,6 +1378,12 @@ def get_best_move(
     if fork is not None:
         return fork
 
+    all_legal = get_legal_moves(state)
+    if not all_legal:
+        return None
+    if len(all_legal) == 1:
+        return all_legal[0]
+
     n = _count_pieces(cells)
     time_limit = _get_time_limit(cells)
     
@@ -1387,7 +1411,7 @@ def get_best_move(
             break
 
     if best_move is None:
-        moves = _filter_moves_for_ai(state, get_legal_moves(state), ai_color)
+        moves = all_legal if not _needs_move_pruning(state, len(all_legal)) else _filter_moves_for_ai(state, all_legal, ai_color)
         if moves:
             moves.sort(key=lambda m: _move_sort_key(state, m, ai_color), reverse=True)
             top_val = _move_sort_key(state, moves[0], ai_color)

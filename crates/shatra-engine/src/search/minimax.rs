@@ -66,6 +66,7 @@ pub fn quiescence(
         Some(q_cap),
         weights,
     );
+    let forced = tactical.len() == 1;
 
     for mv in tactical {
         if time_exceeded(start_time, time_limit) {
@@ -93,6 +94,8 @@ pub fn quiescence(
                 );
             let next_depth = if mandatory_chain {
                 depth + 1
+            } else if forced {
+                depth
             } else {
                 (depth + 1 + extra_depth).min(MAX_QUIESCE_DEPTH + 2)
             };
@@ -188,6 +191,8 @@ pub fn minimax(
         );
     }
 
+    let forced = moves.len() == 1;
+
     let mut best_move: Option<Move> = None;
     let mut best_val = if maximizing { i32::MIN } else { i32::MAX };
 
@@ -204,9 +209,14 @@ pub fn minimax(
             let mut val = if let Some(terminal) = terminal_score(&result, ai_color) {
                 terminal
             } else {
+                let child_depth = if forced {
+                    current_depth
+                } else {
+                    current_depth - 1
+                };
                 minimax(
                     &child,
-                    current_depth - 1,
+                    child_depth,
                     alpha,
                     beta,
                     child.to_move == ai_color,
@@ -245,9 +255,14 @@ pub fn minimax(
             let mut val = if let Some(terminal) = terminal_score(&result, ai_color) {
                 terminal
             } else {
+                let child_depth = if forced {
+                    current_depth
+                } else {
+                    current_depth - 1
+                };
                 minimax(
                     &child,
-                    current_depth - 1,
+                    child_depth,
                     alpha,
                     beta,
                     child.to_move == ai_color,

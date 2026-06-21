@@ -61,6 +61,8 @@ pub fn best_move(
         Some(position_history.clone()),
     );
 
+    let all_legal = util::get_legal_moves(&state);
+
     if let Some(chain) = pending.filter(|&c| c != 0) {
         let mut chain_state = state.clone();
         chain_state.chain_cell = Some(chain);
@@ -80,6 +82,14 @@ pub fn best_move(
 
     if let Some(fork) = legal::pick_best_mandatory_capture_fork(&state, mover, &weights) {
         return Ok(fork);
+    }
+
+    if all_legal.is_empty() {
+        return Err(EngineError::NoLegalMove);
+    }
+
+    if all_legal.len() == 1 {
+        return Ok(all_legal[0]);
     }
 
     let mut time_limit = get_time_limit(cells, time_ms);
@@ -121,12 +131,11 @@ pub fn best_move(
         return Ok(mv);
     }
 
-    let moves = legal::filter_moves_for_ai(
-        &state,
-        util::get_legal_moves(&state),
-        mover,
-        &weights,
-    );
+    let moves = if legal::needs_move_pruning(&state, all_legal.len(), &weights) {
+        legal::filter_moves_for_ai(&state, all_legal, mover, &weights)
+    } else {
+        all_legal
+    };
     if moves.is_empty() {
         return Err(EngineError::NoLegalMove);
     }
