@@ -11,6 +11,7 @@ COPY services/shatra-ai/Cargo.toml services/shatra-ai/Cargo.toml
 COPY services/shatra-ai/build.rs services/shatra-ai/build.rs
 COPY services/shatra-ai/src services/shatra-ai/src
 COPY proto proto
+COPY frontend/packages/shatra-rules/src/dictionaries.json frontend/packages/shatra-rules/src/dictionaries.json
 
 RUN cargo build --release -p shatra-ai
 
