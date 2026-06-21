@@ -29,17 +29,12 @@ pub(crate) fn time_exceeded(start_time: Option<Instant>, time_limit: f64) -> boo
         .unwrap_or(false)
 }
 
-fn get_time_limit(cells: &Cells, time_ms: i32) -> f64 {
+fn get_time_limit(_cells: &Cells, time_ms: i32) -> f64 {
     if time_ms > 0 {
         return time_ms as f64 / 1000.0;
     }
-    let n = util::count_pieces(cells);
-    for &(thr, lim) in AI_TIME_LIMITS {
-        if n > thr {
-            return lim;
-        }
-    }
-    1.2
+    // 0 = no artificial time cap; search runs until depth is exhausted.
+    f64::MAX
 }
 
 /// Returns `(from, to)` for the chosen move.
@@ -93,7 +88,7 @@ pub fn best_move(
         let tactical_cap = if time_ms > 0 {
             time_ms as f64 / 1000.0
         } else {
-            3.0
+            f64::MAX
         };
         time_limit = (time_limit * 1.5).min(tactical_cap);
     }

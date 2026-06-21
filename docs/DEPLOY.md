@@ -63,7 +63,7 @@ cd shatra
 docker compose -f docker-compose.prod.yml up -d --build
 ```
 
-Сервис `shatra-ai` (Rust gRPC) поднимается в internal network. По умолчанию `AI_ENGINE=python` — app использует встроенный движок. После порта rules/search в Rust: `AI_ENGINE=grpc` в `.env`. Rollback: вернуть `AI_ENGINE=python` и перезапустить только `app`.
+Сервис `shatra-ai` (Rust gRPC) поднимается в internal network. По умолчанию `AI_ENGINE=grpc`. Rollback: `AI_ENGINE=python` и перезапустить только `app`.
 
 Подробнее: [services/shatra-ai/README.md](../services/shatra-ai/README.md).
 

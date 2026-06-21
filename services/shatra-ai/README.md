@@ -39,7 +39,7 @@ App-side (`.env`):
 |----------|---------|-------------|
 | `AI_ENGINE` | `python` | `python` or `grpc` |
 | `AI_SERVICE_URL` | `shatra-ai:50051` | gRPC target |
-| `AI_MOVE_TIME_MS` | 300 | Search time budget |
+| `AI_MOVE_TIME_MS` | 3000 | Search time budget (ms) |
 | `AI_SHADOW_VERIFY` | `false` | Staging: compare grpc vs python apply |
 
 ## Rollout

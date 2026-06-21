@@ -38,3 +38,7 @@ frontend/test-results/
 
 # Rust
 target/
+
+# Local dev overrides (host Rust AI, debug mounts)
+docker-compose.override.yml
+.local/

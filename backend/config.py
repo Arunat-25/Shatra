@@ -50,11 +50,11 @@ class Settings(BaseSettings):
     admin_user_ids: str = ""
 
     # AI microservice (shatra-ai gRPC). Default python = in-process engine.
-    ai_engine: str = "python"
+    ai_engine: str = "grpc"
     ai_service_url: str = "shatra-ai:50051"
-    ai_move_time_ms: int = 300
+    ai_move_time_ms: int = 3000  # search time budget (ms); 0 = depth-only, unbounded
     ai_search_depth: int = 6
-    ai_grpc_timeout_ms: int = 500
+    ai_grpc_timeout_ms: int = 8000
     ai_shadow_verify: bool = False
 
     @property

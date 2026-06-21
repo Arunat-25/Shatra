@@ -105,7 +105,12 @@ async def websocket_endpoint_v2(websocket: WebSocket, room_id: str):
     players_in_room = len(room_data.get("players") or {})
 
     if is_ai_room:
-        await _start_ai_game(room_id, websocket, room_data, my_color)
+        try:
+            await _start_ai_game(room_id, websocket, room_data, my_color)
+        except Exception:
+            logger.exception("Failed to start AI game in room %s", room_id)
+            await manager.disconnect(room_id, websocket)
+            return
     elif room_data.get("game_started"):
         game = await get_game(room_id)
         if game:

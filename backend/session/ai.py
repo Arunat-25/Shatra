@@ -48,7 +48,11 @@ async def handle_ai_move(
 
     board_snapshot = dict(game.get("board") or {})
     ai_color = game["mover"]
-    outcome = await compute_ai_turn_async(game, ai_color)
+    try:
+        outcome = await compute_ai_turn_async(game, ai_color)
+    except Exception:
+        logger.exception("AI move failed in room %s", room_id)
+        raise
 
     if outcome is None:
         logger.warning("AI has no legal moves in room %s — game over", room_id)

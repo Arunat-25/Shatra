@@ -16,6 +16,7 @@ def main() -> int:
     if not PROTO.is_file():
         print(f"Missing proto: {PROTO}", file=sys.stderr)
         return 1
+    # Use grpcio-tools matching requirements.txt (protobuf 5.x). Protoc 6 stubs break runtime 5.x.
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / "__init__.py").write_text('"""Generated gRPC stubs for shatra-ai."""\n', encoding="utf-8")
     cmd = [
@@ -36,6 +37,14 @@ def main() -> int:
         text = text.replace(
             "from shatra.ai.v1 import ai_pb2 as shatra_dot_ai_dot_v1_dot_ai__pb2",
             "from backend.proto.shatra.ai.v1 import ai_pb2 as shatra_dot_ai_dot_v1_dot_ai__pb2",
+        )
+        import re
+
+        text = re.sub(
+            r"GRPC_GENERATED_VERSION = '[^']+'",
+            "GRPC_GENERATED_VERSION = '1.71.0'  # pinned to requirements.txt grpcio",
+            text,
+            count=1,
         )
         grpc_py.write_text(text, encoding="utf-8")
     for pkg in ("shatra", "shatra/ai", "shatra/ai/v1"):

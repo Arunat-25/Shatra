@@ -89,8 +89,9 @@ def _build_grpc_request(game: dict, ai_color: str) -> Any:
     from backend.proto.shatra.ai.v1 import ai_pb2
 
     board = _normalize_board(game.get("board") or {})
+    occupied = {cell: piece for cell, piece in board.items() if piece is not None}
     req = ai_pb2.ComputeAiTurnRequest(
-        board=board,
+        board=occupied,
         mover_color=ai_color,
         depth=settings.ai_search_depth,
         time_ms=settings.ai_move_time_ms,
@@ -105,10 +106,29 @@ def _build_grpc_request(game: dict, ai_color: str) -> Any:
     return req
 
 
+def _grpc_call_timeout_seconds() -> float:
+    """Client deadline for ComputeAiTurn (search + apply + network)."""
+    move_ms = settings.ai_move_time_ms
+    buffer_ms = max(settings.ai_grpc_timeout_ms, 5000)
+    if move_ms <= 0:
+        return 90.0
+    return max(0.05, (move_ms + buffer_ms) / 1000.0)
+
+
+def _python_search_time_seconds(*, fallback: bool = False) -> float:
+    """Wall-clock cap for in-process Python search."""
+    move_ms = settings.ai_move_time_ms
+    if move_ms > 0:
+        return move_ms / 1000.0
+    if fallback:
+        return 3.0
+    return 90.0
+
+
 async def _compute_grpc_turn(game: dict, ai_color: str) -> AiTurnOutcome | None:
     stub = await _get_grpc_stub()
     req = _build_grpc_request(game, ai_color)
-    timeout = max(0.05, settings.ai_grpc_timeout_ms / 1000.0)
+    timeout = _grpc_call_timeout_seconds()
     started = time.perf_counter()
     try:
         resp = await stub.ComputeAiTurn(req, timeout=timeout)
@@ -125,7 +145,7 @@ async def _compute_grpc_turn(game: dict, ai_color: str) -> AiTurnOutcome | None:
         ):
             logger.warning("AI gRPC failed (%s), falling back to python", code)
             record_ai_grpc_fallback(code.name.lower())
-            return await _compute_python_turn(game, ai_color)
+            return await _compute_python_turn(game, ai_color, fallback=True)
         raise
 
     elapsed_ms = (time.perf_counter() - started) * 1000.0
@@ -146,23 +166,31 @@ async def _compute_grpc_turn(game: dict, ai_color: str) -> AiTurnOutcome | None:
     return outcome
 
 
-async def _compute_python_turn(game: dict, ai_color: str) -> AiTurnOutcome | None:
+async def _compute_python_turn(game: dict, ai_color: str, *, fallback: bool = False) -> AiTurnOutcome | None:
     from backend.ai_trained import get_best_move as get_ai_move
+    import backend.ai as ai_mod
 
     board = _normalize_board(game.get("board") or {})
     position_history = game.setdefault("position_history", {})
+    time_limit = _python_search_time_seconds(fallback=fallback)
     loop = asyncio.get_running_loop()
-    move = await loop.run_in_executor(
-        None,
-        lambda: get_ai_move(
-            board,
-            ai_color,
-            settings.ai_search_depth,
-            game.get("pending_batyr_captures"),
-            game.get("pending_mandatory_position"),
-            position_history,
-        ),
-    )
+
+    def run_search():
+        prev = getattr(ai_mod, "_MAX_TIME_LIMIT", None)
+        try:
+            ai_mod._MAX_TIME_LIMIT = time_limit
+            return get_ai_move(
+                board,
+                ai_color,
+                settings.ai_search_depth,
+                game.get("pending_batyr_captures"),
+                game.get("pending_mandatory_position"),
+                position_history,
+            )
+        finally:
+            ai_mod._MAX_TIME_LIMIT = prev
+
+    move = await loop.run_in_executor(None, run_search)
     if move is None:
         return None
 

@@ -5,7 +5,7 @@ import warnings
 
 from backend.proto.shatra.ai.v1 import ai_pb2 as shatra_dot_ai_dot_v1_dot_ai__pb2
 
-GRPC_GENERATED_VERSION = '1.81.1'
+GRPC_GENERATED_VERSION = '1.71.0'  # must match grpcio in requirements.txt
 GRPC_VERSION = grpc.__version__
 _version_not_supported = False
 
