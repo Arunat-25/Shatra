@@ -70,6 +70,7 @@ describe('v2 adapter', () => {
     expect(adapted.desk[37]).toBe('белый бий');
     expect(adapted.ply).toBe(1);
     expect(adapted.position_for_mandatory_capture).toBeNull();
+    expect(adapted.message_params).toEqual({ color: 'черный' });
   });
 
   it('omits chainCell on turn switch even when engine had mandatory pos', () => {

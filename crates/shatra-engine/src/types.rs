@@ -20,6 +20,7 @@ pub struct MoveResult {
     pub movers_color: Option<String>,
     pub game_over: bool,
     pub winner_color: Option<String>,
+    pub draw_reason: Option<String>,
     pub updated_positions: HashMap<i32, String>,
     pub captured_positions: Vec<i32>,
     pub captured_pieces: Vec<i32>,

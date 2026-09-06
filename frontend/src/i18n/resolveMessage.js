@@ -22,8 +22,10 @@ const CODE_TO_I18N = {
   'capture.only_biy': 'server.mustCapture',
   'piece.promoted': 'server.promotion',
   'game.draw': 'result.draw',
-  'draw_two_biys': 'result.drawAgreed',
-  'draw_repetition': 'result.drawAgreed',
+  draw_two_biys: 'result.drawTwoBiys',
+  draw_repetition: 'result.drawRepetition',
+  'draw.two_biys': 'result.drawTwoBiys',
+  'draw.repetition': 'result.drawRepetition',
 
   // Control / draw / rematch / cancel
   'draw.bot_declined': 'server.drawBotDeclined',
@@ -107,6 +109,24 @@ function normalizeParams(params) {
   return out;
 }
 
+/** Fill interpolation params when wire payload omits messageParams (e.g. v2 AI moves). */
+function enrichMessageParams(code, input, rawParams) {
+  const params = normalizeParams(rawParams);
+  if (!code) return params;
+
+  if (!params.color) {
+    if (code === 'piece.promoted') {
+      const color = input?.mover ?? null;
+      if (color) params.color = normalizeColorToken(color);
+    } else if (code === 'turn.now') {
+      const color = input?.movers_color ?? input?.turn ?? null;
+      if (color) params.color = normalizeColorToken(color);
+    }
+  }
+
+  return params;
+}
+
 export function resolveMessageCode(code, params) {
   if (!code) return '';
   const key = CODE_TO_I18N[code] || code;
@@ -121,7 +141,7 @@ export function resolveMessage(input) {
   }
   const code = input.message_code || input.code || input.detail;
   if (!code) return '';
-  return resolveMessageCode(code, input.message_params || input.params);
+  return resolveMessageCode(code, enrichMessageParams(code, input, input.message_params || input.params));
 }
 
 export function resolveWsErrorMessage(messageOrCode) {

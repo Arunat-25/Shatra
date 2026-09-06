@@ -64,6 +64,7 @@ pub fn compute_ai_turn(input: TurnInput) -> Result<TurnOutput, EngineError> {
             movers_color: applied.movers_color,
             game_over: applied.game_over,
             winner_color: applied.winner_color,
+            draw_reason: applied.draw_reason,
             updated_positions: updated,
             captured_positions: applied.captured_positions,
             captured_pieces: applied.captured_pieces,

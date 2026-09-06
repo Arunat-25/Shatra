@@ -35,9 +35,13 @@ function moveDeltaToV1(msg, prevBoard) {
     promoted: msg.promoted,
   });
 
+  const messageParams = msg.messageParams
+    ?? (msg.messageCode === 'turn.now' && msg.turn ? { color: msg.turn } : undefined)
+    ?? (msg.messageCode === 'piece.promoted' && msg.mover ? { color: msg.mover } : undefined);
+
   return {
     message_code: msg.messageCode || null,
-    message_params: msg.messageParams,
+    message_params: messageParams,
     movers_color: msg.turn,
     mover: msg.mover,
     desk: board,

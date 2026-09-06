@@ -67,12 +67,31 @@ async def _get_grpc_stub():
     return _grpc_stub
 
 
-def _proto_to_game_event_result(msg, from_pos: int, to_pos: int) -> GameEventResult:
+def _proto_to_game_event_result(
+    msg,
+    from_pos: int,
+    to_pos: int,
+    *,
+    mover_color: str | None = None,
+) -> GameEventResult:
+    message_params: dict[str, str] = {}
+    code = msg.message_code or ""
+    if code == "turn.now" and msg.movers_color:
+        message_params = {"color": msg.movers_color}
+    elif code == "piece.promoted" and mover_color:
+        message_params = {"color": mover_color}
+
+    draw_reason = None
+    if msg.HasField("draw_reason"):
+        draw_reason = msg.draw_reason or None
+
     return GameEventResult(
-        message_code=msg.message_code or "",
+        message_code=code,
+        message_params=message_params,
         movers_color=msg.movers_color or None,
         game_over=bool(msg.game_over),
         winner_color=msg.winner_color or None,
+        draw_reason=draw_reason,
         updated_positions=_normalize_board(dict(msg.updated_positions)) if msg.updated_positions else None,
         captured_positions=list(msg.captured_positions),
         captured_pieces=list(msg.captured_pieces),
@@ -156,7 +175,7 @@ async def _compute_grpc_turn(game: dict, ai_color: str) -> AiTurnOutcome | None:
 
     move = resp.result
     outcome = AiTurnOutcome(
-        result=_proto_to_game_event_result(move, move.from_pos, move.to_pos),
+        result=_proto_to_game_event_result(move, move.from_pos, move.to_pos, mover_color=ai_color),
         from_pos=int(move.from_pos),
         to_pos=int(move.to_pos),
         engine="grpc",

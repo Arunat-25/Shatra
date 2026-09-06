@@ -96,15 +96,18 @@ export function winnerColor(raw) {
 /**
  * Текст окончания игры для UI.
  * @param {string} [winnerColor] — «белый» / «черный»
- * @param {string} [reason] — timeout | resign | draw_agreed | draw_two_biys | draw_repetition | cancelled | opponent_disconnected
+ * @param {string} [reason] — timeout | resign | draw_agreed | draw_two_biys | draw_repetition | draw.two_biys | draw.repetition | cancelled | opponent_disconnected
  * @param {string} [messageCode] — cancel.* codes when reason is cancelled
  */
 export function formatGameOverMessage(winnerColorRaw, reason, messageCode) {
   const t = i18n.t.bind(i18n);
   const color = winnerColor(winnerColorRaw);
 
-  if (reason === 'draw_two_biys' || reason === 'draw_repetition') {
-    return resolveMessageCode(reason) || t('result.drawAgreed');
+  if (reason === 'draw_two_biys' || reason === 'draw.two_biys') {
+    return t('result.drawTwoBiys');
+  }
+  if (reason === 'draw_repetition' || reason === 'draw.repetition') {
+    return t('result.drawRepetition');
   }
   if (reason === 'draw_agreed') return t('result.drawAgreed');
 

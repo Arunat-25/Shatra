@@ -31,6 +31,7 @@ message MoveResult {
   bool opportunity_pass_the_move = 9;
   int32 from_pos = 10;
   int32 to_pos = 11;
+  optional string draw_reason = 12;
 }
 
 message ComputeAiTurnResponse {

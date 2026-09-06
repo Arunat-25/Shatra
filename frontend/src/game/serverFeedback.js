@@ -2,6 +2,7 @@ import { GAME_ACTIONS } from './actions';
 import {
   isMoveConfirmation,
   isOwnOptimisticConfirmation,
+  isOptimisticGameEndEcho,
   isDuplicateRematchToast,
   isDuplicateCancelConfirmation,
 } from './syncLayer';
@@ -28,6 +29,12 @@ export const FEEDBACK_SCENARIOS = [
     suppressToast: true,
     suppressSound: false,
     when: 'rematch_status after optimistic SET_REMATCH_STATUS',
+  },
+  {
+    id: 'game_over_echo',
+    suppressToast: false,
+    suppressSound: true,
+    when: 'game_over after optimistic move that already played endgame sound',
   },
   {
     id: 'cancel_echo',
@@ -68,6 +75,8 @@ export function shouldSuppressActionSound(action, prevState, myColor) {
     case GAME_ACTIONS.MOVE_MADE:
       if (!isRealMove(action.payload)) return true;
       return isOwnOptimisticConfirmation(action.payload, prevState, myColor);
+    case GAME_ACTIONS.GAME_OVER:
+      return isOptimisticGameEndEcho(action.payload, prevState);
     case GAME_ACTIONS.GAME_CANCELLED:
       return isDuplicateCancelConfirmation(prevState);
     default:

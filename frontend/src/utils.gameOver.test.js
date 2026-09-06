@@ -17,3 +17,11 @@ describe('formatGameOverMessage timeout', () => {
     expect(formatGameOverMessage('белый', 'timeout')).toBe('result.timeoutBlack');
   });
 });
+
+describe('formatGameOverMessage draw reasons', () => {
+  it('uses distinct text for rule-based draws', () => {
+    expect(formatGameOverMessage('', 'draw_repetition')).toBe('result.drawRepetition');
+    expect(formatGameOverMessage('', 'draw.two_biys')).toBe('result.drawTwoBiys');
+    expect(formatGameOverMessage('', 'draw_agreed')).toBe('result.drawAgreed');
+  });
+});

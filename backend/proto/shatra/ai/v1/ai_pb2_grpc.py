@@ -5,7 +5,7 @@ import warnings
 
 from backend.proto.shatra.ai.v1 import ai_pb2 as shatra_dot_ai_dot_v1_dot_ai__pb2
 
-GRPC_GENERATED_VERSION = '1.71.0'  # must match grpcio in requirements.txt
+GRPC_GENERATED_VERSION = '1.71.0'  # pinned to requirements.txt grpcio
 GRPC_VERSION = grpc.__version__
 _version_not_supported = False
 
@@ -18,14 +18,14 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
-        + ' but the generated code in shatra/ai/v1/ai_pb2_grpc.py depends on'
+        + f' but the generated code in shatra/ai/v1/ai_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
     )
 
 
-class AiServiceStub:
+class AiServiceStub(object):
     """AI turn: search best move + apply rules in one call.
     """
 
@@ -47,7 +47,7 @@ class AiServiceStub:
                 _registered_method=True)
 
 
-class AiServiceServicer:
+class AiServiceServicer(object):
     """AI turn: search best move + apply rules in one call.
     """
 
@@ -84,7 +84,7 @@ def add_AiServiceServicer_to_server(servicer, server):
 
 
  # This class is part of an EXPERIMENTAL API.
-class AiService:
+class AiService(object):
     """AI turn: search best move + apply rules in one call.
     """
 

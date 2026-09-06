@@ -13,6 +13,7 @@ describe('FEEDBACK_SCENARIOS', () => {
       'move_confirm',
       'resync_snapshot',
       'rematch_status_echo',
+      'game_over_echo',
       'cancel_echo',
     ]);
   });
@@ -65,7 +66,26 @@ describe('shouldSuppressActionSound', () => {
   it('move_confirm: skip confirm sound', () => {
     expect(shouldSuppressActionSound(
       { type: GAME_ACTIONS.MOVE_MADE, payload: { from_pos: 11, to_pos: 19, movers_color: 'белый' } },
-      { pendingMove: { ply: 1 }, myColor: 'белый' },
+      { pendingMove: { ply: 1, from: 11, to: 19 }, myColor: 'белый' },
+      'белый',
+    )).toBe(true);
+  });
+
+  it('move_confirm: skip when movers_color is next player but cells match', () => {
+    expect(shouldSuppressActionSound(
+      { type: GAME_ACTIONS.MOVE_MADE, payload: { from_pos: 11, to_pos: 19, movers_color: 'черный' } },
+      { pendingMove: { ply: 1, from: 11, to: 19 }, myColor: 'белый' },
+      'белый',
+    )).toBe(true);
+  });
+
+  it('game_over_echo: skip second endgame sound', () => {
+    expect(shouldSuppressActionSound(
+      {
+        type: GAME_ACTIONS.GAME_OVER,
+        payload: { from_pos: 11, to_pos: 19, winner_color: 'белый', game_over: true },
+      },
+      { pendingMove: { from: 11, to: 19, ply: 1, endsGame: false }, myColor: 'белый' },
       'белый',
     )).toBe(true);
   });

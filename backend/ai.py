@@ -78,6 +78,17 @@ MAX_QUIESCE_TIER3_MOVES = 20
 MANDATORY_CAPTURE_CHAIN_DEPTH = 16
 HANGING_WITHOUT_GAIN_PENALTY = 500_000
 
+
+def _min_hanging_sacrifice_gain(state: SearchState, move: Move) -> int:
+    piece = state.cells.get(move[0])
+    if not piece:
+        return 100
+    return _pv(_safe_piece_type(piece))
+
+
+def _hanging_sacrifice_justifies(state: SearchState, move: Move, ai_color: str) -> bool:
+    return _evaluate_hanging_sacrifice(state, move, ai_color) >= _min_hanging_sacrifice_gain(state, move)
+
 # ═══════════════════════════════════════════════════════════
 # ♟️ ТАБЛИЦЫ (без изменений)
 # ═══════════════════════════════════════════════════════════
@@ -910,13 +921,14 @@ def _move_sort_key(state, move, ai_color):
         sac = _evaluate_hanging_sacrifice(state, move, ai_color)
         if sac <= -HANGING_WITHOUT_GAIN_PENALTY // 2:
             return sac
-        if sac > 0:
-            score += sac
-        elif (
+        capturable_hang = (
             _is_cell_capturable(child.cells, _opponent(ai_color), to)
             and not (child.chain_cell is not None and child.to_move == ai_color)
-        ):
+        )
+        if capturable_hang and not _hanging_sacrifice_justifies(state, move, ai_color):
             return -HANGING_WITHOUT_GAIN_PENALTY
+        if sac > 0:
+            score += sac
         w = _w()
         k = biy_anchor_factor(main_field_density(cells), w.crowded_main_field_threshold)
         opp_mass = _opponent_has_mass(cells, ai_color)
@@ -1124,10 +1136,10 @@ def _filter_moves_for_ai(state, moves, ai_color):
         fm, to = move
         own_chain = child.chain_cell is not None and child.to_move == ai_color
         if _is_cell_capturable(child.cells, _opponent(ai_color), to) and not own_chain:
-            if _evaluate_hanging_sacrifice(state, move, ai_color) <= 0:
+            if not _hanging_sacrifice_justifies(state, move, ai_color):
                 continue
         if _creates_mandatory_capture_for_opp(state.cells, ai_color, move):
-            if _evaluate_hanging_sacrifice(state, move, ai_color) <= 0:
+            if not _hanging_sacrifice_justifies(state, move, ai_color):
                 continue
         safe.append(move)
     if safe:

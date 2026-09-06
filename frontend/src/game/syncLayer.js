@@ -60,9 +60,50 @@ export function isMoveConfirmation(data) {
 
 /** Server payload confirming our optimistic WS send — client already reacted locally. */
 export function isOwnOptimisticConfirmation(payload, state, myColor) {
-  if (!myColor || !hasOutstandingPending(state)) return false;
-  const mover = payload?.mover ?? payload?.movers_color;
-  return mover === myColor;
+  if (!hasOutstandingPending(state)) return false;
+
+  const from = Number(payload?.from_pos ?? payload?.from);
+  const to = Number(payload?.to_pos ?? payload?.to);
+  const ply = payload?.ply != null ? Number(payload.ply) : null;
+
+  const pending = state.pendingMoves?.length
+    ? state.pendingMoves
+    : state.pendingMove
+      ? [state.pendingMove]
+      : [];
+
+  for (const entry of pending) {
+    if (from > 0 && to > 0 && Number(entry.from) === from && Number(entry.to) === to) {
+      return true;
+    }
+    if (ply != null && entry.ply != null && Number(entry.ply) === ply) {
+      return true;
+    }
+  }
+
+  if (!myColor) return false;
+  const whoMoved = payload?.mover;
+  return whoMoved === myColor;
+}
+
+/** Server game_over echo after optimistic move that already played endgame sound. */
+export function isOptimisticGameEndEcho(payload, state) {
+  if (!hasOutstandingPending(state)) return false;
+  const from = Number(payload?.from_pos ?? payload?.from);
+  const to = Number(payload?.to_pos ?? payload?.to);
+  const ply = payload?.ply != null ? Number(payload.ply) : null;
+  const pending = state.pendingMoves?.length
+    ? state.pendingMoves
+    : state.pendingMove
+      ? [state.pendingMove]
+      : [];
+  return pending.some((entry) => {
+    const cellsMatch = from > 0 && to > 0
+      && Number(entry.from) === from && Number(entry.to) === to;
+    const plyMatch = ply != null && entry.ply != null && Number(entry.ply) === ply;
+    if (!cellsMatch && !plyMatch) return false;
+    return entry.endsGame || Boolean(payload?.game_over);
+  });
 }
 
 /** Rematch status echo after optimistic SET_REMATCH_STATUS or duplicate broadcast. */

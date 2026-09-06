@@ -23,8 +23,24 @@ describe('resolveMessage', () => {
     expect(resolveMessage({ message_code: 'cancel.opponent' })).toBe('Соперник отменил игру.');
   });
 
+  it('turn.now falls back to movers_color when message_params missing', () => {
+    const text = resolveMessage({
+      message_code: 'turn.now',
+      movers_color: 'черный',
+      from_pos: 11,
+      to_pos: 19,
+    });
+    expect(text).toBe('Теперь ходит чёрный');
+  });
+
   it('resolves plain code string', () => {
     expect(resolveMessage('draw.agreed')).toContain('Ничья');
+  });
+
+  it('maps draw rule reasons to specific result text', () => {
+    expect(resolveMessageCode('draw_repetition')).toContain('повторение');
+    expect(resolveMessageCode('draw_two_biys')).toContain('бия');
+    expect(resolveMessageCode('draw.repetition')).toContain('повторение');
   });
 
   it('returns empty for missing input', () => {
