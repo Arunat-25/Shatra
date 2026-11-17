@@ -25,6 +25,9 @@ def configure_test_env() -> None:
     """Вызывается при импорте conftest — тесты не трогают dev-базу shatra."""
     os.environ["DATABASE_URL"] = test_database_url()
     os.environ.setdefault("JWT_SECRET", "test-secret")
+    # Tests always run in the "test" app env — backend.db.session keys its
+    # per-loop-unsafe pool config off this, so it must not drift with JWT_SECRET.
+    os.environ["APP_ENV"] = "test"
     os.environ.setdefault("REDIS_HOST", "localhost")
     os.environ.setdefault("REDIS_PORT", "6379")
     os.environ.setdefault("REDIS_DB", "1")

@@ -1,6 +1,5 @@
 """Async SQLAlchemy session."""
 
-import os
 from collections.abc import AsyncGenerator
 
 from sqlalchemy import text
@@ -23,7 +22,10 @@ def get_engine() -> AsyncEngine:
     global _engine
     if _engine is None:
         kwargs: dict = {"echo": False}
-        if os.getenv("JWT_SECRET") == "test-secret":
+        # Test runs span several event loops (pytest-asyncio function loops,
+        # TestClient portal loops): pooled connections would be bound to the
+        # loop that created them and explode on reuse, so tests use NullPool.
+        if settings.app_env == "test":
             kwargs["poolclass"] = NullPool
         _engine = create_async_engine(settings.database_url, **kwargs)
     return _engine
