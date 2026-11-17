@@ -29,7 +29,7 @@ export default function Lobby() {
   const [joinerRoomId, setJoinerRoomId] = useState(null);
   const [showSetup, setShowSetup] = useState(false);
   const [pickerMode, setPickerMode] = useState(null);
-  const { hostRef, contentRef, scale, hostHeight, panelHeight } = useLobbyFluidScale(fluidLobby, [
+  const { hostRef, contentRef, scale, hostHeight } = useLobbyFluidScale(fluidLobby, [
     showSetup,
     pickerMode,
     stats,

@@ -1,0 +1,2 @@
+# Ruff config. Generated gRPC stubs are excluded from linting.
+extend-exclude = ["backend/proto"]

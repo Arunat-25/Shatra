@@ -96,7 +96,8 @@ jobs:
         run: cargo build --release -p shatra-ai
 
   e2e:
-    runs-on: ubuntu-latest
+    # Playwright's bundled chromium has no build for ubuntu 26.04 runners yet.
+    runs-on: ubuntu-24.04
     services:
       redis:
         image: redis:7-alpine

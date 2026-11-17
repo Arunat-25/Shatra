@@ -49,7 +49,7 @@ describe('drawBoard', () => {
   it('draws lite board frame as full opaque pad', () => {
     const layout = computeBoardLayout('белый', TEST_LAYOUT_METRICS);
     const ctx = createMockCtx();
-    drawBoardFrame(ctx, layout, 'lite', 'белый');
+    drawBoardFrame(ctx, layout, 'lite');
     expect(ctx.fill).not.toHaveBeenCalled();
     expect(ctx.fillRect).toHaveBeenCalledWith(0, 0, layout.width, layout.contentHeight);
   });

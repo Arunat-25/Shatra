@@ -30,7 +30,6 @@ async def _wait_for_second_player_v2(
     *,
     is_ai_room: bool,
 ) -> dict | None:
-    room_type = room_data.get("type")
     await manager.send_to_player(
         websocket,
         build_waiting(

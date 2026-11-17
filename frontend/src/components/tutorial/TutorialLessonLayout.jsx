@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../styles/boardBundle.css';
 import { probeTutorialLayout } from '../../debug/tutorialLayoutProbe';

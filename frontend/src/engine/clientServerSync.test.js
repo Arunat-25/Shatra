@@ -191,7 +191,7 @@ describe('client/server sync fixtures', () => {
   for (const scenario of scenarios) {
     describe(scenario.id, () => {
       it('replays moves and matches expected server pending', () => {
-        const { board, mover, chainCell } = replayWithClientRules(scenario.moves, scenario);
+        const { mover, chainCell } = replayWithClientRules(scenario.moves, scenario);
 
         expect(mover).toBe(scenario.expect_mover);
         const expectedPending = scenario.expect_server_pending ?? null;

@@ -5,7 +5,7 @@ import time
 from backend.game_helpers import build_game_started_response
 from backend.game_archive import mark_game_started, _archive_finished_game_locked
 from backend.message_codes import DRAW_OPPONENT_DECLINED, DRAW_OFFER_CANCELLED, ws_payload
-from backend.session.v2.outbound import broadcast_control_v1, send_control_v1
+from backend.session.v2.outbound import broadcast_control_v1
 from backend.session.v2.protocol import PROTO_VERSION
 from backend.state import get_game, set_game, set_room, game_timers
 from backend.timers import stop_game_timer, game_ticker

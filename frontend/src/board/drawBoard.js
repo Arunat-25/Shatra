@@ -146,7 +146,7 @@ function drawLiteBoardFrame(ctx, layout) {
 /**
  * @param {CanvasRenderingContext2D} ctx
  */
-export function drawBoardFrame(ctx, layout, theme = 'default', myColor = 'белый') {
+export function drawBoardFrame(ctx, layout, theme = 'default') {
   if (theme === 'lite') {
     drawLiteBoardFrame(ctx, layout);
     return;

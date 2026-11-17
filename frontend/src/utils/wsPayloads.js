@@ -1,5 +1,3 @@
-import { passTurnColor } from '../game/passTurn';
-import { nextOutgoingPly } from '../game/syncLayer';
 import {
   buildV2MovePayload,
   buildV2PassPayload,

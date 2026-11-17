@@ -36,6 +36,9 @@ data/ai_trained_weights.smoke.json
 # Playwright
 frontend/test-results/
 
+# Local report artifacts
+*.bak
+
 # Rust
 target/
 

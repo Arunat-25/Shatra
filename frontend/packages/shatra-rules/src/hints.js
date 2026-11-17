@@ -46,7 +46,6 @@ export function validateMove(
   currentColor,
   batyrCapturedThisTurn = null,
   checkMandatory = true,
-  chainCaptureCell = null,
 ) {
   const caps = batyrCapturedThisTurn || [];
   const board = new Board(cells);

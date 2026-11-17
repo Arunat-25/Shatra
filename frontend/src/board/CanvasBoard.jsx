@@ -215,7 +215,7 @@ export default function CanvasBoard({
       dpr * scale.offsetY,
     );
 
-    drawBoardFrame(ctx, layout, drawTheme, myColor);
+    drawBoardFrame(ctx, layout, drawTheme);
 
     const boardEl = containerRef.current?.closest?.('.board');
     const cellNumberScale = readCellNumberScale(boardEl);
