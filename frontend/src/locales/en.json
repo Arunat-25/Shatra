@@ -373,6 +373,8 @@
     "resignWhite": "White wins (resignation)",
     "resignBlack": "Black wins (resignation)",
     "drawAgreed": "Draw by agreement",
+    "drawRepetition": "Draw (threefold repetition)",
+    "drawTwoBiys": "Draw (only two biys left)",
     "cancelledDefault": "Game cancelled.",
     "disconnectWhite": "White wins (opponent disconnected)",
     "disconnectBlack": "Black wins (opponent disconnected)",

@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   classifyIncomingPly,
   nextOutgoingPly,
-  outstandingPlyCount,
   pendingAfterConfirm,
   isMoveConfirmation,
   isOwnOptimisticConfirmation,
+  isOptimisticGameEndEcho,
   isDuplicateRematchToast,
   isDuplicateCancelConfirmation,
 } from './syncLayer';
@@ -78,12 +78,58 @@ describe('isOwnOptimisticConfirmation', () => {
     )).toBe(false);
   });
 
+  it('is true when movers_color is next player but from/to match pending (H1)', () => {
+    expect(isOwnOptimisticConfirmation(
+      { movers_color: 'черный', from_pos: 11, to_pos: 19 },
+      { pendingMove: { from: 11, to: 19, ply: 1 } },
+      'белый',
+    )).toBe(true);
+  });
+
+  it('is true when mover field identifies us even if movers_color is next', () => {
+    expect(isOwnOptimisticConfirmation(
+      { mover: 'белый', movers_color: 'черный', from_pos: 11, to_pos: 19 },
+      { pendingMove: { from: 11, to: 19, ply: 1 } },
+      'белый',
+    )).toBe(true);
+  });
+
   it('is false without pending optimistic state', () => {
     expect(isOwnOptimisticConfirmation(
       { movers_color: 'белый', from_pos: 11, to_pos: 19 },
       { pendingMove: null },
       'белый',
     )).toBe(false);
+  });
+});
+
+describe('isOptimisticGameEndEcho', () => {
+  it('is true when pending endsGame matches game_over cells', () => {
+    expect(isOptimisticGameEndEcho(
+      { from_pos: 11, to_pos: 19, winner_color: 'белый', game_over: true },
+      { pendingMove: { from: 11, to: 19, ply: 1, endsGame: true } },
+    )).toBe(true);
+  });
+
+  it('is true when server game_over matches pending cells even if endsGame was not set locally', () => {
+    expect(isOptimisticGameEndEcho(
+      { from_pos: 11, to_pos: 19, winner_color: 'белый', game_over: true },
+      { pendingMove: { from: 11, to: 19, ply: 1, endsGame: false } },
+    )).toBe(true);
+  });
+
+  it('is false when pending cells match but payload is not game_over', () => {
+    expect(isOptimisticGameEndEcho(
+      { from_pos: 11, to_pos: 19, movers_color: 'черный' },
+      { pendingMove: { from: 11, to: 19, ply: 1, endsGame: false } },
+    )).toBe(false);
+  });
+
+  it('is true when only ply matches game_over echo', () => {
+    expect(isOptimisticGameEndEcho(
+      { ply: 3, winner_color: 'белый', game_over: true },
+      { pendingMove: { from: 11, to: 19, ply: 3, endsGame: true } },
+    )).toBe(true);
   });
 });
 

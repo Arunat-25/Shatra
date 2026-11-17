@@ -1301,7 +1301,7 @@ class TestArchiveCriticalEdgeCases:
         }
 
         with (
-            patch("backend.session.ai.get_ai_move", return_value=None),
+            patch("backend.session.ai.compute_ai_turn_async", new_callable=AsyncMock, return_value=None),
             patch("backend.session.ai.set_game", side_effect=st.set_game),
             patch("backend.session.ai.manager.send_to_room", AsyncMock()),
             patch("backend.game_archive.get_game", side_effect=st.get_game),

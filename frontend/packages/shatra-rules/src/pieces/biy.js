@@ -26,7 +26,7 @@ export class Biy extends Piece {
     return captures[toCell] ?? null;
   }
 
-  canCaptureImpl(cells, fromCell, toCell, capturedThisTurn) {
+  canCaptureImpl(cells, fromCell, toCell) {
     const enemyCell = this.findEnemyCellForCapture(cells, fromCell, toCell);
     if (enemyCell == null) return false;
     const enemyPiece = cells[enemyCell];

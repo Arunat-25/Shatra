@@ -42,20 +42,25 @@ class TestConnectionManagerConnect:
         assert ok is False
         mock_ws.close.assert_called_once()
 
-    async def test_duplicate_tab_same_client_rejected(self, cm, mock_ws):
-        room = _room()
+    async def test_same_client_replaces_stale_websocket_on_reload(self, cm, mock_ws):
+        """Перезагрузка страницы: новый WS приходит до disconnect старого."""
+        room = _room({"player-a": "белый"}, type="ai", game_started=True)
         ws2 = AsyncMock()
         ws2.accept = AsyncMock()
         ws2.close = AsyncMock()
 
         with patch("backend.ws_manager.get_room", new_callable=AsyncMock, return_value=room):
             with patch("backend.ws_manager.set_room", new_callable=AsyncMock):
-                ok1 = await cm.connect("room1", mock_ws, "player-a")
-                assert ok1 is True
-                ok2 = await cm.connect("room1", ws2, "player-a")
-                assert ok2 is False
-                ws2.close.assert_called()
-                assert ws2.close.call_args.kwargs.get("reason") == "already_in_game"
+                with patch("backend.ws_manager.disconnect_timers", {}):
+                    with patch("backend.ws_manager.start_session", new_callable=AsyncMock):
+                        with patch("backend.ws_manager.record_ws_connect") as connect:
+                            ok1 = await cm.connect("room1", mock_ws, "player-a")
+                            assert ok1 is True
+                            ok2 = await cm.connect("room1", ws2, "player-a")
+                            assert ok2 is True
+                            mock_ws.close.assert_called_once()
+                            assert cm.connections["room1"]["player-a"] is ws2
+                            connect.assert_called_with(reason="reconnect_replace")
 
     async def test_third_player_rejected_when_two_in_room(self, cm, mock_ws):
         room = _room({"p1": "белый", "p2": "черный"})
@@ -125,7 +130,7 @@ class TestConnectionManagerMetrics:
         reject.assert_called_once_with("room_not_found")
         connect.assert_not_called()
 
-    async def test_duplicate_tab_records_already_in_game(self, cm, mock_ws):
+    async def test_same_client_replace_records_reconnect(self, cm, mock_ws):
         room = _room({"player-a": "белый"})
         ws2 = AsyncMock()
         ws2.accept = AsyncMock()
@@ -134,13 +139,12 @@ class TestConnectionManagerMetrics:
         with patch("backend.ws_manager.get_room", new_callable=AsyncMock, return_value=room):
             with patch("backend.ws_manager.set_room", new_callable=AsyncMock):
                 with patch("backend.ws_manager.start_session", new_callable=AsyncMock):
-                    with patch("backend.ws_manager.record_ws_connect"):
+                    with patch("backend.ws_manager.record_ws_connect") as connect:
                         await cm.connect("room1", mock_ws, "player-a")
-                    cm.connections["room1"] = {"player-a": mock_ws}
-                    with patch("backend.ws_manager.record_ws_reject") as reject:
-                        ok = await cm.connect("room1", ws2, "player-a")
-        assert ok is False
-        reject.assert_called_once_with("already_in_game")
+                        with patch("backend.ws_manager.disconnect_timers", {}):
+                            ok = await cm.connect("room1", ws2, "player-a")
+        assert ok is True
+        connect.assert_called_with(reason="reconnect_replace")
 
     async def test_room_full_records_reject(self, cm, mock_ws):
         room = _room({"p1": "белый", "p2": "черный"})

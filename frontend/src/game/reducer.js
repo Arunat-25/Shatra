@@ -375,7 +375,12 @@ export function gameReducer(state, action) {
     case GAME_ACTIONS.OPTIMISTIC_MOVE: {
       const { result, from, to, ply } = action.payload;
       const next = applyOptimisticPayload(state, result, from, to);
-      const entry = { from: Number(from), to: Number(to), ply: Number(ply) };
+      const entry = {
+        from: Number(from),
+        to: Number(to),
+        ply: Number(ply),
+        endsGame: Boolean(result?.gameOver),
+      };
       const isFirst = !(state.pendingMoves?.length);
       return {
         ...next,
@@ -418,6 +423,10 @@ export function gameReducer(state, action) {
       const withBoard = action.payload.desk || action.payload.from_pos != null
         ? applyMovePayload(state, action.payload, {})
         : state;
+      const newLastMove = lastMoveFromPayload(action.payload);
+      const confirmedPly = action.payload.ply != null
+        ? Number(action.payload.ply)
+        : withBoard.confirmedPly;
       return {
         ...withBoard,
         waiting: false,
@@ -437,6 +446,8 @@ export function gameReducer(state, action) {
         pendingMoves: [],
         rollbackSnapshot: null,
         syncStatus: 'synced',
+        lastMove: newLastMove ?? withBoard.lastMove,
+        confirmedPly,
         movesHistory: action.payload.move_history ?? withBoard.movesHistory,
         moversColor: action.payload.movers_color || withBoard.moversColor,
         timeControl: action.payload.time_control ?? state.timeControl,

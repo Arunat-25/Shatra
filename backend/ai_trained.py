@@ -1,9 +1,11 @@
 """Strong AI: trained weights, deeper search, transposition table, deterministic play."""
 from __future__ import annotations
 
+import math
 from typing import Optional
 
 import backend.ai as ai
+from backend.config import settings
 from backend.ai import Move, get_best_move as _base_get_best_move
 from backend.ai_weights import get_active_weights, has_context_weights, load_weights, use_weights
 
@@ -47,7 +49,11 @@ def get_best_move(
         ai._DETERMINISTIC_FALLBACK = True
         ai._TT = {}
         ai._MAX_MOVES_PER_NODE = 28
-        ai._MAX_TIME_LIMIT = 2.0
+        ai._MAX_TIME_LIMIT = (
+            settings.ai_move_time_ms / 1000.0
+            if settings.ai_move_time_ms > 0
+            else math.inf
+        )
         with use_weights(weights):
             return _base_get_best_move(
                 cells,

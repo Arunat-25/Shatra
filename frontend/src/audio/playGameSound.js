@@ -9,10 +9,25 @@ function vol() {
 }
 
 function isDrawResult(payload) {
-  const reason = payload?.reason || '';
+  const reason = payload?.reason || payload?.drawReason || '';
   if (reason.includes('draw')) return true;
-  const winner = payload?.winner_color || payload?.winner || '';
+  const winner = payload?.winner_color || payload?.winner || payload?.winnerColor || '';
   return !winner;
+}
+
+function playEndgameSound(payload, myColor, volume) {
+  if (isDrawResult(payload)) {
+    sounds.playDraw(volume);
+    return;
+  }
+  const winner = payload?.winner_color || payload?.winner || payload?.winnerColor || '';
+  if (myColor && winner === myColor) {
+    sounds.playWin(volume);
+  } else if (myColor && winner && winner !== myColor) {
+    sounds.playLoss(volume);
+  } else {
+    sounds.playDraw(volume);
+  }
 }
 
 export function playForAction(action, prevState, getMyColor) {
@@ -39,7 +54,12 @@ export function playForAction(action, prevState, getMyColor) {
     }
 
     case GAME_ACTIONS.OPTIMISTIC_MOVE: {
-      const captured = action.payload?.result?.capturedPositions;
+      const result = action.payload?.result;
+      if (result?.gameOver) {
+        playEndgameSound(result, myColor, v);
+        break;
+      }
+      const captured = result?.capturedPositions;
       if (Array.isArray(captured) && captured.length > 0) {
         sounds.playCapture(v);
       } else {
@@ -48,21 +68,9 @@ export function playForAction(action, prevState, getMyColor) {
       break;
     }
 
-    case GAME_ACTIONS.GAME_OVER: {
-      if (isDrawResult(action.payload)) {
-        sounds.playDraw(v);
-        break;
-      }
-      const winner = action.payload?.winner_color || action.payload?.winner || '';
-      if (myColor && winner === myColor) {
-        sounds.playWin(v);
-      } else if (myColor && winner && winner !== myColor) {
-        sounds.playLoss(v);
-      } else {
-        sounds.playDraw(v);
-      }
+    case GAME_ACTIONS.GAME_OVER:
+      playEndgameSound(action.payload, myColor, v);
       break;
-    }
 
     case GAME_ACTIONS.GAME_CANCELLED:
       sounds.playDraw(v);

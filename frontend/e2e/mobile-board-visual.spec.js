@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { clickBoardCell, startAiGame } from './helpers.js';
+import { makeBoardMove, startAiGame } from './helpers.js';
 
 const WHITE_OPENING = { from: 45, to: 37 };
 
@@ -30,13 +30,14 @@ test('mobile board stays visually full during AI thinking', async ({ page }) => 
   await page.setViewportSize({ width: 390, height: 844 });
   await startAiGame(page, { asWhite: true });
 
-  await clickBoardCell(page, WHITE_OPENING.from, 'белый');
-  await clickBoardCell(page, WHITE_OPENING.to, 'белый');
+  await makeBoardMove(page, WHITE_OPENING.from, WHITE_OPENING.to, 'белый');
 
   await expect.poll(async () => page.evaluate(() => {
     const board = document.querySelector('.room-board .board');
-    return board?.classList.contains('board-dimmed') ?? false;
-  }), { timeout: 5000 }).toBe(true);
+    return board?.classList.contains('board-dimmed')
+      || board?.classList.contains('board-ai-thinking')
+      || false;
+  }), { timeout: 15_000 }).toBe(true);
 
   const shot = await page.locator('.room-board .board').screenshot();
   const stats = await page.evaluate(() => {

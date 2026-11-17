@@ -235,7 +235,7 @@ describe('gameReducer', () => {
         ply: 2,
       },
     });
-    expect(next.pendingMoves).toEqual([{ from: 10, to: 18, ply: 2 }]);
+    expect(next.pendingMoves).toEqual([{ from: 10, to: 18, ply: 2, endsGame: false }]);
     expect(next.syncStatus).toBe('pending');
   });
 
@@ -415,6 +415,30 @@ describe('gameReducer', () => {
     expect(next.board[8]).toBe('черный батыр');
     expect(next.posForMandatoryCapture).toBe(8);
     expect(next.batyrCapturedThisTurn).toEqual([10]);
+  });
+
+  it('GAME_OVER applies winning move delta with lastMove and confirmedPly', () => {
+    const state = {
+      ...initialGameState,
+      board: { 45: 'белый бий', 37: null },
+      confirmedPly: 1,
+      lastMove: null,
+    };
+    const next = gameReducer(state, {
+      type: GAME_ACTIONS.GAME_OVER,
+      payload: {
+        game_over: true,
+        winner_color: 'белый',
+        reason: 'biy_wins',
+        from_pos: 45,
+        to_pos: 37,
+        mover: 'белый',
+        ply: 2,
+      },
+    });
+    expect(next.board[37]).toBe('белый бий');
+    expect(next.lastMove).toEqual({ from: 45, to: 37 });
+    expect(next.confirmedPly).toBe(2);
   });
 
   it('GAME_OVER clears chain highlights and ghosts (H32)', () => {

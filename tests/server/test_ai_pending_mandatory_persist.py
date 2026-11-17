@@ -68,12 +68,27 @@ async def test_ai_persists_cleared_pending_mandatory_after_move():
         return {}
 
     with (
-        patch("backend.session.ai.asyncio.sleep", new_callable=AsyncMock),
-        patch("backend.session.ai.get_ai_move", lambda *args, **kwargs: (32, 18)),
+        patch("backend.session.ai.compute_ai_turn_async", new_callable=AsyncMock) as turn_mock,
         patch("backend.session.ai.set_game", _set_game),
         patch("backend.session.ai.manager.broadcast_move", new_callable=AsyncMock),
         patch("backend.session.ai.apply_move_result", _apply_move_result),
     ):
+        from backend.ai_client import AiTurnOutcome
+
+        board = dict(game["board"])
+        result = logic.handle_event(
+            GameEvent(
+                positions=board,
+                mover_color="белый",
+                from_pos=32,
+                to_pos=18,
+                position_for_mandatory_capture=32,
+            ),
+            position_history=game.get("position_history"),
+        )
+        turn_mock.return_value = AiTurnOutcome(
+            result=result, from_pos=32, to_pos=18, engine="python",
+        )
         await handle_ai_move("room-persist", game, room_data=room)
 
     assert game["mover"] == "черный"
@@ -116,12 +131,27 @@ async def test_after_ai_capture_persisted_state_allows_legal_hints():
         return {}
 
     with (
-        patch("backend.session.ai.asyncio.sleep", new_callable=AsyncMock),
-        patch("backend.session.ai.get_ai_move", lambda *args, **kwargs: (32, 18)),
+        patch("backend.session.ai.compute_ai_turn_async", new_callable=AsyncMock) as turn_mock,
         patch("backend.session.ai.set_game", _set_game),
         patch("backend.session.ai.apply_move_result", _apply_move_result),
         patch("backend.session.ai.manager.broadcast_move", AsyncMock()),
     ):
+        from backend.ai_client import AiTurnOutcome
+
+        board = dict(game["board"])
+        result = logic.handle_event(
+            GameEvent(
+                positions=board,
+                mover_color="белый",
+                from_pos=32,
+                to_pos=18,
+                position_for_mandatory_capture=32,
+            ),
+            position_history=game.get("position_history"),
+        )
+        turn_mock.return_value = AiTurnOutcome(
+            result=result, from_pos=32, to_pos=18, engine="python",
+        )
         await handle_ai_move(room_id, game, room_data=room)
 
         assert persisted["game"]["mover"] == "черный"

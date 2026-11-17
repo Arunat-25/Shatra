@@ -67,7 +67,7 @@ async def _apply_and_broadcast_move(
     is_ai_room: bool,
     board_before: dict | None = None,
 ) -> None:
-    response = await apply_move_result(
+    await apply_move_result(
         room_id, game, result, prev_mover, raw_from, raw_to
     )
     record_move("player")

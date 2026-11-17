@@ -130,7 +130,7 @@ async def _process_client_message_locked(
 
     persist_pending_mandatory_position(game, result, prev_mover)
 
-    response = await apply_move_result(
+    await apply_move_result(
         room_id, game, result, prev_mover, raw_from, raw_to
     )
     record_move("player")

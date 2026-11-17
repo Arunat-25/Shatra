@@ -101,6 +101,24 @@ GAME_DURATION_SECONDS = Histogram(
     buckets=(30, 60, 120, 300, 600, 1200, 1800, 3600),
 )
 
+AI_GRPC_LATENCY_MS = Histogram(
+    "shatra_ai_grpc_latency_ms",
+    "AI gRPC ComputeAiTurn round-trip latency in milliseconds",
+    buckets=(5, 10, 25, 50, 100, 200, 400, 800, 1600, 3200),
+)
+
+AI_GRPC_FALLBACK_TOTAL = Counter(
+    "shatra_ai_grpc_fallback_total",
+    "AI gRPC failures falling back to Python engine",
+    ["reason"],
+)
+
+AI_SHADOW_MISMATCH_TOTAL = Counter(
+    "shatra_ai_shadow_mismatch_total",
+    "Staging shadow verify mismatches between gRPC and Python apply",
+    ["kind"],
+)
+
 
 def metrics_payload() -> tuple[bytes, str]:
     return generate_latest(), CONTENT_TYPE_LATEST
@@ -160,3 +178,15 @@ def record_game_finished(
         GAME_PLIES.labels(**labels).observe(plies)
     if duration_seconds is not None and duration_seconds >= 0:
         GAME_DURATION_SECONDS.labels(**labels).observe(duration_seconds)
+
+
+def record_ai_grpc_latency(elapsed_ms: float) -> None:
+    AI_GRPC_LATENCY_MS.observe(max(0.0, elapsed_ms))
+
+
+def record_ai_grpc_fallback(reason: str) -> None:
+    AI_GRPC_FALLBACK_TOTAL.labels(reason=reason or "unknown").inc()
+
+
+def record_ai_shadow_mismatch(kind: str) -> None:
+    AI_SHADOW_MISMATCH_TOTAL.labels(kind=kind or "unknown").inc()

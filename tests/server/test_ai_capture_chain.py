@@ -31,19 +31,6 @@ async def test_handle_ai_move_completes_six_jump_chain():
 
     chain = [(39, 27), (27, 13), (13, 25), (25, 27), (27, 15), (15, 29)]
     calls = []
-
-    def scripted_move(
-        board,
-        color,
-        depth,
-        batyr_caps=None,
-        pending=None,
-        position_history=None,
-    ):
-        move = chain[len(calls)]
-        calls.append(move)
-        return move
-
     game = {
         "board": _board_before_white_capture_chain(),
         "mover": "белый",
@@ -53,12 +40,31 @@ async def test_handle_ai_move_completes_six_jump_chain():
     room = {"type": "ai"}
 
     with (
-        patch("backend.session.ai.asyncio.sleep", new_callable=AsyncMock),
-        patch("backend.session.ai.get_ai_move", scripted_move),
+        patch("backend.session.ai.compute_ai_turn_async", new_callable=AsyncMock) as turn_mock,
         patch("backend.session.ai.set_game", new_callable=AsyncMock),
         patch("backend.session.ai.manager.broadcast_move", new_callable=AsyncMock),
         patch("backend.session.ai.apply_move_result", new_callable=AsyncMock) as apply_mock,
     ):
+        from backend.ai_client import AiTurnOutcome
+
+        async def _fake_turn(game, ai_color):
+            move = chain[len(calls)]
+            calls.append(move)
+            from_cell, to_cell = move
+            board = dict(game["board"])
+            result = logic.handle_event(
+                GameEvent(
+                    positions=board,
+                    mover_color=ai_color,
+                    from_pos=from_cell,
+                    to_pos=to_cell,
+                    position_for_mandatory_capture=game.get("pending_mandatory_position"),
+                ),
+                position_history=game.setdefault("position_history", {}),
+            )
+            return AiTurnOutcome(result=result, from_pos=from_cell, to_pos=to_cell, engine="python")
+
+        turn_mock.side_effect = _fake_turn
         async def _apply(room_id, g, result, prev_mover, from_cell, to_cell):
             if result.updated_positions:
                 g["board"] = result.updated_positions

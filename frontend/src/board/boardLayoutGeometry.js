@@ -145,6 +145,13 @@ export function compareBoardSnapshots(a, b, opts = {}) {
     diffs.push(`board: ${JSON.stringify(a.board)} vs ${JSON.stringify(b.board)}`);
   }
 
+  // DOM .board-content and canvas use different box models on desktop lite toggle.
+  if (a.mode.isCanvas !== b.mode.isCanvas) {
+    check('gapBelowTopBar', a.gapBelowTopBar, b.gapBelowTopBar);
+    check('gapAboveBottomBar', a.gapAboveBottomBar, b.gapAboveBottomBar);
+    return { ok: diffs.length === 0, diffs };
+  }
+
   const aGrid = a.canvas ?? a.content;
   const bGrid = b.canvas ?? b.content;
   if (!rectsMatch(aGrid, bGrid, tolerancePx)) {

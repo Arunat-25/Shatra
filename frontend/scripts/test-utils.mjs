@@ -32,6 +32,12 @@ function formatGameOverMessage(winner, reason) {
   if (reason === 'draw_agreed') {
     return 'Ничья по согласию';
   }
+  if (reason === 'draw_repetition' || reason === 'draw.repetition') {
+    return 'Ничья (троекратное повторение позиции)';
+  }
+  if (reason === 'draw_two_biys' || reason === 'draw.two_biys') {
+    return 'Ничья (два бия на доске)';
+  }
   if (reason === 'cancelled') {
     return winner || 'Игра отменена.';
   }

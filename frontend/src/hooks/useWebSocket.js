@@ -68,7 +68,8 @@ export default function useWebSocket(roomId, onMessage, onError, onStatus) {
         data = adaptV2ServerMessage(data, { board: boardRef.current });
         if (data._v2Resync) {
           onMessageRef.current?.(data._v2Resync);
-          const { _v2Resync, ...errorShape } = data;
+          const errorShape = { ...data };
+          delete errorShape._v2Resync;
           data = errorShape;
         }
       }

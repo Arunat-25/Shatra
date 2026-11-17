@@ -40,7 +40,8 @@ def opposite_color(color: str) -> str:
 def _resolve_game_end_reason(result) -> str | None:
     """Map engine end state to a stable reason code for archive and metrics."""
     if result.draw_reason:
-        return result.draw_reason
+        reason = str(result.draw_reason)
+        return reason.replace(".", "_")
     if result.game_over and result.winner_color:
         return "biy_wins"
     return None

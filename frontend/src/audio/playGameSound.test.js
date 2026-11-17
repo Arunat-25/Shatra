@@ -62,8 +62,34 @@ describe('playGameSound', () => {
         payload: {
           from_pos: 11,
           to_pos: 19,
-          movers_color: 'белый',
+          movers_color: 'черный',
           mover: 'белый',
+        },
+      },
+      { myColor: 'белый', pendingMove: { from: 11, to: 19, ply: 1 } },
+      () => 'белый',
+    );
+    expect(sounds.playMove).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not replay when movers_color is next player but cells match pending', () => {
+    playForAction(
+      {
+        type: GAME_ACTIONS.OPTIMISTIC_MOVE,
+        payload: { result: { capturedPositions: [] }, from: 11, to: 19, ply: 1 },
+      },
+      { myColor: 'белый' },
+      () => 'белый',
+    );
+    expect(sounds.playMove).toHaveBeenCalledTimes(1);
+
+    playForAction(
+      {
+        type: GAME_ACTIONS.MOVE_MADE,
+        payload: {
+          from_pos: 11,
+          to_pos: 19,
+          movers_color: 'черный',
         },
       },
       { myColor: 'белый', pendingMove: { from: 11, to: 19, ply: 1 } },
@@ -102,6 +128,34 @@ describe('playGameSound', () => {
     );
     expect(sounds.playMove).not.toHaveBeenCalled();
     expect(sounds.playCapture).not.toHaveBeenCalled();
+  });
+
+  it('plays win on optimistic game-ending move without replay on GAME_OVER', () => {
+    playForAction(
+      {
+        type: GAME_ACTIONS.OPTIMISTIC_MOVE,
+        payload: {
+          result: { gameOver: true, winnerColor: 'белый', capturedPositions: [19] },
+          from: 11,
+          to: 19,
+          ply: 1,
+        },
+      },
+      { myColor: 'белый' },
+      () => 'белый',
+    );
+    expect(sounds.playWin).toHaveBeenCalledTimes(1);
+    expect(sounds.playCapture).not.toHaveBeenCalled();
+
+    playForAction(
+      {
+        type: GAME_ACTIONS.GAME_OVER,
+        payload: { from_pos: 11, to_pos: 19, winner_color: 'белый', game_over: true },
+      },
+      { myColor: 'белый', pendingMove: { from: 11, to: 19, ply: 1, endsGame: true } },
+      () => 'белый',
+    );
+    expect(sounds.playWin).toHaveBeenCalledTimes(1);
   });
 
   it('plays win when winner matches my color', () => {

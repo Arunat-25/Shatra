@@ -7,6 +7,7 @@ import {
   makeBoardMove,
   startAiGame,
   waitForGameBoard,
+  visibleGameOverBars,
 } from './helpers.js';
 
 test('PvP rematch starts new game when both players ready', async ({ browser }) => {
@@ -19,10 +20,10 @@ test('PvP rematch starts new game when both players ready', async ({ browser }) 
   await startPvpGame(hostPage, guestPage, { requireChat: true });
   await endPvpGameByResign(hostPage);
   await expect.poll(async () => (
-    await hostPage.locator('.game-actions-bar--game-over').count()
+    await visibleGameOverBars(hostPage).count()
   ), { timeout: 30_000 }).toBeGreaterThan(0);
   await expect.poll(async () => (
-    await guestPage.locator('.game-actions-bar--game-over').count()
+    await visibleGameOverBars(guestPage).count()
   ), { timeout: 30_000 }).toBeGreaterThan(0);
 
   await clickRematch(hostPage);
