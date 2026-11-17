@@ -8,6 +8,7 @@ function makeDeps() {
   const consumed = [];
   const myColorRef = { current: null };
   const deps = {
+    enabled: true,
     myColorRef,
     state: { board: {} },
     dispatch: (action) => dispatched.push(action),
