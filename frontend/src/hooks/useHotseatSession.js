@@ -10,6 +10,7 @@ import { createHotseatReferee } from '../game/hotseatReferee';
  * Все «серверные» сообщения генерирует локальный рефери (hotseatReferee).
  */
 export default function useHotseatSession({
+  enabled = false,
   myColorRef,
   state,
   dispatch,
@@ -48,18 +49,21 @@ export default function useHotseatSession({
   );
 
   useEffect(() => {
+    if (!enabled) return undefined;
     consume(refereeRef.current.start());
+    return undefined;
     // Партия стартует один раз при входе в режим хотсита.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [enabled]);
 
   const send = useCallback(
     (payload) => {
+      if (!enabled) return false;
       const messages = refereeRef.current.handleSend(payload);
       for (const message of messages) consume(message);
       return true;
     },
-    [consume],
+    [enabled, consume],
   );
 
   return { send, wsReconnecting, stateRef, setBoardRef };

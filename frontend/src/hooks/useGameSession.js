@@ -7,6 +7,6 @@ import useHotseatSession from './useHotseatSession';
  */
 export default function useGameSession(modeHotseat, roomId, modeAi, deps) {
   const online = useGameWebSocket(roomId, modeAi, { ...deps, enabled: !modeHotseat });
-  const local = useHotseatSession(deps);
+  const local = useHotseatSession({ ...deps, enabled: modeHotseat });
   return modeHotseat ? local : online;
 }

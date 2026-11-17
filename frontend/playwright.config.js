@@ -15,6 +15,9 @@ export default defineConfig({
     trace: 'on-first-retry',
     headless: true,
     viewport: { width: 1400, height: 900 },
+    // Локально на ubuntu 26.04 у Playwright нет сборки chromium —
+    // запускается системный Chrome: PLAYWRIGHT_CHANNEL=chrome npx playwright test
+    ...(process.env.PLAYWRIGHT_CHANNEL ? { channel: process.env.PLAYWRIGHT_CHANNEL } : {}),
   },
   projects: [{ name: 'chromium', use: { browserName: 'chromium' } }],
 });
