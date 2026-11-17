@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 import tests.test_env  # noqa: F401
 
 from main import app
+from tests.helpers.finished_games import insert_finished_game  # noqa: F401 — re-export для тестов
 from tests.test_env import SYNC_DB_URL
 
 VALID_PASSWORD = "secret12"
