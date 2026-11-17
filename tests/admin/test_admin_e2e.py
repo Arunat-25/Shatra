@@ -149,7 +149,7 @@ class TestAdminGamesE2E:
 
         body = _admin_get(
             client,
-            f"/api/admin/stats/games?period=24h&room_type=ai",
+            "/api/admin/stats/games?period=24h&room_type=ai",
             admin_headers,
         )
         assert body["total"] == 2

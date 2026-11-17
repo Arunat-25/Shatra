@@ -4,6 +4,7 @@ import GameChat from '../GameChat';
 export default function GameMobilePanel({
   state,
   modeAi,
+  modeHotseat = false,
   wsReconnecting,
   message,
   messageType,
@@ -14,7 +15,7 @@ export default function GameMobilePanel({
 }) {
   const { t } = useTranslation();
 
-  if (modeAi) {
+  if (modeAi || modeHotseat) {
     return message ? (
       <div className="game-mobile-panel">
         <div className={`message message-${messageType}`}>{message}</div>

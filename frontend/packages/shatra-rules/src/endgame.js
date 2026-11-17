@@ -3,7 +3,7 @@ import { Board } from './board.js';
 export const DRAW_REPETITION = 'draw.repetition';
 export const DRAW_TWO_BIYS = 'draw.two_biys';
 
-function onlyTwoBiysLeft(board) {
+export function onlyTwoBiysLeft(board) {
   let biyCount = 0;
   let otherCount = 0;
   for (const pieceName of Object.values(board.cells)) {

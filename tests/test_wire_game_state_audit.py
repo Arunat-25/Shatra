@@ -148,7 +148,6 @@ def test_biy_pass_turn_clears_chain_and_batyr_on_wire():
     })
     game = new_server_game(board=board, mover="белый")
     prev = game["mover"]
-    board_before = dict(board)
     first = logic.handle_event(
         GameEvent(positions=board, mover_color="белый", from_pos=10, to_pos=19)
     )

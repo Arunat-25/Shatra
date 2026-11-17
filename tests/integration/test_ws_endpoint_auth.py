@@ -37,7 +37,8 @@ class TestWebsocketEndpointAuth:
             finish_game(client, ws, room_id, db_scalar_fn=db_scalar)
 
         assert_finished_game_for_player(
-            db_fetchone, room_id, user["client_id"], user_id=user["user_id"], is_anonymous=False
+            db_fetchone, room_id, user["client_id"], user_id=user["user_id"],
+            is_anonymous=False, room_data=room_data,
         )
 
     def test_endpoint_missing_token_preserves_rest_meta(self, client, auth_user_factory):
@@ -55,7 +56,8 @@ class TestWebsocketEndpointAuth:
             finish_game(client, ws, room_id, db_scalar_fn=db_scalar)
 
         assert_finished_game_for_player(
-            db_fetchone, room_id, user["client_id"], user_id=user["user_id"], is_anonymous=False
+            db_fetchone, room_id, user["client_id"], user_id=user["user_id"],
+            is_anonymous=False, room_data=room_data,
         )
 
     def test_endpoint_invalid_token_treated_as_anonymous_connect(self, client, auth_user_factory):
@@ -70,10 +72,12 @@ class TestWebsocketEndpointAuth:
             ws_path(room_id, user["client_id"], "garbage.token.here")
         ) as ws:
             wait_game_started(ws)
+            room_data = read_room_json(room_id)
             finish_game(client, ws, room_id, db_scalar_fn=db_scalar)
 
         assert_finished_game_for_player(
-            db_fetchone, room_id, user["client_id"], user_id=user["user_id"], is_anonymous=False
+            db_fetchone, room_id, user["client_id"], user_id=user["user_id"],
+            is_anonymous=False, room_data=room_data,
         )
 
     def test_endpoint_anonymous_connect_then_auth_reconnect(self, client, auth_user_factory):
@@ -91,8 +95,10 @@ class TestWebsocketEndpointAuth:
             ws_path(room_id, client_id, user["access_token"])
         ) as ws:
             wait_game_started(ws)
+            room_data = read_room_json(room_id)
             finish_game(client, ws, room_id, db_scalar_fn=db_scalar)
 
         assert_finished_game_for_player(
-            db_fetchone, room_id, client_id, user_id=user["user_id"], is_anonymous=False
+            db_fetchone, room_id, client_id, user_id=user["user_id"],
+            is_anonymous=False, room_data=room_data,
         )

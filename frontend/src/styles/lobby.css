@@ -277,6 +277,11 @@ body:has(.app-shell--lobby) #root {
   color: var(--gold);
 }
 
+.action-card--hotseat .action-card__icon {
+  background: var(--turquoise-dim);
+  color: var(--turquoise);
+}
+
 .action-card__body {
   flex: 1;
   min-width: 0;

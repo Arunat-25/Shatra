@@ -151,6 +151,16 @@ async def _compute_grpc_turn(game: dict, ai_color: str) -> AiTurnOutcome | None:
     started = time.perf_counter()
     try:
         resp = await stub.ComputeAiTurn(req, timeout=timeout)
+    except asyncio.CancelledError:
+        # grpc.aio surfaces some RPC failures as CancelledError (BaseException),
+        # which bypasses the AioRpcError fallback below and kills the whole WS
+        # handler. Genuine task cancellation (shutdown) must still propagate.
+        task = asyncio.current_task()
+        if task is not None and task.cancelling() > 0:
+            raise
+        logger.warning("AI gRPC call cancelled by grpc internals, falling back to python")
+        record_ai_grpc_fallback("cancelled")
+        return await _compute_python_turn(game, ai_color, fallback=True)
     except grpc.aio.AioRpcError as exc:
         code = exc.code()
         if code == grpc.StatusCode.NOT_FOUND:

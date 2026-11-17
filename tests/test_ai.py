@@ -1,4 +1,4 @@
-from backend.ai import SearchState, _is_cell_capturable, _move_exposes_biy, get_best_move
+from backend.ai import SearchState, _move_exposes_biy, get_best_move
 from backend.board_utils import get_starting_board
 from game_engine.board import Board
 from game_engine.endgame import is_game_over

@@ -13,7 +13,6 @@ from tests.db.conftest import db_scalar
 from tests.integration.helpers import (
     auth_headers,
     create_room,
-    finish_game,
     flush_redis,
     new_client_id,
     wait_game_started,

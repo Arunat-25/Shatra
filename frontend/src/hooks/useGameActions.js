@@ -19,6 +19,7 @@ export default function useGameActions({
   send,
   showMessage,
   modeAi,
+  modeHotseat = false,
   navigate,
   dispatch,
   stateRef,
@@ -94,7 +95,7 @@ export default function useGameActions({
 
   const cancelGame = useCallback(() => {
     const s = stateRef.current;
-    if (s.gameOver || modeAi) return;
+    if (s.gameOver || modeAi || modeHotseat) return;
     if (s.movesHistory.some((m) => m.mover === s.myColor)) return;
     dispatch({
       type: GAME_ACTIONS.GAME_CANCELLED,
@@ -107,6 +108,11 @@ export default function useGameActions({
 
   const playAgain = useCallback(async () => {
     try {
+      if (modeHotseat) {
+        // Реванш в хотсите — локальный перезапуск партии рефери.
+        send(buildRequestRematchPayload());
+        return;
+      }
       if (modeAi) {
         const data = await createRoom(ROOM_AI, null, null, 'random');
         navigate(`/${data.room_id}?mode=ai`, { replace: true });
@@ -121,7 +127,7 @@ export default function useGameActions({
     } catch (e) {
       showMessage(e?.message || t('game.createNewFailed'), MSG_ERROR);
     }
-  }, [modeAi, navigate, showMessage, stateRef, t]);
+  }, [modeAi, modeHotseat, navigate, showMessage, send, stateRef, t]);
 
   const sendChat = useCallback((text) => {
     send(buildChatPayload(text));
@@ -133,7 +139,7 @@ export default function useGameActions({
 
   const requestRematch = useCallback(() => {
     const s = stateRef.current;
-    if (!s.gameOver || modeAi || s.rematchReady || s.rematchUnavailable) return;
+    if (!s.gameOver || (modeAi && !modeHotseat) || s.rematchReady || s.rematchUnavailable) return;
     const ok = send(buildRequestRematchPayload());
     if (!ok) {
       showMessage(t('game.connectionLost'), MSG_WARNING);
@@ -148,6 +154,7 @@ export default function useGameActions({
   const drawPending = state.drawOfferFrom != null && state.drawOfferFrom === state.myColor;
   const drawIncoming = state.drawOfferFrom != null && state.drawOfferFrom !== state.myColor;
   const canCancelGame = !modeAi
+    && !modeHotseat
     && !state.gameOver
     && !!state.myColor
     && !drawIncoming

@@ -9,7 +9,7 @@ import {
 } from '../wsReconnect';
 import { adaptV2ServerMessage, isV2ServerMessage } from '../ws/v2/adapter';
 
-export default function useWebSocket(roomId, onMessage, onError, onStatus) {
+export default function useWebSocket(roomId, onMessage, onError, onStatus, { enabled = true } = {}) {
   const wsRef = useRef(null);
   const intentionalCloseRef = useRef(false);
   const reconnectTimerRef = useRef(null);
@@ -48,7 +48,7 @@ export default function useWebSocket(roomId, onMessage, onError, onStatus) {
   }, []);
 
   const connect = useCallback(() => {
-    if (!roomId) {
+    if (!roomId || !enabled) {
       return;
     }
 
@@ -132,7 +132,7 @@ export default function useWebSocket(roomId, onMessage, onError, onStatus) {
     ws.onerror = () => {
       // Ошибка будет обработана в onclose.
     };
-  }, [clearReconnectTimer, flushOutboundQueue, roomId]);
+  }, [clearReconnectTimer, flushOutboundQueue, roomId, enabled]);
 
   useEffect(() => {
     connectRef.current = connect;
@@ -149,6 +149,7 @@ export default function useWebSocket(roomId, onMessage, onError, onStatus) {
   }, [connect, clearReconnectTimer]);
 
   const send = useCallback((data) => {
+    if (!enabled) return false;
     const payload = JSON.stringify(data);
     const ws = wsRef.current;
     if (ws?.readyState === WebSocket.OPEN) {
@@ -160,7 +161,7 @@ export default function useWebSocket(roomId, onMessage, onError, onStatus) {
       return true;
     }
     return false;
-  }, []);
+  }, [enabled]);
 
   const retryConnect = useCallback(() => {
     clearReconnectTimer();

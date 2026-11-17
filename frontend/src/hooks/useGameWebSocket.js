@@ -21,6 +21,7 @@ export default function useGameWebSocket(roomId, modeAi, {
   handleServerMessage,
   showMessage,
   navigate,
+  enabled = true,
 }) {
   const { t } = useTranslation();
   const [wsReconnecting, setWsReconnecting] = useState(false);
@@ -40,10 +41,11 @@ export default function useGameWebSocket(roomId, modeAi, {
   const sendRef = useRef(() => false);
 
   useEffect(() => {
+    if (!enabled) return;
     myColorRef.current = null;
     dispatch({ type: GAME_ACTIONS.RESET_GAME });
     joinedRef.current = false;
-  }, [roomId, modeAi, dispatch]);
+  }, [roomId, modeAi, enabled, dispatch, myColorRef]);
 
   const handleWsMessage = useCallback((data) => {
     if (data.your_color) {
@@ -125,6 +127,7 @@ export default function useGameWebSocket(roomId, modeAi, {
     handleWsMessage,
     handleWsError,
     handleWsStatus,
+    { enabled },
   );
 
   useEffect(() => {

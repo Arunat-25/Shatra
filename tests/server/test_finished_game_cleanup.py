@@ -9,7 +9,7 @@ import pytest
 
 import backend.state as state
 from backend.session.disconnect import _handle_disconnect, _remove_room_from_redis
-from backend.state import drop_room_lock, get_room_lock
+from backend.state import get_room_lock
 from backend.ws_manager import ConnectionManager, _delete_room_after_grace, manager
 from tests.server.disconnect_helpers import ai_room, game_state, patch_disconnect_io, pvp_room
 

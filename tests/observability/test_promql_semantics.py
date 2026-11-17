@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 
 from tests.observability.prometheus_helpers import parse_counter, promql_increase_flat_counter
 

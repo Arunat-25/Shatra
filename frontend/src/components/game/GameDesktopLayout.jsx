@@ -7,6 +7,7 @@ import OpponentDisconnectStatus from './OpponentDisconnectStatus';
 export default function GameDesktopLayout({
   state,
   modeAi,
+  modeHotseat = false,
   wsReconnecting,
   message,
   messageType,
@@ -54,7 +55,7 @@ export default function GameDesktopLayout({
         </div>
       </div>
 
-      {!modeAi && (
+      {!modeAi && !modeHotseat && (
         <aside className="room-left" aria-label={t('game.chatAria')}>
           <GameChat
             messages={state.chatMessages}

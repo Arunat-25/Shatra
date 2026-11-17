@@ -2,7 +2,7 @@
 
 import time
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, patch
 
 from backend.models import Room
 from backend.timers import handle_timeout, disconnect_timer, _opposite_color

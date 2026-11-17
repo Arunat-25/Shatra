@@ -1,6 +1,5 @@
 """Валидация Pydantic-схем аутентификации."""
 
-import uuid
 
 import pytest
 from pydantic import ValidationError

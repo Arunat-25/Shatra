@@ -2,7 +2,7 @@
 from unittest.mock import patch
 
 from backend.ai_weights import EvalWeights
-from scripts.ai_selfplay_common import MAX_PLIES_DEFAULT, GameResult, play_game
+from scripts.ai_selfplay_common import MAX_PLIES_DEFAULT, play_game
 
 
 def test_max_plies_declares_draw():

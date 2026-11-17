@@ -1,6 +1,5 @@
 """Тесты базового класса Piece"""
 
-from game_engine.pieces.base import Piece
 from game_engine.pieces.shatra import Shatra
 from game_engine.pieces.biy import Biy
 from game_engine.pieces.batyr import Batyr

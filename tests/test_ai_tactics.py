@@ -1,5 +1,5 @@
 """Tactical move selection: sacrifices, side files, fortress deploy, depth."""
-from backend.ai import SearchState, _is_deprioritized_move, _move_sort_key
+from backend.ai import SearchState, _move_sort_key
 from backend.ai_trained import get_best_move as strong_move
 from backend.board_utils import get_starting_board
 from game_engine.game_logic import logic

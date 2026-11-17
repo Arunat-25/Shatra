@@ -26,8 +26,31 @@ def client():
         yield test_client
 
 
+def _clear_ws_runtime_state():
+    """Останавливает утечки in-memory состояния между тестами.
+
+    Задачи grace-удаления комнат и game-тикеры переживают свой тест и
+    срабатывают во время следующего (delete_room посреди чужой партии →
+    CancelledError в WS-тестах). Реестры живут в процессе, поэтому Redis/БД
+    чистки недостаточно.
+    """
+    from backend.state import disconnect_timers, game_timers
+    from backend.ws_manager import manager
+
+    for timers in (disconnect_timers, game_timers):
+        for task in list(timers.values()):
+            try:
+                task.cancel()
+            except Exception:
+                pass
+        timers.clear()
+    manager.connections.clear()
+    manager._proto.clear()
+
+
 @pytest.fixture(autouse=True)
 def clean_db_and_redis():
+    _clear_ws_runtime_state()
     flush_redis()
     conn = psycopg2.connect(SYNC_DB_URL)
     conn.autocommit = True
@@ -37,6 +60,7 @@ def clean_db_and_redis():
         )
     conn.close()
     yield
+    _clear_ws_runtime_state()
     flush_redis()
 
 

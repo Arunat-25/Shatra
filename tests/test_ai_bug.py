@@ -2,8 +2,7 @@
 
 from game_engine.game_logic import logic
 from game_engine.models import GameEvent
-from backend.ai import _count_pieces, get_best_move
-from game_engine.board import Board
+from backend.ai import get_best_move
 
 def create_board_after_moves(moves):
     """Создает доску после последовательности ходов."""
@@ -91,14 +90,14 @@ if __name__ == "__main__":
     print("=== ВОСПРОИЗВЕДЕНИЕ ПРОБЛЕМЫ С AI ===")
     board, current_mover = create_board_after_moves(problematic_moves)
 
-    print(f"\n=== СОСТОЯНИЕ ПЕРЕД ХОДОМ AI ===")
+    print("\n=== СОСТОЯНИЕ ПЕРЕД ХОДОМ AI ===")
     print(f"Ходит: {current_mover}")
     print("Доска:")
     for i in range(1, 63):
         if board.get(i):
             print(f"  {i}: {board[i]}")
 
-    print(f"\n=== ХОД AI ===")
+    print("\n=== ХОД AI ===")
     if current_mover == "черный":
         # AI (черный) должен сделать ход
         ai_move = get_best_move(board, "черный", depth=3)

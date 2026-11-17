@@ -19,7 +19,6 @@ from backend.rating.antifraud import (
 from tests.rating.antifraud_helpers import (
     insert_prior_rated_win,
     play_draw,
-    play_rated_game,
     play_win,
     set_user_block,
     set_user_games,
@@ -412,9 +411,9 @@ class TestCombinedRules:
             )
 
         w = await _get_user(winner)
-        l = await _get_user(loser)
+        loser_user = await _get_user(loser)
         assert w.rated_games_count == 50 + PAIR_WIN_GAIN_LIMIT + 1
-        assert l.rated_games_count == 50 + PAIR_WIN_GAIN_LIMIT + 1
+        assert loser_user.rated_games_count == 50 + PAIR_WIN_GAIN_LIMIT + 1
 
 
 @pytest.mark.asyncio

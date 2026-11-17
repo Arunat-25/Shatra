@@ -5,10 +5,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pytest
 
-from game_engine.game_logic import logic
-from game_engine.models import GameEvent
 from game_engine.moves import process_move
 from tests.helpers.engine_boards import hint_at
 

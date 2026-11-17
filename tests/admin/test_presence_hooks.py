@@ -108,7 +108,7 @@ class TestPresenceHooks:
         with (
             patch("backend.ws_manager.get_room", side_effect=get_room),
             patch("backend.ws_manager.set_room", AsyncMock()),
-            patch("backend.ws_manager.start_session", new_callable=AsyncMock) as start_mock,
+            patch("backend.ws_manager.start_session", new_callable=AsyncMock),
             patch("backend.ws_manager.end_session", new_callable=AsyncMock) as end_mock,
         ):
             await manager.disconnect(room_id, ws)

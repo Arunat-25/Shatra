@@ -1,7 +1,6 @@
 """Mandatory capture rules: biy vs shatra/batyr attackers."""
 
 from game_engine.board import Board
-from game_engine.hints import get_hints
 from game_engine.validation import get_all_mandatory_captures, validate_move_with_code
 
 from tests.helpers.engine_boards import empty_board, hint_at

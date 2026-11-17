@@ -1,11 +1,10 @@
 """game_ticker: computed display times and timeout detection."""
 
 import time
-import asyncio
 import pytest
 from unittest.mock import AsyncMock, patch
 
-from backend.timers import game_ticker, stop_game_timer, game_timers
+from backend.timers import game_ticker, stop_game_timer
 
 
 @pytest.mark.asyncio

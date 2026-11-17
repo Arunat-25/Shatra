@@ -9,7 +9,6 @@ from backend.board_utils import get_starting_board
 from backend.game_helpers import bump_ply, persist_pending_mandatory_position, update_captures
 from backend.session.v2.protocol import build_move_event_from_game, build_move_delta, build_snapshot
 from game_engine.game_logic import logic
-from game_engine.models import GameEvent
 
 
 def new_server_game(*, board: dict | None = None, mover: str = "белый") -> dict:

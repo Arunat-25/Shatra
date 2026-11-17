@@ -89,10 +89,10 @@ if __name__ == "__main__":
         print(f"  захваты: {result.captured_positions}")
         print(f"  фигур: {_count_pieces(game['board'])}")
 
-    print(f"\n=== ИТОГ ===")
+    print("\n=== ИТОГ ===")
     print(f"Ходит: {game['mover']}")
     print(f"pending: {game.get('pending_mandatory_position')}")
-    print(f"Состояние доски:")
+    print("Состояние доски:")
     for i in range(1, 63):
         if game['board'].get(i):
             print(f"  {i}: {game['board'][i]}")

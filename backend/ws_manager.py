@@ -242,6 +242,10 @@ class ConnectionManager:
                 )
                 logger.info("Room %s scheduled for deletion (no players left)", room_id)
             elif room_data and room_data.get("type") == "ai":
+                # AI-комната живёт в памяти, но тикать в никуда незачем:
+                # тикер перезапустится при следующем join (_start_ai_game).
+                from backend.timers import stop_game_timer
+                stop_game_timer(room_id)
                 logger.info("AI room %s: no connections left, keeping data", room_id)
         elif room_data:
             await set_room(room_id, room_data)

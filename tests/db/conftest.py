@@ -1,6 +1,5 @@
 """Fixtures for cross-table PostgreSQL persistence tests."""
 
-import uuid
 
 import psycopg2
 import pytest

@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import useGameReducer, { GAME_ACTIONS } from './hooks/useGameReducer';
 import { buildMoveHistoryProps } from './game/moveHistoryProps';
 import { hasOutstandingPending } from './game/syncLayer';
-import useGameWebSocket from './hooks/useGameWebSocket';
+import useGameSession from './hooks/useGameSession';
 import useGameActions from './hooks/useGameActions';
 import useMessage from './hooks/useMessage';
 import useEscapeKey from './hooks/useEscapeKey';
@@ -29,6 +29,7 @@ export default function Game() {
   const { roomId } = useParams();
   const [searchParams] = useSearchParams();
   const modeAi = searchParams.get('mode') === 'ai';
+  const modeHotseat = searchParams.get('mode') === 'hotseat';
   const myColorRef = useRef(null);
   const isCompactGame = useMediaQuery(COMPACT_GAME_QUERY);
 
@@ -38,7 +39,8 @@ export default function Game() {
   );
   const { message, messageType, showMessage } = useMessage();
 
-  const { send, wsReconnecting, stateRef, setBoardRef } = useGameWebSocket(
+  const { send, wsReconnecting, stateRef, setBoardRef } = useGameSession(
+    modeHotseat,
     roomId,
     modeAi,
     { myColorRef, state, dispatch, handleServerMessage, showMessage, navigate },
@@ -52,6 +54,7 @@ export default function Game() {
     send,
     showMessage,
     modeAi,
+    modeHotseat,
     navigate,
     dispatch,
     stateRef,
@@ -147,7 +150,7 @@ export default function Game() {
     return state.playersInfo?.find((p) => p.client_id !== myId) ?? null;
   })();
 
-  if (state.waiting) {
+  if (state.waiting && !modeHotseat) {
     return (
       <WaitingScreen
         roomId={roomId}
@@ -172,7 +175,7 @@ export default function Game() {
   const { top: boardTop, bottom: boardBottom } = getBoardSideOrder(state.myColor);
   const moveHistoryProps = buildMoveHistoryProps(state, dispatch);
 
-  const actionsBarProps = { state, modeAi, resultText, actions };
+  const actionsBarProps = { state, modeAi, modeHotseat, resultText, actions };
   const viewportActions = <GameActionsBar slot="viewport" {...actionsBarProps} />;
   const sidebarActions = isCompactGame ? null : (
     <GameActionsBar slot="sidebar" {...actionsBarProps} />
@@ -189,12 +192,13 @@ export default function Game() {
           onCellClick={handleCellClickWrapped}
           actionsBar={viewportActions}
           moveHistoryProps={moveHistoryProps}
-          showRating={!modeAi}
+          showRating={!modeAi && !modeHotseat}
         />
         {isCompactGame ? (
           <GameMobilePanel
             state={state}
             modeAi={modeAi}
+            modeHotseat={modeHotseat}
             wsReconnecting={wsReconnecting}
             message={message}
             messageType={messageType}
@@ -207,6 +211,7 @@ export default function Game() {
           <GameDesktopLayout
             state={state}
             modeAi={modeAi}
+            modeHotseat={modeHotseat}
             wsReconnecting={wsReconnecting}
             message={message}
             messageType={messageType}
@@ -216,7 +221,7 @@ export default function Game() {
             chatHidden={state.chatHidden}
             onToggleChatHidden={actions.toggleChatHidden}
             roomId={roomId}
-            showRating={!modeAi}
+            showRating={!modeAi && !modeHotseat}
           />
         )}
       </div>

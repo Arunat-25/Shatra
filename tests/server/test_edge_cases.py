@@ -9,7 +9,6 @@ from backend.board_utils import (
     change_position_name_from_frontend,
     keys_int_to_str,
     keys_str_to_int,
-    get_starting_board,
 )
 from backend.game_helpers import (
     assign_player_color,
@@ -24,7 +23,7 @@ from backend.game_helpers import (
     _norm_board_keys,
 )
 from game_engine.game_logic import logic
-from game_engine.message_codes import MOVE_NO_PIECE, MOVE_TARGET_OCCUPIED, MOVE_WRONG_COLOR, TURN_NOW
+from game_engine.message_codes import MOVE_NO_PIECE, MOVE_WRONG_COLOR, TURN_NOW
 from game_engine.models import GameEvent, GameEventResult
 
 

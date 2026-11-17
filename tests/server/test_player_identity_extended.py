@@ -8,7 +8,6 @@ import pytest
 
 from backend.game_helpers import build_game_started_response
 from backend.models import CreateRoomRequest
-from backend.player_identity import build_players_info
 from backend.room_manager import create_room, list_rooms
 from backend.ws_manager import ConnectionManager
 

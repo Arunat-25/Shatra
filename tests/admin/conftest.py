@@ -1,7 +1,7 @@
 """Fixtures for admin API tests."""
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 
 import psycopg2
 import pytest
@@ -72,7 +72,6 @@ def admin_headers(admin_user):
     return {"Authorization": f"Bearer {admin_user['access_token']}"}
 
 
-from tests.helpers.finished_games import insert_finished_game
 
 
 def backdate_finished_game(room_id: str, finished_at: datetime) -> None:

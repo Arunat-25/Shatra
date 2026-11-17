@@ -1,6 +1,5 @@
 """Назначение цветов при создании комнаты и подключении по WS."""
 
-import pytest
 
 from backend.game_helpers import (
     assign_player_color,

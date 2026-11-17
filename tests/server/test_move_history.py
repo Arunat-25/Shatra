@@ -4,7 +4,6 @@ import pytest
 from unittest.mock import AsyncMock, patch
 
 from backend.game_helpers import apply_move_result, save_move_to_history
-from backend.board_utils import keys_int_to_str
 from game_engine.message_codes import MOVE_WRONG_COLOR, TURN_NOW
 from game_engine.models import GameEventResult
 

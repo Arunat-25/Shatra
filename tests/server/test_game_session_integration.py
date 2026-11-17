@@ -3,7 +3,7 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from backend.board_utils import get_starting_board, keys_int_to_str
+from backend.board_utils import keys_int_to_str
 from backend.session import process_client_message, _handle_disconnect
 from backend.session.ai import _start_ai_game
 from backend.ws_manager import handle_player2_join, _delete_room_after_grace, manager
@@ -395,7 +395,6 @@ class TestGraceRoomDeletion:
         dr.assert_called_once()
 
     async def test_skips_deletion_if_someone_reconnected(self):
-        room = {"room_id": "g2", "game_started": False, "type": "public"}
         manager.connections["g2"] = {"c": AsyncMock()}
 
         with patch("backend.ws_manager.asyncio.sleep", new_callable=AsyncMock):

@@ -3,7 +3,6 @@
 import pytest
 
 from tests.integration.helpers import (
-    auth_headers,
     create_room,
     flush_redis,
     new_client_id,

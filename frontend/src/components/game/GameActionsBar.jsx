@@ -7,6 +7,7 @@ export default function GameActionsBar({
   slot,
   state,
   modeAi,
+  modeHotseat = false,
   resultText,
   actions,
 }) {
@@ -51,7 +52,7 @@ export default function GameActionsBar({
           drawPending={actions.drawPending}
           drawIncoming={actions.drawIncoming}
           canCancelGame={actions.canCancelGame}
-          hideDraw={modeAi}
+          hideDraw={modeAi || modeHotseat}
         />
       )}
     </div>

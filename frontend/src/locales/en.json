@@ -194,6 +194,8 @@
     "createGameDesc": "Public room in the waiting hall",
     "playAi": "Play vs bot",
     "playAiDesc": "Practice against AI",
+    "hotseat": "Hotseat",
+    "hotseatDesc": "Take turns on one screen — works offline",
     "inviteFriend": "Invite a friend",
     "inviteFriendDesc": "Private link for your opponent",
     "waitingHall": "Waiting hall",

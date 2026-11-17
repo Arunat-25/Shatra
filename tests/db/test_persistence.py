@@ -1,8 +1,7 @@
 """Integration tests: data persisted to PostgreSQL tables (users, refresh_tokens, finished_games, presence_sessions)."""
 
 import uuid
-from datetime import datetime, timezone
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import pytest
 from sqlalchemy import func, select

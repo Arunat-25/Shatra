@@ -3,6 +3,7 @@
 import asyncio
 import logging
 
+import anyio
 from fastapi import WebSocket, WebSocketDisconnect
 
 from backend.state import get_game, get_room, set_room, game_timers
@@ -61,6 +62,11 @@ async def _wait_for_second_player_v2(
     except WebSocketDisconnect:
         await manager.disconnect(room_id, websocket)
         return None
+    except asyncio.CancelledError:
+        # See websocket_endpoint_v2: cancellation unwinds cleanly (shielded).
+        with anyio.CancelScope(shield=True):
+            await manager.disconnect(room_id, websocket)
+        return None
     except Exception:
         await manager.disconnect(room_id, websocket)
         return None
@@ -106,6 +112,13 @@ async def websocket_endpoint_v2(websocket: WebSocket, room_id: str):
     if is_ai_room:
         try:
             await _start_ai_game(room_id, websocket, room_data, my_color)
+        except asyncio.CancelledError:
+            # Cancellation mid-AI-move (socket teardown, shutdown) must not
+            # escape the handler task: unwind with the same bookkeeping.
+            # A reconnect recomputes the AI move (_start_ai_game on join).
+            with anyio.CancelScope(shield=True):
+                await manager.disconnect(room_id, websocket)
+            return
         except Exception:
             logger.exception("Failed to start AI game in room %s", room_id)
             await manager.disconnect(room_id, websocket)
@@ -168,3 +181,9 @@ async def websocket_endpoint_v2(websocket: WebSocket, room_id: str):
 
     except WebSocketDisconnect:
         await _handle_disconnect(room_id, websocket, is_ai_room)
+    except asyncio.CancelledError:
+        # Cancellation (TestClient portal teardown, uvicorn shutdown) must not
+        # surface from the handler task. Inside a cancelled scope every await
+        # re-delivers CancelledError, so the bookkeeping runs shielded.
+        with anyio.CancelScope(shield=True):
+            await _handle_disconnect(room_id, websocket, is_ai_room)

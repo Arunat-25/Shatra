@@ -5,7 +5,6 @@ from unittest.mock import patch
 
 import pytest
 
-from backend.board_utils import get_starting_board, keys_int_to_str
 from backend.game_archive import archive_finished_game
 from tests.db.conftest import db_scalar
 from tests.db.test_persistence import _finished_game, _room

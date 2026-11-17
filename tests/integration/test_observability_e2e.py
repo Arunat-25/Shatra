@@ -11,11 +11,11 @@ from fastapi.testclient import TestClient
 
 import tests.test_env  # noqa: F401
 
-from backend.board_utils import get_starting_board, keys_int_to_str
+from backend.board_utils import get_starting_board
 from backend.game_archive import on_game_finished
 from backend.models import CreateRoomRequest
 from backend.room_manager import create_room
-from backend.state import close_redis, get_game, get_room, init_redis, set_game, set_room
+from backend.state import close_redis, get_room, init_redis, set_game, set_room
 from backend.ws_manager import handle_player2_join, manager
 from main import app
 from tests.integration.helpers import new_client_id

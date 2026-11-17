@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 import jwt
 import pytest
 
-from backend.auth.jwt_utils import ALGORITHM, hash_refresh_token
+from backend.auth.jwt_utils import ALGORITHM
 from backend.auth.passwords import verify_password
 from backend.config import settings
 from tests.auth.conftest import SYNC_DB_URL, VALID_PASSWORD

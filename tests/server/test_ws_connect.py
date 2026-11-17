@@ -3,9 +3,9 @@ WebSocket connect: дубли вкладок, переполнение комн�
 """
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
-from backend.ws_manager import ConnectionManager, manager
+from backend.ws_manager import ConnectionManager
 
 
 def _room(players=None, **extra):
@@ -76,7 +76,6 @@ class TestConnectionManagerConnect:
     async def test_reconnect_after_disconnect_slot(self, cm, mock_ws):
         """Игрок уже в players, но WS пропал — новое соединение принимается."""
         room = _room({"player-a": "белый"})
-        opponent_ws = AsyncMock()
 
         with patch("backend.ws_manager.get_room", new_callable=AsyncMock, return_value=room):
             with patch("backend.ws_manager.set_room", new_callable=AsyncMock):
@@ -202,7 +201,6 @@ class TestConnectionManagerMetrics:
 @pytest.mark.asyncio
 class TestListRoomsEdgeCases:
     async def test_skips_private_ai_and_started_games(self):
-        import json
         from backend.room_manager import list_rooms
 
         payloads = {

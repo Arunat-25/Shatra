@@ -5,7 +5,6 @@ import pytest
 from tests.db.conftest import db_fetchone, db_scalar
 from tests.integration.helpers import (
     assert_finished_game_for_player,
-    assert_finished_game_row,
     auth_headers,
     create_room,
     finish_game,
@@ -31,11 +30,15 @@ class TestAiRoomIdentity:
             ws_path(room_id, user["client_id"], user["access_token"])
         ) as ws:
             wait_game_started(ws)
+            # Комната удаляется из Redis после финала и ухода последнего
+            # игрока — цвет фиксируем, пока соединение живо.
+            room_data = read_room_json(room_id)
             finish_game(client, ws, room_id, db_scalar_fn=db_scalar)
 
         assert db_scalar("SELECT COUNT(*) FROM finished_games WHERE room_id = %s", (room_id,)) >= 1
         assert_finished_game_for_player(
-            db_fetchone, room_id, user["client_id"], user_id=user["user_id"], is_anonymous=False
+            db_fetchone, room_id, user["client_id"], user_id=user["user_id"],
+            is_anonymous=False, room_data=room_data,
         )
 
     def test_authenticated_without_ws_token_regression(self, client, auth_user_factory):
@@ -61,7 +64,8 @@ class TestAiRoomIdentity:
             finish_game(client, ws, room_id, db_scalar_fn=db_scalar)
 
         assert_finished_game_for_player(
-            db_fetchone, room_id, user["client_id"], user_id=user["user_id"], is_anonymous=False
+            db_fetchone, room_id, user["client_id"], user_id=user["user_id"],
+            is_anonymous=False, room_data=room_after_connect,
         )
 
     def test_anonymous_player(self, client):
@@ -69,10 +73,12 @@ class TestAiRoomIdentity:
         room_id = create_room(client, room_type="ai", client_id=client_id)
         with client.websocket_connect(ws_path(room_id, client_id)) as ws:
             wait_game_started(ws)
+            room_data = read_room_json(room_id)
             finish_game(client, ws, room_id, db_scalar_fn=db_scalar)
 
         assert_finished_game_for_player(
-            db_fetchone, room_id, client_id, user_id=None, is_anonymous=True
+            db_fetchone, room_id, client_id, user_id=None, is_anonymous=True,
+            room_data=room_data,
         )
 
     def test_anonymous_create_ws_with_token(self, client, auth_user_factory):
@@ -83,10 +89,12 @@ class TestAiRoomIdentity:
             ws_path(room_id, client_id, user["access_token"])
         ) as ws:
             wait_game_started(ws)
+            room_data = read_room_json(room_id)
             finish_game(client, ws, room_id, db_scalar_fn=db_scalar)
 
         assert_finished_game_for_player(
-            db_fetchone, room_id, client_id, user_id=user["user_id"], is_anonymous=False
+            db_fetchone, room_id, client_id, user_id=user["user_id"],
+            is_anonymous=False, room_data=room_data,
         )
 
     def test_invalid_ws_token_preserves_rest_identity(self, client, auth_user_factory):
@@ -106,7 +114,8 @@ class TestAiRoomIdentity:
             finish_game(client, ws, room_id, db_scalar_fn=db_scalar)
 
         assert_finished_game_for_player(
-            db_fetchone, room_id, user["client_id"], user_id=user["user_id"], is_anonymous=False
+            db_fetchone, room_id, user["client_id"], user_id=user["user_id"],
+            is_anonymous=False, room_data=room_data,
         )
 
 
@@ -134,7 +143,8 @@ class TestReconnectIdentity:
             finish_game(client, ws, room_id, db_scalar_fn=db_scalar)
 
         assert_finished_game_for_player(
-            db_fetchone, room_id, user["client_id"], user_id=user["user_id"], is_anonymous=False
+            db_fetchone, room_id, user["client_id"], user_id=user["user_id"],
+            is_anonymous=False, room_data=room_data,
         )
 
     def test_reconnect_with_token_late_login(self, client, auth_user_factory):
@@ -157,7 +167,8 @@ class TestReconnectIdentity:
             finish_game(client, ws, room_id, db_scalar_fn=db_scalar)
 
         assert_finished_game_for_player(
-            db_fetchone, room_id, client_id, user_id=user["user_id"], is_anonymous=False
+            db_fetchone, room_id, client_id, user_id=user["user_id"],
+            is_anonymous=False, room_data=room_data,
         )
 
 
@@ -178,7 +189,8 @@ class TestCreateRoomEdgeCases:
             finish_game(client, ws, room_id, db_scalar_fn=db_scalar)
 
         assert_finished_game_for_player(
-            db_fetchone, room_id, user["client_id"], user_id=user["user_id"], is_anonymous=False
+            db_fetchone, room_id, user["client_id"], user_id=user["user_id"],
+            is_anonymous=False, room_data=room_data,
         )
 
 

@@ -1,6 +1,5 @@
 """Тесты Pydantic-модели GameState."""
 
-import pytest
 
 from backend.game_state import GameState
 from backend.board_utils import get_starting_board
