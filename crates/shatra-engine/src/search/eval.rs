@@ -178,7 +178,7 @@ pub fn evaluate(cells: &Cells, ai_color: &str, test_move: Option<Move>, weights:
                 if distance(c, our_biy) > 2 {
                     continue;
                 }
-                let piece = match board.piece_at(c) {
+                let _piece = match board.piece_at(c) {
                     Some(p) => p,
                     None => continue,
                 };
@@ -380,7 +380,7 @@ fn evaluate_forced_trap(cells: &Cells, ai_color: &str, test_move: Move, weights:
             let our_caps = get_all_captures_for_color(&after_opp, ai_color, &[]);
             let mut chain_value = 0;
             let mut biy_threat = 0;
-            for &(c_fm, c_to, c_captured) in &our_caps {
+            for &(_c_fm, _c_to, c_captured) in &our_caps {
                 if c_captured.map(|c| {
                     after_opp
                         .get(&c)

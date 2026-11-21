@@ -47,7 +47,7 @@ impl Piece for Shatra {
     fn piece_type(&self) -> PieceType {
         PieceType::Shatra
     }
-    fn find_enemy_cell_for_capture(&self, cells: &Cells, from: i32, to: i32) -> Option<i32> {
+    fn find_enemy_cell_for_capture(&self, _cells: &Cells, from: i32, to: i32) -> Option<i32> {
         dicts()
             .shatra_biy_captures
             .get(&from)
@@ -139,7 +139,7 @@ impl Piece for Biy {
     fn piece_type(&self) -> PieceType {
         PieceType::Biy
     }
-    fn find_enemy_cell_for_capture(&self, cells: &Cells, from: i32, to: i32) -> Option<i32> {
+    fn find_enemy_cell_for_capture(&self, _cells: &Cells, from: i32, to: i32) -> Option<i32> {
         dicts()
             .shatra_biy_captures
             .get(&from)

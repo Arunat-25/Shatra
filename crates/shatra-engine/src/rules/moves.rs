@@ -56,7 +56,7 @@ fn execute_move(
     cells: &Cells,
     from: i32,
     to: i32,
-    color: &str,
+    _color: &str,
     batyr_caps: &[i32],
 ) -> (Cells, Vec<i32>, Vec<i32>) {
     let mut new_cells = clone_cells(cells);
@@ -290,7 +290,7 @@ pub fn process_move(
     }
 
     if has_captured && !can_continue {
-        let next = opponent(current_color);
+        let _next = opponent(current_color);
         end = is_game_over(&Board::new(new_cells.clone()), Some(position_history), moves_with_two_biys);
         record_position(position_history, &new_cells);
         return finish_move(

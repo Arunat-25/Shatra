@@ -1,7 +1,7 @@
 use crate::rules::board::Board;
 use crate::rules::dict::{dicts, Cells};
 use crate::rules::domain::PieceType;
-use crate::rules::pieces::{Batyr, Biy, Piece, Shatra};
+use crate::rules::pieces::Piece;
 
 pub struct ValidationResult {
     pub valid: bool,
@@ -16,7 +16,7 @@ pub struct HintsResult {
 
 pub fn get_all_mandatory_captures(board: &Board, color: &str, batyr_caps: &[i32]) -> Vec<(i32, i32)> {
     let mut mandatory = Vec::new();
-    for (pos, name) in board.all_pieces() {
+    for (pos, _name) in board.all_pieces() {
         let piece = match board.piece_at(pos) {
             Some(p) => p,
             None => continue,
@@ -211,7 +211,7 @@ pub fn batyr_can_continue_capture(board: &Board, from: i32, color: &str, caps: &
     false
 }
 
-fn all_candidates(cells: &Cells, color: &str, from: i32, pt: PieceType) -> Vec<i32> {
+fn all_candidates(_cells: &Cells, color: &str, from: i32, pt: PieceType) -> Vec<i32> {
     let mut candidates = Vec::new();
     let d = dicts();
     match pt {

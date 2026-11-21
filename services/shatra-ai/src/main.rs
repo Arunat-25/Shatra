@@ -5,7 +5,6 @@ mod worker;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
-use tokio::sync::mpsc;
 use tonic::transport::Server;
 use tracing::info;
 
@@ -72,4 +71,3 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 }
 
 // Re-export for grpc_impl
-pub(crate) use worker::ComputeJob;

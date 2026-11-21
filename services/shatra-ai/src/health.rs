@@ -1,5 +1,3 @@
-use std::convert::Infallible;
-use std::sync::Arc;
 
 use axum::response::IntoResponse;
 use axum::routing::get;
