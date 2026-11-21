@@ -45,16 +45,24 @@
 1. Зарегистрируйтесь на [render.com](https://render.com) (можно через GitHub).
 2. New → **Blueprint** → выберите репозиторий `Arunat-25/Shatra` —
    Blueprint возьмёт `render.yaml` из корня (веб-сервис Docker, план free).
-3. Заполните переменные, которые помечены `sync: false`:
+3. Заполните переменные, которые помечены `sync: false`. Blueprint **не создаёт
+   их автоматически** — их нужно ввести вручную в Render → Settings → Environment;
+   при запуске с отсутствующими значениями приложение теперь падает сразу с
+   понятной ошибкой в логах (fail-fast в `backend/config.py`):
 
    | Переменная | Значение |
    |---|---|
-   | `DATABASE_URL` | строка из шага 1 |
-   | `REDIS_URL` | строка из шага 2 |
+   | `DATABASE_URL` | строка из шага 1 (обязательно) |
+   | `REDIS_URL` | строка из шага 2 (обязательно) |
    | `CORS_ALLOW_ORIGINS` | `https://<имя-сервиса>.onrender.com` (после того как Render покажет URL) |
-   | `METRICS_TOKEN` / `SENTRY_DSN` / `VITE_SENTRY_DSN` | опционально |
+   | `METRICS_TOKEN` | обязательно в production; любая случайная строка, например `openssl rand -hex 16` |
+   | `SENTRY_DSN` / `VITE_SENTRY_DSN` | опционально |
 
    `JWT_SECRET` сгенерируется автоматически (`generateValue: true`).
+
+   > При редактировании таблицы Environment следите, чтобы каждая переменная
+   > встречалась **один раз**: дубли `DATABASE_URL`/`REDIS_URL` ведут к непредсказуемым
+   > значениям. Кнопка удаления в строке — иконка без текста (красная, справа).
 
 4. Нажмите **Apply** — соберётся Docker-образ (фронтенд собирается внутри,
    миграции БД применяются при старте контейнера автоматически).
@@ -78,6 +86,9 @@
 |---|---|---|
 | Первый вход «висит» ~1 мин | Сервис спит (free tier) | Норма; пробуждение на первом запросе |
 | `ssl must be enabled` в логах | Neon требует TLS | Проверьте `sslmode=require` в `DATABASE_URL` |
+| `OSError: Connect call failed ('127.0.0.1', 5432)` или `RuntimeError: DATABASE_URL must be set…` | `DATABASE_URL` не задан в Render: приложение упало на дефолтный localhost | Settings → Environment → Edit → добавить Neon-строку → Save, rebuild, and deploy |
+| `RuntimeError: METRICS_TOKEN must be set when APP_ENV=production` | Не задан `METRICS_TOKEN` | Добавить token (например, `openssl rand -hex 16`) и redeploy |
+| `RuntimeError: REDIS_URL must be set when APP_ENV=production` | Не задан `REDIS_URL` | Добавить Upstash-строку (`rediss://…`) и redeploy |
 | Ходы не доходят второму игроку | `CORS_ALLOW_ORIGINS` не совпадает с URL | Укажите точный адрес сервиса |
 | 502 после деплоя | Ошибка миграций | Логи Render → раздел `Events`; обычно проблема в `DATABASE_URL` |
 

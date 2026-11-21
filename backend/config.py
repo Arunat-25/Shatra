@@ -7,6 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 logger = logging.getLogger(__name__)
 
 _DEFAULT_JWT_SECRET = "change-me-in-production"
+_DEFAULT_DATABASE_URL = "postgresql+asyncpg://shatra:shatra@localhost:5432/shatra"
 
 
 class Settings(BaseSettings):
@@ -39,7 +40,7 @@ class Settings(BaseSettings):
     sentry_dsn: str = ""
     sentry_traces_sample_rate: float = 0.1
 
-    database_url: str = "postgresql+asyncpg://shatra:shatra@localhost:5432/shatra"
+    database_url: str = _DEFAULT_DATABASE_URL
 
     metrics_token: str = ""
 
@@ -78,6 +79,17 @@ def validate_production_settings(cfg: Settings) -> None:
     if not (cfg.metrics_token or "").strip():
         raise RuntimeError(
             "METRICS_TOKEN must be set when APP_ENV=production"
+        )
+
+    db_url = (cfg.database_url or "").strip()
+    if not db_url or db_url == _DEFAULT_DATABASE_URL or "localhost:5432" in db_url:
+        raise RuntimeError(
+            "DATABASE_URL must be set to a remote database when APP_ENV=production"
+        )
+
+    if not (cfg.redis_url or "").strip():
+        raise RuntimeError(
+            "REDIS_URL must be set when APP_ENV=production"
         )
 
     if cfg.cors_allow_origins.strip() == "*":

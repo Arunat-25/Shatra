@@ -19,3 +19,7 @@ Single-context: `GLOSSARY.md` в корне репозитория + `docs/adr/`
 ### Decisions & deploy
 
 Решения: `docs/adr/`. Бесплатный деплой: `docs/DEPLOY_RENDER.md`. Бэкенд-тесты локально: `./scripts/test-backend.sh`.
+
+### Browser automation
+
+Работа с дашбордами через браузер: `snapshot`/`find` + клики по ref, `evaluate` только для компактного чтения состояния. See `docs/agents/browser.md`.
