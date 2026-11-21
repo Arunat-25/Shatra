@@ -181,6 +181,8 @@ Grafana содержит дашборд **Shatra** — описание кажд
 
 - `game_engine/` — чистая логика правил (без I/O)
 - `backend/` — FastAPI, WebSocket, Redis, таймеры, AI
-- `frontend/` — React + Vite
+- `frontend/` — React + Vite (PWA: офлайн-хотсит, установка на домашний экран)
 
 Доменные типы фигур: `game_engine/domain.py`. Состояние игры в Redis: `backend/game_state.py`.
+
+Решения зафиксированы в `docs/adr/`. Глоссарий — `GLOSSARY.md`.
