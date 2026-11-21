@@ -15,3 +15,7 @@ GitHub Issues репозитория `Arunat-25/Shatra` (через `gh` CLI). S
 ### Domain docs
 
 Single-context: `GLOSSARY.md` в корне репозитория + `docs/adr/`. See `docs/agents/domain.md`.
+
+### Decisions & deploy
+
+Решения: `docs/adr/`. Бесплатный деплой: `docs/DEPLOY_RENDER.md`. Бэкенд-тесты локально: `./scripts/test-backend.sh`.
