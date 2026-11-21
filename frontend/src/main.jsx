@@ -4,10 +4,14 @@ import App from './App.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import { initSentry } from './observability/sentry';
 import { initI18n } from './i18n';
+import { registerSW } from 'virtual:pwa-register';
 import './fonts.css';
 import './index.css';
 
 initSentry();
+
+// Service worker для PWA: установка на домашний экран и офлайн-хотсит.
+registerSW({ immediate: true });
 
 initI18n().then(() => {
   const root = createRoot(document.getElementById('root'));

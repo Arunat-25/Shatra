@@ -42,4 +42,28 @@ test.describe('hotseat — партия на одном устройстве', (
     await waitForGameBoard(page, { timeout: 20_000 });
     await expect(page.locator('.waiting-screen')).toHaveCount(0);
   });
+
+  test('офлайн: хотсит доступен после первой загрузки (PWA)', async ({ browser }) => {
+    // По умолчанию Playwright блокирует service workers — включаем явно.
+    const context = await browser.newContext({ serviceWorkers: 'allow' });
+    const page = await context.newPage();
+    try {
+      await page.goto('/local?mode=hotseat');
+      await expect(page.locator('.room-board .kletka svg').first()).toBeVisible({ timeout: 15_000 });
+      // Дать service worker завершить прекэш.
+      await page.evaluate(async () => {
+        const reg = await navigator.serviceWorker.ready;
+        await reg.active; // активный воркер
+      });
+      await page.waitForTimeout(1000);
+
+      await context.setOffline(true);
+      await page.reload();
+      await expect.poll(() => firstCellLabel(page), { timeout: 20_000 }).toBe('1');
+      await expect(page.locator('.room-board .kletka svg').first()).toBeVisible({ timeout: 15_000 });
+      await expect(page.locator('.waiting-screen')).toHaveCount(0);
+    } finally {
+      await context.close();
+    }
+  });
 });
