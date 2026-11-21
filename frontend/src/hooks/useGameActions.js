@@ -104,7 +104,7 @@ export default function useGameActions({
     if (!send(buildCancelGamePayload())) {
       showMessage(t('game.connectionLost'), MSG_WARNING);
     }
-  }, [modeAi, send, showMessage, dispatch, stateRef, t]);
+  }, [modeAi, modeHotseat, send, showMessage, dispatch, stateRef, t]);
 
   const playAgain = useCallback(async () => {
     try {
@@ -149,7 +149,7 @@ export default function useGameActions({
       type: GAME_ACTIONS.SET_REMATCH_STATUS,
       payload: { self_ready: true, opponent_ready: s.rematchOpponentReady },
     });
-  }, [modeAi, send, showMessage, dispatch, stateRef, t]);
+  }, [modeAi, modeHotseat, send, showMessage, dispatch, stateRef, t]);
 
   const drawPending = state.drawOfferFrom != null && state.drawOfferFrom === state.myColor;
   const drawIncoming = state.drawOfferFrom != null && state.drawOfferFrom !== state.myColor;

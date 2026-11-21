@@ -17,6 +17,7 @@ export default function useAuthNavOffset(
 ) {
   const navRef = useRef(null);
 
+  /* eslint-disable react-hooks/exhaustive-deps */
   useLayoutEffect(() => {
     const root = document.documentElement;
 
@@ -88,7 +89,7 @@ export default function useAuthNavOffset(
       root.style.removeProperty('--auth-nav-inset-top');
       root.style.removeProperty('--auth-nav-block-height');
     };
-  }, deps);
+  }, deps); /* eslint-enable react-hooks/exhaustive-deps */
 
   return navRef;
 }

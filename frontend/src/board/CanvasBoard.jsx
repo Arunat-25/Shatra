@@ -235,7 +235,7 @@ export default function CanvasBoard({
       theme: drawTheme,
       vectorOnlySprites,
     });
-  }, [drawTheme, vectorOnlySprites, myColor]);
+  }, [drawTheme, vectorOnlySprites]);
 
   const paintRef = useRef(paint);
   paintRef.current = paint;
@@ -296,7 +296,7 @@ export default function CanvasBoard({
     }
 
     schedulePaint();
-  }, [myColor, schedulePaint, compactViewport]);
+  }, [myColor, schedulePaint]);
 
   useEffect(() => {
     resizeCanvas();

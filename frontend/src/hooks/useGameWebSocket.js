@@ -62,7 +62,7 @@ export default function useGameWebSocket(roomId, modeAi, {
     if (result?.text) {
       showMessageRef.current(result.text, result.type);
     }
-  }, []);
+  }, [myColorRef]);
 
   const handleWsStatus = useCallback((statusInfo) => {
     if (!statusInfo) return;

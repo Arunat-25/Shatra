@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import TutorialLessonLayout from './TutorialLessonLayout';
@@ -121,7 +121,7 @@ export default function CaptureLesson({
     return Boolean(chain && getNextChainHop(chain, chainHistory));
   }, [config.allowPassTurn, captureDone, chainHistory, chainMap, chainStart]);
 
-  const hint = (keyName, raw) => (config[keyName] ? t(config[keyName]) : raw);
+  const hint = useCallback((keyName, raw) => (config[keyName] ? t(config[keyName]) : raw), [config, t]);
 
   const instruction = useMemo(() => {
     if (captureDone) return null;
@@ -134,7 +134,7 @@ export default function CaptureLesson({
       return hint('noMovesHintKey', config.noMovesHint);
     }
     return hint('targetHintKey', config.targetHint);
-  }, [captureDone, selected, config, isChainStep, chainHistory.length, stepPieces, t]);
+  }, [captureDone, selected, config, isChainStep, chainHistory.length, stepPieces, hint]);
 
   const interactive = !captureDone;
 

@@ -97,6 +97,7 @@ export default function Game() {
     navigate(`/${roomId}${qs ? `?${qs}` : ''}`, { replace: true });
   }, [roomId, searchParams, navigate]);
 
+  /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(() => {
     if (state.waiting || state.gameOver || state.viewingHistoryIndex !== null) return;
     if (state.moversColor !== state.myColor) return;
@@ -117,8 +118,7 @@ export default function Game() {
     state.gameOver,
     state.viewingHistoryIndex,
     dispatch,
-  ]);
-
+  ]); /* eslint-enable react-hooks/exhaustive-deps */
   const isBoardBlocked =
     state.gameOver
     || state.aiThinking

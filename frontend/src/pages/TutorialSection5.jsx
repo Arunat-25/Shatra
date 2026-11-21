@@ -61,7 +61,7 @@ export default function TutorialSection5() {
       return getMainFieldShatraTargets(deployBoard, deploySelected);
     }
     return [];
-  }, [isDeployStep, deploySelected, deployComplete, deployBoard, nextDeployCell]);
+  }, [isDeployStep, deploySelected, deployBoard, nextDeployCell]);
 
   const captureHighlights = useMemo(() => {
     if (isDeployStep || !captureSelected || captureDone) return [];

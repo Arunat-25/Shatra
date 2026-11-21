@@ -13,6 +13,7 @@ export default function useLobbyFluidScale(enabled, deps = []) {
   const contentRef = useRef(null);
   const [layout, setLayout] = useState({ scale: 1, hostHeight: null, panelHeight: null });
 
+  /* eslint-disable react-hooks/exhaustive-deps */
   useLayoutEffect(() => {
     if (!enabled) {
       setLayout({ scale: 1, hostHeight: null, panelHeight: null });
@@ -89,6 +90,7 @@ export default function useLobbyFluidScale(enabled, deps = []) {
       panel?.closest('.lobby-layout')?.style.removeProperty('--lobby-panel-height');
     };
   }, [enabled, ...deps]);
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   return { hostRef, contentRef, ...layout };
 }
