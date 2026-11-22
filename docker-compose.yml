@@ -64,9 +64,11 @@ services:
       DATABASE_URL: postgresql+asyncpg://shatra:shatra@postgres:5432/shatra
       CORS_ALLOW_ORIGINS: "*"
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      METRICS_TOKEN: ${METRICS_TOKEN:-}
+      REDIS_URL: ${REDIS_URL:-}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       LOG_FORMAT: ${LOG_FORMAT:-json}
-      APP_ENV: ${APP_ENV:-production}
+      APP_ENV: ${APP_ENV:-development}
       APP_VERSION: ${APP_VERSION:-dev}
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.1}

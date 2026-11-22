@@ -19,7 +19,8 @@ docker compose up --build -d
 При сборке образа фронтенд собирается автоматически (`npm run build` внутри Docker).  
 Миграции БД применяются при старте контейнера `app` (`alembic upgrade head`).
 
-Перед первым запуском задайте `JWT_SECRET` в `.env` (см. ниже).
+Для локального quickstart `.env` не нужен: `APP_ENV` по умолчанию `development`, `METRICS_TOKEN`/`REDIS_URL` опциональны.  
+Для production задайте `JWT_SECRET` (и `METRICS_TOKEN`) в `.env` — см. [docs/DEPLOY_RENDER.md](docs/DEPLOY_RENDER.md).
 
 ### Production deploy
 
