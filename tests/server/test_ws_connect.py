@@ -115,6 +115,40 @@ class TestConnectionManagerConnect:
 
         assert stored["players"]["joiner"] == "черный"
 
+    async def test_unseated_client_reassigns_color_via_join_flow(self, cm, mock_ws):
+        """T2: слот без валидного цвета не должен захватываться reconnect-replace."""
+        room = _room({"player-a": ""})
+
+        with patch("backend.ws_manager.get_room", new_callable=AsyncMock, return_value=room):
+            with patch("backend.ws_manager.set_room", new_callable=AsyncMock):
+                with patch("backend.ws_manager.disconnect_timers", {}):
+                    with patch("backend.ws_manager.start_session", new_callable=AsyncMock):
+                        ok = await cm.connect("room1", mock_ws, "player-a")
+
+        assert ok is True
+        # Сид выдан через обычный join-flow, а не оставлен пустым.
+        # creator (fixture) — белый, joiner — черный.
+        assert room["players"]["player-a"] == "черный"
+
+    async def test_seated_client_reconnect_replaces_stale_websocket(self, cm, mock_ws):
+        """T2: сидящий клиент (цвет есть) при reconnect получает замену сессии."""
+        room = _room({"player-a": "белый"})
+        ws2 = AsyncMock()
+        ws2.accept = AsyncMock()
+        ws2.close = AsyncMock()
+
+        with patch("backend.ws_manager.get_room", new_callable=AsyncMock, return_value=room):
+            with patch("backend.ws_manager.set_room", new_callable=AsyncMock):
+                with patch("backend.ws_manager.disconnect_timers", {}):
+                    with patch("backend.ws_manager.start_session", new_callable=AsyncMock):
+                        with patch("backend.ws_manager.record_ws_connect") as connect:
+                            ok1 = await cm.connect("room1", mock_ws, "player-a")
+                            ok2 = await cm.connect("room1", ws2, "player-a")
+        assert ok1 is True
+        assert ok2 is True
+        assert cm.connections["room1"]["player-a"] is ws2
+        connect.assert_called_with(reason="reconnect_replace")
+
 
 @pytest.mark.asyncio
 class TestConnectionManagerMetrics:

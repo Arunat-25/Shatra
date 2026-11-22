@@ -112,8 +112,9 @@ class ConnectionManager:
                 room_id=room_id,
             )
 
-        # Reconnect: client_id уже в комнате
-        if client_id in players:
+        # Reconnect: client_id уже в комнате и удерживает сид (есть назначенный цвет).
+        # Без цвета слот считается не занятым — сид будет выдан через обычный join-flow.
+        if client_id in players and players.get(client_id):
             existing_ws = self.connections.get(room_id, {}).get(client_id)
             if existing_ws is not None and existing_ws is not websocket:
                 await _close_ws_quietly(existing_ws, code=1000, reason="replaced_by_reconnect")
