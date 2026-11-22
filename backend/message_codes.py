@@ -68,6 +68,7 @@ WS_UNKNOWN_MESSAGE = "ws.unknown_message"
 WS_GAME_OVER = "ws.game_over"
 WS_NOT_YOUR_TURN = "ws.not_your_turn"
 WS_INVALID_MOVE_DATA = "ws.invalid_move_data"
+WS_PASS_NOT_ALLOWED = "ws.pass_not_allowed"
 
 
 def _clean_params(params: dict[str, Any] | None) -> dict[str, Any] | None:

@@ -17,7 +17,8 @@ from backend.game_helpers import (
     persist_pending_mandatory_position,
     _norm_board_keys,
 )
-from backend.message_codes import WS_NOT_YOUR_TURN
+from backend.message_codes import WS_NOT_YOUR_TURN, WS_PASS_NOT_ALLOWED
+from game_engine.validation import get_all_mandatory_captures
 from backend.chat import handle_chat_message
 from backend.ws_control_handlers import CONTROL_MESSAGE_TYPES, dispatch_control_message
 from backend.session.rematch import _decline_draw_offer
@@ -54,6 +55,24 @@ async def _send_reject(
         websocket,
         build_reject(code, ply=ply, snapshot=snapshot, message_params=message_params),
     )
+
+
+def _pass_is_mandatory_capture(game: dict) -> bool:
+    """Пас (передача хода вместо обязательного взятия) разрешён только внутри
+    цепочки взятий биана, когда есть продолжение обязательного захвата
+    (game_rules.md). Вне цепочки пас — нарушение правил и отклоняется."""
+    pending = game.get("pending_mandatory_position")
+    if not pending:
+        return False
+    board_now = _norm_board_keys(game.get("board") or {})
+    piece_name = board_now.get(pending) or ""
+    color = game.get("mover") or ""
+    if "бий" not in piece_name or color not in piece_name:
+        return False
+    mandatory = get_all_mandatory_captures(
+        Board(board_now), color, game.get("pending_batyr_captures") or [],
+    )
+    return any(from_cell == pending for from_cell, _to in mandatory)
 
 
 async def _apply_and_broadcast_move(
@@ -170,6 +189,16 @@ async def _process_v2_client_message_locked(
         return True
 
     if msg_type == "pass":
+        if not _pass_is_mandatory_capture(game):
+            await _send_reject(
+                websocket,
+                WS_PASS_NOT_ALLOWED,
+                game=game,
+                room_data=room_data,
+                my_color=my_color,
+                ply=expected_ply,
+            )
+            return True
         raw_from, raw_to = 0, 0
     elif msg_type == "move":
         raw_from = data.get("from")

@@ -340,6 +340,7 @@
     "time": "Time",
     "pieces": "Pieces",
     "notYourTurn": "Not your turn!",
+    "passNotAllowed": "You can't pass — a mandatory capture is in progress!",
     "connectionLost": "No connection. Wait for reconnect…",
     "connectionRestored": "Connection restored",
     "gameStarted": "Game started!",

@@ -340,6 +340,7 @@
     "time": "Ӧй",
     "pieces": "Таштар",
     "notYourTurn": "Слердиҥ jӱретен ӧй эмес",
+    "passNotAllowed": "Jи jигер джур jӧр эмес",
     "connectionLost": "Соединение jогылып калды. Сакыгар переподключенияны…",
     "connectionRestored": "Соединение восстановлено",
     "gameStarted": "Ойын башталды!",

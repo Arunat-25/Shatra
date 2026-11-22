@@ -84,6 +84,7 @@ const CODE_TO_I18N = {
   'ws.missing_mover': 'errors.malformedMessage',
   'ws.game_over': 'server.error',
   'ws.not_your_turn': 'game.notYourTurn',
+  'ws.pass_not_allowed': 'game.passNotAllowed',
   'ai.no_move': 'server.error',
 
   // WS close reason codes
