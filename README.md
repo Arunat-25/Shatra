@@ -20,7 +20,7 @@ docker compose up --build -d
 Миграции БД применяются при старте контейнера `app` (`alembic upgrade head`).
 
 Для локального quickstart `.env` не нужен: `APP_ENV` по умолчанию `development`, `METRICS_TOKEN`/`REDIS_URL` опциональны.  
-Для production задайте `JWT_SECRET` (и `METRICS_TOKEN`) в `.env` — см. [docs/DEPLOY_RENDER.md](docs/DEPLOY_RENDER.md).
+Для production задайте в `.env` минимум `JWT_SECRET`, `METRICS_TOKEN`, `DATABASE_URL`, `REDIS_URL` — см. [docs/DEPLOY_RENDER.md](docs/DEPLOY_RENDER.md) и [docs/DEPLOY.md](docs/DEPLOY.md).
 
 ### Production deploy
 
