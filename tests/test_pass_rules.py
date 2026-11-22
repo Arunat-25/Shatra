@@ -52,12 +52,6 @@ def pass_env(monkeypatch):
     async def fake_get_room(room_id):
         return room_data
 
-    async def fake_set_game(room_id, data):
-        pass
-
-    async def fake_set_room(room_id, data):
-        pass
-
     async def fake_apply_move_result(*args, **kwargs):
         return {}
 
@@ -66,8 +60,6 @@ def pass_env(monkeypatch):
 
     monkeypatch.setattr(m, "get_game", fake_get_game)
     monkeypatch.setattr(m, "get_room", fake_get_room)
-    monkeypatch.setattr(m, "set_game", fake_set_game)
-    monkeypatch.setattr(m, "set_room", fake_set_room)
     monkeypatch.setattr(m, "get_room_lock", lambda room_id: FakeLock())
     monkeypatch.setattr(m.manager, "send_to_player", fake_send_to_player)
     monkeypatch.setattr(m, "apply_move_result", fake_apply_move_result)

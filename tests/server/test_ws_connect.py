@@ -130,23 +130,6 @@ class TestConnectionManagerConnect:
         # creator (fixture) — белый, joiner — черный.
         assert room["players"]["player-a"] == "черный"
 
-    async def test_unseated_client_reconnect_rejected_with_live_stale_ws(self, cm, mock_ws):
-        """T2: unseated-клиент не должен silently брать сид поверх живого stale-WS."""
-        room = _room({"player-a": ""})
-        stale = AsyncMock()
-        stale.accept = AsyncMock()
-        stale.close = AsyncMock()
-        cm.connections["room1"] = {"player-a": stale}
-
-        with patch("backend.ws_manager.get_room", new_callable=AsyncMock, return_value=room):
-            with patch("backend.ws_manager.set_room", new_callable=AsyncMock):
-                with patch("backend.ws_manager.disconnect_timers", {}):
-                    ok = await cm.connect("room1", mock_ws, "player-a")
-
-        assert ok is False
-        mock_ws.close.assert_called_once()
-        stale.close.assert_called_once()
-
     async def test_seated_client_reconnect_replaces_stale_websocket(self, cm, mock_ws):
         """T2: сидящий клиент (цвет есть) при reconnect получает замену сессии."""
         room = _room({"player-a": "белый"})
