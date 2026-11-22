@@ -9,7 +9,7 @@ from fastapi import WebSocket
 from backend.message_codes import ws_error
 from backend.player_identity import display_name
 from backend.state import get_room, set_room
-from backend import state as _state
+from backend import state
 from backend.ws_manager import manager
 
 CHAT_MAX_LENGTH = 200
@@ -58,7 +58,7 @@ def sanitize_chat_text(raw: str) -> str | None:
 
 
 async def _check_rate_limit(room_id: str, client_id: str) -> bool:
-    rc = _state.redis_client
+    rc = state.redis_client
     if rc is None:
         return True
     key = f"chat_rate:{room_id}:{client_id}"
