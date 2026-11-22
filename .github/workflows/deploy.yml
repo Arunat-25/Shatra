@@ -1,7 +1,8 @@
 name: Deploy
-
 on:
-  push:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
     branches: [main, master]
 
 concurrency:
@@ -10,6 +11,7 @@ concurrency:
 
 jobs:
   deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     env:
       DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
