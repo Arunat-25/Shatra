@@ -18,7 +18,6 @@ from backend.game_helpers import (
     _norm_board_keys,
 )
 from backend.message_codes import WS_NOT_YOUR_TURN, WS_PASS_NOT_ALLOWED
-from game_engine.validation import get_all_mandatory_captures
 from backend.chat import handle_chat_message
 from backend.ws_control_handlers import CONTROL_MESSAGE_TYPES, dispatch_control_message
 from backend.session.rematch import _decline_draw_offer
@@ -57,22 +56,15 @@ async def _send_reject(
     )
 
 
-def _pass_is_mandatory_capture(game: dict) -> bool:
+def _pass_is_allowed(game: dict) -> bool:
     """Пас (передача хода вместо обязательного взятия) разрешён только внутри
     цепочки взятий биана, когда есть продолжение обязательного захвата
     (game_rules.md). Вне цепочки пас — нарушение правил и отклоняется."""
     pending = game.get("pending_mandatory_position")
     if not pending:
         return False
-    board_now = _norm_board_keys(game.get("board") or {})
-    piece_name = board_now.get(pending) or ""
     color = game.get("mover") or ""
-    if "бий" not in piece_name or color not in piece_name:
-        return False
-    mandatory = get_all_mandatory_captures(
-        Board(board_now), color, game.get("pending_batyr_captures") or [],
-    )
-    return any(from_cell == pending for from_cell, _to in mandatory)
+    return bool(logic.has_mandatory_from_position(_norm_board_keys(game.get("board") or {}), color, pending))
 
 
 async def _apply_and_broadcast_move(
@@ -189,7 +181,8 @@ async def _process_v2_client_message_locked(
         return True
 
     if msg_type == "pass":
-        if not _pass_is_mandatory_capture(game):
+        if not _pass_is_allowed(game):
+            record_move_rejected(WS_PASS_NOT_ALLOWED)
             await _send_reject(
                 websocket,
                 WS_PASS_NOT_ALLOWED,

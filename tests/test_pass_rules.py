@@ -107,10 +107,10 @@ async def test_pass_allowed_in_mandatory_capture_chain(pass_env, monkeypatch):
     ws = env["ws"]
     game["pending_mandatory_position"] = 25
 
-    async def fake_mandatory(board, color, batyr_captured_this_turn):
-        return [(25, 19)]
+    async def fake_has_mandatory(cells, color, pos=None):
+        return True
 
-    monkeypatch.setattr(m, "get_all_mandatory_captures", fake_mandatory)
+    monkeypatch.setattr(m.logic, "has_mandatory_from_position", fake_has_mandatory)
 
     ok = await process_v2_client_message(
         "passtest", "c1", {"v": 2, "t": "pass", "ply": 4}, ws, is_ai_room=False,
