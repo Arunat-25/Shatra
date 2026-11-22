@@ -162,7 +162,9 @@ class ConnectionManager:
             return True
 
         # Новый игрок
-        if len(players) >= 2:
+        # Считаем только занятые сидами (с цветом) — пустые слоты не блокируют комнату.
+        seated_count = sum(1 for col in players.values() if col)
+        if seated_count >= 2:
             # Комната заполнена
             await websocket.close(code=1008, reason="room_full")
             record_ws_reject("room_full")
