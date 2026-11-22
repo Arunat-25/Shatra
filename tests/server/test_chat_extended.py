@@ -56,7 +56,7 @@ class TestRateLimit:
         mock_redis.incr = incr
         mock_redis.expire = AsyncMock()
 
-        with patch("backend.chat.redis_client", mock_redis):
+        with patch("backend.state.redis_client", mock_redis):
             for i in range(CHAT_RATE_LIMIT):
                 assert await _check_rate_limit("r", "c") is True
             assert await _check_rate_limit("r", "c") is False
