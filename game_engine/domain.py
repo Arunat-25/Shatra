@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 from enum import Enum
+from functools import lru_cache
 
 
 class Color(str, Enum):
@@ -38,8 +39,9 @@ class PieceType(str, Enum):
         raise ValueError(f"Неизвестный тип фигуры: {value!r}")
 
 
+@lru_cache(maxsize=512)
 def parse_piece_name(name: str) -> tuple[Color, PieceType]:
-    """«белая шатра» → (Color.WHITE, PieceType.SHATRA)."""
+    """«белая шатра» → (Color.WHITE, PieceType.SHATRA). Мемоизируемая функция чистого парсинга (H7)."""
     if not name:
         raise ValueError("Пустое имя фигуры")
     color = Color.WHITE if "бел" in name else Color.BLACK

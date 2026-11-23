@@ -9,11 +9,17 @@ from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
 from game_engine.board import Board
+from game_engine.models import GameEventResult
 from game_engine.dictionaries import shatra_and_biy_possible_captures
 from game_engine.endgame import is_game_over
-from game_engine.hints import get_hints
+from game_engine.hints import get_hints as _get_hints_impl
 from game_engine.moves import process_move
-from game_engine.validation import find_captured_enemy, get_all_mandatory_captures
+from game_engine.validation import (
+    board_cells_key,
+    clear_mandatory_captures_cache,
+    find_captured_enemy,
+    get_all_mandatory_captures,
+)
 from backend.ai_geometry import (
     DANGER_ZONE_CELLS,
     SIDE_FILE_CELLS,
@@ -39,6 +45,43 @@ _DETERMINISTIC_FALLBACK = False
 _TT: dict | None = None
 _MAX_MOVES_PER_NODE: int | None = None  # override MAX_MOVES_PER_NODE when set
 _MAX_TIME_LIMIT: float | None = None  # strong AI: fixed cap (seconds)
+
+_CAPTURABLE_CACHE: dict = {}
+_CAPTURABLE_CACHE_MAX = 200_000
+_HINTS_CACHE: dict = {}
+_HINTS_CACHE_MAX = 200_000
+
+
+def clear_search_caches() -> None:
+    """Переводит все поисковые кэши на новый поиск (ai_trained вызывает в начале)."""
+    _CAPTURABLE_CACHE.clear()
+    _HINTS_CACHE.clear()
+    clear_mandatory_captures_cache()
+
+
+def get_hints(cells, current_color, from_cell, batyr_captured_this_turn=None, chain_capture_cell=None):
+    """Подсказки фигуры — кэшируемый (чистая функция от доски/цвета/фигуры). H5."""
+    key = (
+        board_cells_key(cells),
+        current_color,
+        from_cell,
+        tuple(batyr_captured_this_turn or ()),
+        chain_capture_cell,
+    )
+    hit = _HINTS_CACHE.get(key)
+    if hit is not None:
+        # Копируем на возврат: у нас общий кэшированный объект — никто не должен мутировать его внешне.
+        return GameEventResult(
+            essential_positions=list(hit.essential_positions or []),
+            captured_pieces=list(hit.captured_pieces or []),
+        )
+    result = _get_hints_impl(
+        cells, current_color, from_cell, batyr_captured_this_turn, chain_capture_cell,
+    )
+    if len(_HINTS_CACHE) >= _HINTS_CACHE_MAX:
+        _HINTS_CACHE.clear()
+    _HINTS_CACHE[key] = result
+    return result
 
 
 def _w():
@@ -153,8 +196,22 @@ def _clear_promotion_path(cells: dict, color: str, cell: int) -> bool:
     return True
 
 def _is_cell_capturable(cells: dict, by_color: str, target_cell: int) -> bool:
+    """Может ли target_cell захватить by_color? Кэшируется по (доска, цвет, клетка) —
+    это чистая предикат и поиск делает одинаковые запросы на одной ноде (H2/H3)."""
     if cells.get(target_cell) is None:
         return False
+    key = (board_cells_key(cells), by_color, target_cell)
+    hit = _CAPTURABLE_CACHE.get(key)
+    if hit is not None:
+        return hit
+    result = _compute_is_cell_capturable(cells, by_color, target_cell)
+    if len(_CAPTURABLE_CACHE) >= _CAPTURABLE_CACHE_MAX:
+        _CAPTURABLE_CACHE.clear()
+    _CAPTURABLE_CACHE[key] = result
+    return result
+
+
+def _compute_is_cell_capturable(cells: dict, by_color: str, target_cell: int) -> bool:
     board = Board(cells)
     for fm, to in get_all_mandatory_captures(board, by_color, []):
         p = board.get_piece_object(fm)
@@ -799,7 +856,7 @@ def _captured_enemy_type(cells, color, fm, to):
 
 def _creates_mandatory_capture_for_opp(cells, ai_color, move):
     fm, to = move
-    result = process_move(copy.deepcopy(cells), ai_color, fm, to,
+    result = process_move(cells, ai_color, fm, to,
                           chain_capture_cell=None, batyr_captured_this_turn=[], position_history={})
     if not result.updated_positions:
         return False

@@ -12,6 +12,19 @@ def _dbg(*_args, **_kwargs):
     return None
 
 
+def board_cells_key(cells: dict) -> tuple:
+    """Stable cache key: board content (keys are unique ints, values may be None)."""
+    return tuple(sorted(cells.items()))
+
+
+_MANDATORY_CACHE: dict = {}
+_MANDATORY_CACHE_MAX = 200_000
+
+
+def clear_mandatory_captures_cache() -> None:
+    _MANDATORY_CACHE.clear()
+
+
 def get_all_mandatory_captures(
     board: Board,
     color: str,
@@ -21,9 +34,21 @@ def get_all_mandatory_captures(
     
     Единая логика: для каждой фигуры перебираются все возможные цели из словарей,
     и проверяется piece.can_capture(). Это гарантирует полное совпадение с validate_move().
+
+    Кэшируется по (доска, цвет, пойманные батыры) — функция чистая, поиск задаёт
+    много одинаковых запросов на одной ноде (H1).
     """
     if batyr_captured_this_turn is None:
         batyr_captured_this_turn = []
+
+    key = (
+        board_cells_key(board.cells),
+        color,
+        tuple(batyr_captured_this_turn),
+    )
+    hit = _MANDATORY_CACHE.get(key)
+    if hit is not None:
+        return list(hit)
 
     mandatory = []
     cells = board.cells
@@ -50,7 +75,11 @@ def get_all_mandatory_captures(
             if piece.can_capture(cells, pos, to_cell, batyr_captured_this_turn):
                 mandatory.append((pos, to_cell))
 
-    return mandatory
+    result = tuple(mandatory)
+    if len(_MANDATORY_CACHE) >= _MANDATORY_CACHE_MAX:
+        _MANDATORY_CACHE.clear()
+    _MANDATORY_CACHE[key] = result
+    return list(result)
 
 
 def batyr_can_continue_capture(

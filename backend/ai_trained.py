@@ -39,6 +39,7 @@ def get_best_move(
     position_history: dict | None = None,
 ) -> Optional[Move]:
     weights = _resolve_weights()
+    ai.clear_search_caches()
     prev_tf = ai._TIME_FACTOR
     prev_det = ai._DETERMINISTIC_FALLBACK
     prev_tt = ai._TT
