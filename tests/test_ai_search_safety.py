@@ -72,6 +72,9 @@ def test_time_check_in_move_loop_returns_without_hanging():
 
 def test_strong_has_higher_move_limit():
     board = get_starting_board()
+    # Страховка: AI-задача предыдущего теста, уничтоженная недоигранной,
+    # могла не выполнить finally и оставить кап висеть.
+    ai._MAX_MOVES_PER_NODE = None
     original = ai_trained._base_get_best_move
     seen = []
 

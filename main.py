@@ -111,6 +111,10 @@ _images_dir = REACT_DIST / "images"
 if _images_dir.is_dir():
     app.mount("/images", StaticFiles(directory=str(_images_dir)), name="site_images")
 
+_pwa_icons_dir = REACT_DIST / "icons"
+if _pwa_icons_dir.is_dir():
+    app.mount("/icons", StaticFiles(directory=str(_pwa_icons_dir)), name="pwa_icons")
+
 
 # === Observability (ДО catch-all) ===
 
@@ -203,7 +207,35 @@ async def ws_endpoint(websocket: WebSocket, room_id: str):
     await websocket_endpoint_v2(websocket, room_id)
 
 
-# === SPA (catch-all — ДОЛЖЕН БЫТЬ ПОСЛЕДНИМ) ===
+# === Корневые файлы dist + SPA-фолбэк (перед catch-all) ===
+
+_DIST_MEDIA_TYPES = {
+    ".js": "application/javascript",
+    ".webmanifest": "application/manifest+json",
+    ".svg": "image/svg+xml",
+    ".png": "image/png",
+    ".ogg": "audio/ogg",
+}
+
+
+@app.get("/{dist_root_file}", include_in_schema=False)
+async def dist_root_file(dist_root_file: str):
+    """Корневые файлы dist (sw.js, workbox-*.js, manifest.webmanifest, favicon.svg).
+
+    Регистрируется последним, но ДО catch-all: иначе SPA отдал бы index.html
+    вместо service worker'а и его workbox-чанков (PWA ломается). Для
+    несуществующих путей ведёт себя как SPA-фолбэк (room-ссылки /abc123).
+    """
+    candidate = (REACT_DIST / dist_root_file).resolve()
+    try:
+        candidate.relative_to(REACT_DIST.resolve())
+    except ValueError:
+        raise HTTPException(status_code=404) from None
+    if candidate.is_file() and candidate.name != "index.html":
+        media_type = _DIST_MEDIA_TYPES.get(candidate.suffix, "application/octet-stream")
+        return FileResponse(candidate, media_type=media_type)
+    return FileResponse(REACT_DIST / "index.html", media_type="text/html")
+
 
 @app.get("/")
 @app.get("/{path:path}")

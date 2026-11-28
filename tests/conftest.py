@@ -179,10 +179,17 @@ def reset_in_memory_room_state():
         if task is not None and hasattr(task, "cancel") and not task.done():
             task.cancel()
     state.game_timers.clear()
+    # AI-задача, уничтоженная недоигранной при закрытии loop'а, оставляет
+    # сильный кап висеть глобально (finally не успевает выполниться) —
+    # сбрасываем между тестами.
+    import backend.ai as ai
+
+    ai._MAX_MOVES_PER_NODE = None
     yield
     state._room_locks.clear()
     state.disconnect_timers.clear()
     state.game_timers.clear()
+    ai._MAX_MOVES_PER_NODE = None
 
 
 @pytest.fixture
